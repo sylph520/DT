@@ -9,7 +9,10 @@
 
 #include <stdio.h>
 #include <tchar.h>
-
-
+#include <vector>
+#include <opencv.hpp>
+#include <string>
+using namespace std;
+using namespace cv;
 
 // TODO: reference additional headers your program requires here

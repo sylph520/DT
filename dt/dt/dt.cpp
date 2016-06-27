@@ -2,14 +2,12 @@
 //
 
 #include "stdafx.h"
-#include "opencv.hpp"
-using namespace cv;
-using namespace std;
+#include "diagram.h"
+
+
 int _tmain(int argc, _TCHAR* argv[])
-{
-	
-	
-	
+{	
+	test_diagram();
 	cvWaitKey(0);
 	return 0;
 }
