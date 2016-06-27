@@ -7,7 +7,7 @@ using namespace cv;
 using namespace std;
 int _tmain(int argc, _TCHAR* argv[])
 {
-
+	
 	
 	
 	cvWaitKey(0);
