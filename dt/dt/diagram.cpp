@@ -213,7 +213,7 @@ bool on_line(Vec4i line, Vec2i pt)
 
 bool same_pt(Vec2i pt1, Vec2i pt2)
 {
-	double eps = 7;//to be set parameter
+	double eps = 8;//to be set parameter
 	if (p2pdistance(pt1, pt2) <= eps)
 		return true;
 	else
@@ -318,7 +318,7 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 }
 void detect_line(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& basicEndpoints)
 {
-	HoughLinesP(diagram_segwithoutcircle, lines, 1, CV_PI / 180, 30, 30, 10);
+	HoughLinesP(diagram_segwithoutcircle, lines, 1, CV_PI / 180, 30, 5, 10);
 	vector<Vec2i> temp_points;
 	// store all the initial points to a vector for handling
 	for (size_t i = 0; i < lines.size(); ++i)
@@ -446,7 +446,7 @@ void detect_line(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &li
 	for (size_t i = 0; i < newlines.size(); i++)
 	{
 		Vec2i pt1 = { newlines[i][0], newlines[i][1] }; Vec2i pt2 = { newlines[i][2], newlines[i][3] };
-		line(color_img, Point(pt1[0], pt1[1]), Point(pt2[0], pt2[1]), Scalar(0, 255, 0), 1, 8, 0);
+		line(color_img, Point(pt1[0], pt1[1]), Point(pt2[0], pt2[1]), Scalar(0, 255, 0), 2, 8, 0);
 	}
 	namedWindow("points test");
 	cv::imshow("points test", color_img);
@@ -519,6 +519,137 @@ void point_on_circle_line_check(vector<Vec2i> basicEndpoints, vector<Vec3f> circ
 	cout << points.size() << endl;
 }
 
+bool intersection(Vec2i o1, Vec2i p1, Vec2i o2, Vec2i p2,
+	Vec2i &r)
+{
+	Vec2i x = o2 - o1;
+	Vec2i d1 = p1 - o1;
+	Vec2i d2 = p2 - o2;
+
+	float cross = d1[0] * d2[1] - d1[1] * d2[0];
+	if (abs(cross) < /*EPS*/1e-8)
+		return false;
+
+	double t1 = (x[0] * d2[1] - x[1] * d2[0]) / cross;
+	r = o1 + d1 * t1;
+	return true;
+}
+void detect_line2(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points)
+{
+	HoughLinesP(diagram_segwithoutcircle, lines, 1, CV_PI / 180, 30, 30, 10);
+	//vector<Vec2i> temp_points;
+	for (size_t i = 0; i < lines.size(); ++i)
+	{
+		Vec2i pt1 = { lines[i][0], lines[i][1] }; Vec2i pt2 = { lines[i][2], lines[i][3] };
+		temp_points.push_back(pt1); temp_points.push_back(pt2);
+	}
+	// sort the points with a clear rule
+	std::sort(temp_points.begin(), temp_points.end(), [](Vec2i a, Vec2i b)
+	{
+		if (a[0] != b[0])
+			return (a[0] < b[0]);
+		else
+			return (a[1] < b[1]);
+	});
+	cout << "test point" << endl;
+	// handle the similar points
+	for (vector<Vec2i>::iterator iter1 = temp_points.begin(); iter1 != temp_points.end(); iter1++)
+	{
+		for (vector<Vec2i>::iterator iter2 = iter1 + 1; iter2 != temp_points.end();)
+		{
+			if (same_pt(*iter1, *iter2))
+			{
+
+				//erase iter2 element
+				if (iter2 != temp_points.end())
+					iter2 = temp_points.erase(iter2);
+				else
+				{
+					temp_points.pop_back();
+				}
+					
+			}
+			else
+			{
+				iter2++;
+			}
+		}
+	}
+	//handle the intersection and add to the set
+	vector<Vec4i> newlines;
+	for (int i = 0; i < temp_points.size(); ++i)
+	{
+		Vec2i pt1 = temp_points[i];
+		for (int j = i + 1; j < temp_points.size(); ++j)
+		{
+			Vec2i pt2 = temp_points[j];
+			bool flag = false;
+			for (int k = 0; k < lines.size(); ++k)
+			{
+				Vec4i l = lines[k]; Vec2i pt3 = { l[0], l[1] }; Vec2i pt4 = { l[2], l[3] };
+				if ((same_pt(pt1, pt3) && same_pt(pt2, pt4)) || (same_pt(pt1, pt4) && same_pt(pt2, pt3)))
+				{
+					flag = true;
+					break;
+				}
+			}
+			if (flag)
+			{
+				Vec4i newline = { pt1[0], pt1[1], pt2[0], pt2[1] };
+				newlines.push_back(newline);
+			}
+		}
+	}
+	cout << newlines.size() << endl;
+	lines.clear();
+	lines.assign(newlines.begin(), newlines.end());
+	cout << "line size after removing the line with the removed points: "<<lines.size() << endl;
+	// this is meant to detect the crosses which is not the end point of line
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		Vec4i line1 = lines[i]; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
+
+		for (size_t j = i + 1; j < lines.size(); j++)
+		{
+			Vec4i line2 = lines[j]; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
+			Vec2i cross_cal;
+			bool have_line_cross = intersection(pt1, pt2, pt3, pt4, cross_cal);
+			if (have_line_cross)
+			{
+				bool similar_flag = false;
+				for (size_t k = 0; k < temp_points.size(); ++k)
+				{
+					if (same_pt(cross_cal, temp_points[k]))
+					{
+						similar_flag = true;
+						break;
+					}
+				}
+				if (!similar_flag)
+					temp_points.push_back(cross_cal);
+			}
+		}
+	}
+	for (size_t i = 0; i < temp_points.size(); ++i)
+	{
+		cout << temp_points[i][0] << ", " << temp_points[i][1] << endl;
+	}
+	cout << temp_points.size() << endl;
+	
+	for (size_t i = 0; i < temp_points.size(); i++)
+	{
+		Vec2i pt1 = temp_points[i];
+		Scalar temp_color = Scalar((rand() % 255), (rand() % 255), (rand() % 255));
+		cv::circle(color_img, Point(pt1[0], pt1[1]), 1, temp_color, 5, 8, 0);
+	}
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		Vec2i pt1 = { lines[i][0], lines[i][1] }; Vec2i pt2 = { lines[i][2], lines[i][3] };
+		line(color_img, Point(pt1[0], pt1[1]), Point(pt2[0], pt2[1]), Scalar(0, 255, 0), 1, 8, 0);
+	}
+	namedWindow("points test");
+	cv::imshow("points test", color_img);
+}
 void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles)
 {
 	// primitive about points, lines, and circles
@@ -546,7 +677,7 @@ void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> 
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates);
 	// then the line detection
 	vector<Vec4i> line_candidates; vector<Vec2i> basicEndpoints;
-	detect_line(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
+	detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
 	cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
 	// for points check if they are in circles
 	point_on_circle_line_check(basicEndpoints, circle_candidates, circles, line_candidates, lines, points);
