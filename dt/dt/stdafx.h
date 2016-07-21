@@ -11,7 +11,11 @@
 #include <tchar.h>
 #include <vector>
 #include <opencv.hpp>
+#include <iostream>
 #include <string>
+#include <set>
+#include <utility>
+#include <iomanip>
 using namespace std;
 using namespace cv;
 

@@ -1,5 +1,6 @@
 # include "stdafx.h"
 # include "diagram.h"
+#include "zhangsuen.h"
 Mat image_binarizing(Mat input_image)
 {
 	/* This function is used for transform image to its binarized image */
@@ -178,7 +179,7 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 		}
 	}
 	namedWindow("graygeo blob without circles"); cv::imshow("graygeo blob without circles", diagram_segwithoutcircle);
-	//namedWindow("colorgeo"); cv::imshow("colorgeo", color_img);
+	namedWindow("colorgeo"); cv::imshow("colorgeo", color_img);
 }
 
 int Sgn(double d)
@@ -541,7 +542,11 @@ void detect_line2(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 	for (size_t i = 0; i < lines.size(); ++i)
 	{
 		Vec2i pt1 = { lines[i][0], lines[i][1] }; Vec2i pt2 = { lines[i][2], lines[i][3] };
-		temp_points.push_back(pt1); temp_points.push_back(pt2);
+		if (pt1[0] > 0 && pt1[1] > 0 && pt2[0] > 0 && pt2[1] > 0)
+		{
+			temp_points.push_back(pt1); temp_points.push_back(pt2);
+		}
+
 	}
 	// sort the points with a clear rule
 	std::sort(temp_points.begin(), temp_points.end(), [](Vec2i a, Vec2i b)
@@ -650,6 +655,51 @@ void detect_line2(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 	namedWindow("points test");
 	cv::imshow("points test", color_img);
 }
+float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
+{
+	// compute the points number which is on the line
+	float maxDist = 1.0f; int count = 0;
+	vector<Point2f> edgePositions;
+	edgePositions = getPointPositions(diagram_segwithoutcircle);
+	Vec2i pt1 = { rawLine[0], rawLine[1] }; Vec2i pt2 = { rawLine[2], rawLine[3] };
+	int smaller_x = (pt1[0] < pt2[0]) ? pt1[0] : pt2[0]; 
+	int bigger_x = (pt1[0] > pt2[0]) ? pt1[0] : pt2[0]; 
+	int smaller_y = (pt1[1] < pt2[1]) ? pt1[1] : pt2[1];
+	int bigger_y = (pt1[1] > pt2[1]) ? pt1[1] : pt2[1];
+	for (int i = smaller_x; i < bigger_x; ++i)
+	{
+		for (int j = smaller_y; j < bigger_y; ++j)
+		{
+			Point2f testPoint = CvPoint(i, j);
+			Vec2i tp = { i, j };
+			if (find(edgePositions.begin(), edgePositions.end(), testPoint) != edgePositions.end())
+			{
+				float d1 = norm(pt1 - tp);
+				float d2 = norm(pt2 - tp);
+				float d = norm(pt1 - pt2);
+				float dist = d1 + d2 - d;
+				if (dist < maxDist)
+					count++;
+			}
+		}
+	}
+	return count;
+}
+void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points)
+{
+	vector<Vec4i> rawLines;
+	HoughLinesP(diagram_segwithoutcircle, rawLines, 1, CV_PI / 180, 15, 15, 10);
+	for (size_t i = 0; i < rawLines.size(); ++i)
+	{
+		Vec4i rawLine = rawLines[i];
+		float lineEV = evaluateLine(diagram_segwithoutcircle, rawLine);
+		if (lineEV > 15)
+		{
+			lines.push_back(rawLine);
+			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(0, 0, 0), 6, 8);
+		}
+	}
+}
 void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles)
 {
 	// primitive about points, lines, and circles
@@ -657,28 +707,16 @@ void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> 
 	// processing step
 	vector<Vec3f> circle_candidates; Mat color_img; cvtColor(diagram_segment, color_img, CV_GRAY2RGB);
 	Mat diagram_segwithoutcircle;
-	/*hough go*/
-	//HoughCircles(diagram_segment, circle_candidates, HOUGH_GRADIENT, 2, diagram_segment.rows / 6, 60, 60);
-	//for (size_t i = 0; i < circle_candidates.size(); i++)
-	//{
-	//	Point center(cvRound(circle_candidates[i][0]), cvRound(circle_candidates[i][1]));
-	//	int radius = cvRound(circle_candidates[i][2]);
-	//	// draw the circle center
-	//	circle(color_img, center, 3, Scalar(0, 255, 0), -1, 8, 0);
-	//	// draw the circle outline
-	//	circle(color_img, center, radius, Scalar(0, 0, 255), 3, 8, 0);
-	//}
-	//namedWindow("circles", 1);
-	//imshow("circles", color_img);
-	/*mser blob go*/
-	//Ptr<MSER> ms = MSER::create();
-	//
+
 	/*ransac go*/
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates);
+
 	// then the line detection
 	vector<Vec4i> line_candidates; vector<Vec2i> basicEndpoints;
-	detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
+	detect_line3(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
+	//detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
 	cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
+	
 	// for points check if they are in circles
 	point_on_circle_line_check(basicEndpoints, circle_candidates, circles, line_candidates, lines, points);
 	for (int i = 0; i < points.size(); ++i)
@@ -696,14 +734,12 @@ void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> 
 		}
 		cout << endl;
 	}
-
-
 }
 
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("000.jpg", 0);
+	Mat image = imread("Sg-2.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
