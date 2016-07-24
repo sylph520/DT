@@ -182,8 +182,8 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
 		}
 	}
-	namedWindow("graygeo blob without circles"); cv::imshow("graygeo blob without circles", diagram_segwithoutcircle);
-	namedWindow("colorgeo"); cv::imshow("colorgeo", color_img);
+	//namedWindow("graygeo blob without circles"); cv::imshow("graygeo blob without circles", diagram_segwithoutcircle);
+	//namedWindow("colorgeo"); cv::imshow("colorgeo", color_img);
 }
 
 int Sgn(double d)
@@ -453,8 +453,8 @@ void detect_line(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &li
 		Vec2i pt1 = { newlines[i][0], newlines[i][1] }; Vec2i pt2 = { newlines[i][2], newlines[i][3] };
 		line(color_img, Point(pt1[0], pt1[1]), Point(pt2[0], pt2[1]), Scalar(0, 255, 0), 2, 8, 0);
 	}
-	namedWindow("points test");
-	cv::imshow("points test", color_img);
+	//namedWindow("points test");
+	//cv::imshow("points test", color_img);
 	lines.clear();
 	lines.assign(newlines.begin(), newlines.end());
 	basicEndpoints.clear();
@@ -656,8 +656,8 @@ void detect_line2(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		Vec2i pt1 = { lines[i][0], lines[i][1] }; Vec2i pt2 = { lines[i][2], lines[i][3] };
 		line(color_img, Point(pt1[0], pt1[1]), Point(pt2[0], pt2[1]), Scalar(0, 255, 0), 1, 8, 0);
 	}
-	namedWindow("points test");
-	cv::imshow("points test", color_img);
+	//namedWindow("points test");
+	//cv::imshow("points test", color_img);
 }
 float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 {
@@ -689,6 +689,28 @@ float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 	}
 	return count;
 }
+void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i &newpts)
+{
+	int x[4] = { pt1[0], pt2[0], pt3[0], pt4[0] };
+	int y[4] = { pt1[1], pt2[1], pt3[1], pt4[1] };
+	int x1, y1, x2, y2; int idx1, idx2;
+	idx1 = idx2 = 0;
+	x1 = x[0]; x2 = x[0];
+	for (int i = 1; i < 4; ++i)
+	{
+		if (x[i] <= x1)
+		{
+			x1 = x[i];
+			idx1 = i;
+		}
+		else
+		{
+			x2 = x[i];
+			idx2 = i;
+		}
+	}
+	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
+}
 void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points)
 {
 	vector<Vec4i> rawLines;
@@ -699,7 +721,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		//eliminate the false detected lines with few points on it
 		Vec4i rawLine = rawLines[i];
 		float lineEV = evaluateLine(diagram_segwithoutcircle, rawLine);
-		if (lineEV > 30)
+		if (lineEV > 30)//this threshold should be set a litter lower to generate enough line candidates
 		{
 			lines.push_back(rawLine);
 			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(0, 0, 0), 2, 8);
@@ -710,8 +732,77 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		Vec4i l = lines[j];
 		line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
 	}
-	namedWindow("lines first opt version now"); imshow("lines first opt version now", color_img);
+	//namedWindow("lines first opt version now"); imshow("lines first opt version now", color_img);
+	
+	/* then we handle the lines specifically*/
+	/* for lines should be combined 1. colinear 2. */
+	vector<double> angs; vector<double> slopes;
+	for (vector<Vec4i>::iterator iter = lines.begin(); iter != lines.end(); iter++)
+	{
+		
+		// for collinear
+		Vec4i l = *iter; Vec2i ld = { l[2] - l[0], l[3] - l[1] };
+		double slope = (ld[0] <= 3) ?  -1 : ld[1] * 1.0 / ld[0];
+		double ang = (ld[0] <= 3) ? CV_PI / 2 : atan2(ld[1], ld[0]);
+		slopes.push_back(slope);
+		angs.push_back(ang);
+	}
+	for (vector<Vec4i>::iterator iter1 = lines.begin(); iter1 != lines.end();)
+	{
+		Vec4i l1 = *iter1;
+		int i = iter1 - lines.begin();
+		double slope1 = slopes[i];
+		Vec2i pt1 = { l1[0], l1[1] };
+		Vec2i pt2 = { l1[2], l1[3] };
+		Vec2i ld1 = { pt2[0] - pt1[0], pt2[1] - pt1[1] };
+		double length1 = norm(ld1); Vec2f mp1 = (pt1 + pt2) / 2.0;
+		cout << pt1[0] << "," << pt1[1] << "  " << pt2[0] << "," << pt2[1] << endl;
+		for (vector<Vec4i>::iterator iter2 = lines.begin(); iter2 != lines.end();)
+		{
+			if (iter1 != iter2)
+			{			
+				int j = iter2 - lines.begin();
+				double slope2 = slopes[j];		
+				Vec2i pt3 = { lines[j][0], lines[j][1] };
+				Vec2i pt4 = { lines[j][2], lines[j][3] };
+				Vec2i ld2 = { pt4[0] - pt3[0], pt4[1] - pt3[1] };
+				double length2 = norm(ld2); Vec2f mp2 = (pt3 + pt4) / 2.0;
+				cout << pt3[0] << "," << pt3[1] << "  " << pt4[0] << "," << pt4[1] << endl;
+				double sloped = abs(slope1 - slope2);
+				cout << sloped << endl;
+				if (sloped < 0.1)// the slope is considered to be equal 
+				{
+					if (on_line(lines[j], pt1))// the point on line i is on line j 
+					{
+						cout << abs(norm(mp1 - mp2) - (length1 + length2) / 2) << endl;
+						if (abs(norm(mp1 - mp2) - (length1 + length2) / 2) < 15) // the two line are close to be combined
+						{
+							Vec4i newpts;
+							computeNewPoints(pt1, pt2, pt3, pt4, newpts);
+							iter1 = lines.erase(iter1);
+							iter2 = lines.erase(iter2);
+						}				
+						else
+						{
+							iter1++;
+							iter2++;
+						}
+					}
+				}
+				else
+				{
+					iter1++;
+					iter2++;
+				}
+			}
+			else
+			{
+				iter1++;
+			}
 
+		}
+	
+	}
 
 }
 void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles)
