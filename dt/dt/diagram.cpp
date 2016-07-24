@@ -747,7 +747,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		slopes.push_back(slope);
 		angs.push_back(ang);
 	}
-	for (vector<Vec4i>::iterator iter1 = lines.begin(); iter1 != lines.end();)
+	for (vector<Vec4i>::iterator iter1 = lines.begin(); iter1 != lines.end();iter1++)
 	{
 		Vec4i l1 = *iter1;
 		int i = iter1 - lines.begin();
@@ -757,11 +757,13 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		Vec2i ld1 = { pt2[0] - pt1[0], pt2[1] - pt1[1] };
 		double length1 = norm(ld1); Vec2f mp1 = (pt1 + pt2) / 2.0;
 		cout << pt1[0] << "," << pt1[1] << "  " << pt2[0] << "," << pt2[1] << endl;
-		for (vector<Vec4i>::iterator iter2 = lines.begin(); iter2 != lines.end();)
+		for (vector<Vec4i>::iterator iter2 = iter1+1; iter2 != lines.end();)
 		{
+			int ct = 0;
 			if (iter1 != iter2)
 			{			
-				int j = iter2 - lines.begin();
+				
+				int j = iter2 - lines.begin() + ct;
 				double slope2 = slopes[j];		
 				Vec2i pt3 = { lines[j][0], lines[j][1] };
 				Vec2i pt4 = { lines[j][2], lines[j][3] };
@@ -779,29 +781,27 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 						{
 							Vec4i newpts;
 							computeNewPoints(pt1, pt2, pt3, pt4, newpts);
-							iter1 = lines.erase(iter1);
-							iter2 = lines.erase(iter2);
+							*iter1 = newpts;
+							iter2 = lines.erase(iter2);	
+							ct++;
 						}				
 						else
 						{
-							iter1++;
 							iter2++;
 						}
 					}
 				}
 				else
 				{
-					iter1++;
 					iter2++;
 				}
 			}
 			else
 			{
-				iter1++;
+				iter2++;
 			}
 
 		}
-	
 	}
 
 }
