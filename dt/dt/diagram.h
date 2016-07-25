@@ -30,3 +30,4 @@ struct distance_info
 //functions
 int image_parse(Mat image);
 int test_diagram();
+int diagram();
