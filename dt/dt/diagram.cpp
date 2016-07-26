@@ -124,7 +124,7 @@ float evaluateCircle(Mat dt, Point2f center, float radius)
 	return counter;
 }
 
-void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle, vector<Vec3f> &circle_candidates)
+void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle, vector<Vec3f> &circle_candidates, bool showFlag)
 {
 	unsigned int circleN_todetect = 2;
 	diagram_segwithoutcircle = diagram_segment;
@@ -182,8 +182,11 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
 		}
 	}
-	//namedWindow("graygeo blob without circles"); cv::imshow("graygeo blob without circles", diagram_segwithoutcircle);
-	//namedWindow("colorgeo"); cv::imshow("colorgeo", color_img);
+	if (showFlag)
+	{
+		namedWindow("graygeo blob without circles"); cv::imshow("graygeo blob without circles", diagram_segwithoutcircle);
+		namedWindow("colorgeo"); cv::imshow("colorgeo", color_img);
+	}
 }
 
 int Sgn(double d)
@@ -711,16 +714,21 @@ void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i &newpts)
 	}
 	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
 }
-void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points, Mat &drawedImages)
+void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points, Mat &drawedImages, bool showFlag=true)
 {
 	vector<Vec4i> rawLines;
 	HoughLinesP(diagram_segwithoutcircle, rawLines, 1, CV_PI / 180, 15, 15, 10);
-/*	for (size_t j = 0; j < rawLines.size(); ++j)
-	{
-		Vec4i l = rawLines[j];
-		line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 255), 2, 8);
-	}
-	namedWindow("lines first opt version now 2"); imshow("lines first opt version now 2", color_img)*/;
+	//for (size_t j = 0; j < rawLines.size(); ++j)
+	//{
+	//	Vec4i l = rawLines[j];
+	//	line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 255), 2, 8);
+	//}
+	if (showFlag)
+	{ 
+		namedWindow("lines first opt version now 2"); 
+		imshow("lines first opt version now 2", color_img);
+
+	};
 	for (size_t i = 0; i < rawLines.size(); ++i)
 	{
 		//eliminate the false detected lines with few points on it
@@ -737,14 +745,16 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 	//	Vec4i l = lines[j];
 	//	line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
 	//}
-	//namedWindow("lines first opt version now 1"); imshow("lines first opt version now 1", color_img);
+	if (showFlag)
+	{
+		namedWindow("lines first opt version now 1"); imshow("lines first opt version now 1", color_img);
+	}
 	
 	/* then we handle the lines specifically*/
 	/* for lines should be combined 1. colinear 2. */
 	vector<double> angs; vector<double> slopes;
 	for (vector<Vec4i>::iterator iter = lines.begin(); iter != lines.end(); iter++)
 	{
-		
 		// for collinear
 		Vec4i l = *iter; Vec2i ld = { l[2] - l[0], l[3] - l[1] };
 		double slope = (ld[0] <= 3) ?  -1 : ld[1] * 1.0 / ld[0];
@@ -790,7 +800,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 					{
 						cout << abs(norm(mp1 - mp2) - (length1 + length2) / 2) << endl;
 						int dis = (norm(mp1 - mp2) - (length1 + length2) / 2);
-						if ( dis< 10 && dis > -10) // the two line are close to be combined
+						cout << "dis: " << dis << endl;
+						if ( dis< 25 && dis > -25) // the two line are close to be combined
 						{
 							Vec4i newpts;
 							computeNewPoints(pt1, pt2, pt3, pt4, newpts);
@@ -799,7 +810,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 							slopes.erase(slopes.begin() + j);
 							ct++;
 						}
-						else if (dis < -10)
+						else if (dis <= -25)
 						{
 							cout << "test test" << endl;
 							if (length1 < length2)
@@ -807,6 +818,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 								*iter1 = *iter2;
 							}
 							iter2 = lines.erase(iter2);
+							slopes.erase(slopes.begin() + j);
 
 						}
 						else
@@ -836,7 +848,10 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		Vec4i l = lines[j];
 		line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 255, 0), 2, 8);
 	}
-	namedWindow("lines first opt version now"); imshow("lines first opt version now", color_img);
+	if (showFlag)
+	{
+		namedWindow("lines first opt version now"); imshow("lines first opt version now", color_img);
+	}
 	drawedImages = color_img;
 }
 Mat preprocessing(Mat diagram_segment)
@@ -852,20 +867,20 @@ Mat preprocessing(Mat diagram_segment)
 	//namedWindow("closed diagram"); imshow("closed diagram", closed);
 	return closed;
 }
-void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles, Mat &drawedImages)
+void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles, Mat &drawedImages, bool showFlag=true)
 {
 	// primitive about points, lines, and circles
 	//first detect the circle, we can get the matrix of diagram segments without circle for the next
 	// processing step
 	vector<Vec3f> circle_candidates; Mat color_img; cvtColor(diagram_segment, color_img, CV_GRAY2RGB);
 	Mat diagram_segwithoutcircle;
-	diagram_segment = preprocessing(diagram_segment);
+	//diagram_segment = preprocessing(diagram_segment);
 
 	/*ransac go*/
-	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates);
+	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates,showFlag);
 	// then the line detection
 	vector<Vec4i> line_candidates; vector<Vec2i> basicEndpoints;
-	detect_line3(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages);
+	detect_line3(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag);
 	//detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
 	cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
 	
@@ -891,7 +906,7 @@ void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> 
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-1.jpg", 0);
+	Mat image = imread("Sg-4.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -925,7 +940,7 @@ int diagram()
 		image_labelling(binarized_image, labeln, diagram_segment, label_segment);
 		vector<pointX> points; vector<lineX> lines; vector<circleX> circles;
 		Mat drawedImages;
-		primitive_parse(diagram_segment, points, lines, circles, drawedImages);
+		primitive_parse(diagram_segment, points, lines, circles, drawedImages, false);
 		imwrite(saveimgName, drawedImages);
 	}
 	return 0;
