@@ -484,7 +484,7 @@ void point_on_circle_line_check(vector<Vec2i> basicEndpoints, vector<Vec3f> circ
 	vector<Vec4i> line_candidates, vector<lineX> &lines, vector<pointX> &points)
 {
 	bool flag = true;
-	cout << basicEndpoints.size() << endl;
+	//cout << basicEndpoints.size() << endl;
 	for (int i = 0; i < basicEndpoints.size(); ++i)
 	{
 		Vec2i bpoint = basicEndpoints[i];
@@ -524,7 +524,7 @@ void point_on_circle_line_check(vector<Vec2i> basicEndpoints, vector<Vec3f> circ
 		}
 		points.push_back(point);
 	}
-	cout << points.size() << endl;
+	//cout << points.size() << endl;
 }
 
 bool intersection(Vec2i o1, Vec2i p1, Vec2i o2, Vec2i p2,
@@ -714,7 +714,7 @@ void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i &newpts)
 	}
 	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
 }
-void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points, Mat &drawedImages, bool showFlag=true)
+void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
 	vector<Vec4i> rawLines;
 	HoughLinesP(diagram_segwithoutcircle, rawLines, 1, CV_PI / 180, 15, 15, 10);
@@ -753,7 +753,22 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		}
 		namedWindow("lines first opt version now 1"); imshow("lines first opt version now 1", color_img);
 	}
-	
+	else if (fileName != "")
+	{
+		// write into txt
+		ofstream ofile;
+		ofile.open(fileName,ios_base::app);
+		for (size_t k = 0; k < lines.size(); ++k)
+		{
+			Vec4i l = lines[k];
+			cout << l[0] << "," << l[1] << endl << l[2] << "," << l[3] << endl;
+			ofile << l[0] << "," << l[1] << "\n" << l[2] << "," << l[3] << "\n";
+		}
+		ofile << "\n";
+		cout << endl;
+		ofile.close();
+	}
+
 	/* then we handle the lines specifically*/
 	/* for lines should be combined 1. colinear 2. */
 	vector<double> angs; vector<double> slopes;
@@ -770,7 +785,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 	{
 		Vec4i l1 = *iter1;
 		int i = iter1 - lines.begin();// log the location of current line
-		cout << " current the first line: " << i << ";" << endl;
+		//cout << " current the first line: " << i << ";" << endl;
 		double slope1 = slopes[i];
 		
 		Vec2i pt1 = { l1[0], l1[1] };
@@ -785,7 +800,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 			if (iter1 != iter2)
 			{			
 				int j = iter2 - lines.begin() + ct;
-				cout << " currrent the second line: " << j << ";" << endl;
+				//cout << " currrent the second line: " << j << ";" << endl;
 				double slope2 = slopes[j];		
 
 				Vec2i pt3 = { lines[j][0], lines[j][1] };
@@ -796,15 +811,15 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 
 				//cout << pt3[0] << "," << pt3[1] << "  " << pt4[0] << "," << pt4[1] << endl;
 				double sloped = abs(slope1 - slope2);
-				cout << "the slope diff is: "<< sloped << endl;
+				//cout << "the slope diff is: "<< sloped << endl;
 				
 				if (sloped < 0.1)// the slope is considered to be equal 
 				{
 					if (on_line(lines[j], pt1))// the point on line i is on line j, then collinear
 					{
-						cout << abs(norm(mp1 - mp2) - (length1 + length2) / 2) << endl;
+						//cout << abs(norm(mp1 - mp2) - (length1 + length2) / 2) << endl;
 						int dis = (norm(mp1 - mp2) - (length1 + length2) / 2);
-						cout << "dis: " << dis << endl;
+						//cout << "dis: " << dis << endl;
 						if ( dis< 25 && dis > -25) // the two line are close to be combined
 						{
 							Vec4i newpts;
@@ -816,7 +831,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 						}
 						else if (dis <= -25)
 						{
-							cout << "test test" << endl;
+							//cout << "test test" << endl;
 							if (length1 < length2)
 							{
 								*iter1 = *iter2;
@@ -871,7 +886,7 @@ Mat preprocessing(Mat diagram_segment)
 	//namedWindow("closed diagram"); imshow("closed diagram", closed);
 	return closed;
 }
-void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles, Mat &drawedImages, bool showFlag=true)
+void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
 	// primitive about points, lines, and circles
 	//first detect the circle, we can get the matrix of diagram segments without circle for the next
@@ -884,26 +899,26 @@ void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> 
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates,showFlag);
 	// then the line detection
 	vector<Vec4i> line_candidates; vector<Vec2i> basicEndpoints;
-	detect_line3(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag);
+	detect_line3(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
 	//detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
-	cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
+	//cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
 	
 	// for points check if they are in circles
 	point_on_circle_line_check(basicEndpoints, circle_candidates, circles, line_candidates, lines, points);
 	for (int i = 0; i < points.size(); ++i)
 	{
 		pointX point = points[i];
-		cout << "point " << point.p_idx << " ("<<point.px<<", "<< point.py<<") " << " on circle ";
+		//cout << "point " << point.p_idx << " ("<<point.px<<", "<< point.py<<") " << " on circle ";
 		for (int j = 0; j < point.c_idx.size(); ++j)
 		{
-			cout << point.c_idx[j] << ", ";
+			//cout << point.c_idx[j] << ", ";
 		}
 		cout << "on line ";
 		for (int k = 0; k < point.l_idx.size(); ++k)
 		{
-			cout << point.l_idx[k] << ", ";
+			//cout << point.l_idx[k] << ", ";
 		}
-		cout << endl;
+		//cout << endl;
 	}
 }
 
@@ -929,6 +944,7 @@ int diagram()
 	//vector<Mat> images;
 	char abs_path[100] = "D:\\data\\graph-DB";
 	char imageName[150], saveimgName[150];
+	string outputFN = "D:\\data\\graph-DB\\output.txt";
 	for (int i = 1; i < 136; i++)
 	{
 		sprintf_s(imageName, "%s\\Sg-%d.jpg", abs_path, i);
@@ -944,8 +960,8 @@ int diagram()
 		image_labelling(binarized_image, labeln, diagram_segment, label_segment);
 		vector<pointX> points; vector<lineX> lines; vector<circleX> circles;
 		Mat drawedImages;
-		primitive_parse(diagram_segment, points, lines, circles, drawedImages, false);
-		imwrite(saveimgName, drawedImages);
+		primitive_parse(diagram_segment, points, lines, circles, drawedImages, false, outputFN);
+		//imwrite(saveimgName, drawedImages);
 	}
 	return 0;
 }
