@@ -718,11 +718,14 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 {
 	vector<Vec4i> rawLines;
 	HoughLinesP(diagram_segwithoutcircle, rawLines, 1, CV_PI / 180, 15, 15, 10);
-	//for (size_t j = 0; j < rawLines.size(); ++j)
-	//{
-	//	Vec4i l = rawLines[j];
-	//	line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 255), 2, 8);
-	//}
+	if (showFlag)
+	{
+		for (size_t j = 0; j < rawLines.size(); ++j)
+		{
+			Vec4i l = rawLines[j];
+			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 255), 2, 8);
+		}
+	}
 	if (showFlag)
 	{ 
 		namedWindow("lines first opt version now 2"); 
@@ -734,19 +737,20 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		//eliminate the false detected lines with few points on it
 		Vec4i rawLine = rawLines[i];
 		float lineEV = evaluateLine(diagram_segwithoutcircle, rawLine);
-		if (lineEV > 15)//this threshold should be set a litter lower to generate enough line candidates
+		if (lineEV > 10)//this threshold should be set a litter lower to generate enough line candidates
 		{
 			lines.push_back(rawLine);
 			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(0, 0, 0), 2, 8);
 		}
 	}
-	//for (size_t j = 0; j < lines.size(); ++j)
-	//{
-	//	Vec4i l = lines[j];
-	//	line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
-	//}
+
 	if (showFlag)
-	{
+	{	
+		for (size_t j = 0; j < lines.size(); ++j)
+		{
+			Vec4i l = lines[j];
+			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
+		}
 		namedWindow("lines first opt version now 1"); imshow("lines first opt version now 1", color_img);
 	}
 	
@@ -757,7 +761,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 	{
 		// for collinear
 		Vec4i l = *iter; Vec2i ld = { l[2] - l[0], l[3] - l[1] };
-		double slope = (ld[0] <= 3) ?  -1 : ld[1] * 1.0 / ld[0];
+		double slope = (ld[0] <= 3) ?  10000000 : ld[1] * 1.0 / ld[0];
 		double ang = (ld[0] <= 3) ? CV_PI / 2 : atan2(ld[1], ld[0]);
 		slopes.push_back(slope);
 		angs.push_back(ang);
@@ -906,7 +910,7 @@ void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> 
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-4.jpg", 0);
+	Mat image = imread("Sg-3.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
