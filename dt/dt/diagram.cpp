@@ -1,7 +1,7 @@
 # include "stdafx.h"
 # include "diagram.h"
 
-Mat image_binarizing(Mat input_image)
+Mat image_binarizing(Mat input_image, bool showFlag=false)
 {
 	/* This function is used for transform image to its binarized image */
 	int block_size; double c;
@@ -10,23 +10,27 @@ Mat image_binarizing(Mat input_image)
 	//binarizing 
 	adaptiveThreshold(input_image, binarized_image, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, block_size, c);
 	//imwrite("test_geo0.png", binarized_image);
-	//namedWindow("binarized image");
-	//imshow("binarized image", binarized_image);//test binarized image
+	if (showFlag)
+	{
+		namedWindow("1.binarized image");
+		imshow("1.binarized image", binarized_image);//test binarized image
+	}
 	return binarized_image;
 }
 
-void image_labelling(Mat binarized_image,int &labeln, Mat &diagram_segment, vector<Mat> &label_segment)
+void image_labelling(Mat binarized_image,int &labeln, Mat &diagram_segment, vector<Mat> &label_segment, bool showFlag = false)
 {
 	// this function is used to label image with connectedcomponnent analysis, and store the diagram 
 	//and label segment
 	Mat labeled(binarized_image.size(), CV_8UC3);
 	Mat statsMat, centroidMat; Mat labeled_image; vector<Mat> segments;
 	labeln = connectedComponentsWithStats(binarized_image, labeled_image, statsMat, centroidMat, 8, 4);
-	//cout << statsMat << endl;
+	
 	// show the labelling image
 	vector<Vec3b> colors(labeln);
 	colors[0] = Vec3b(0, 0, 0);
 	int dia_idx = 1;
+	
 	// random labelling color generation and segmented image logical matrix
 	for (int label = 1; label < labeln; ++label)
 	{
@@ -49,11 +53,28 @@ void image_labelling(Mat binarized_image,int &labeln, Mat &diagram_segment, vect
 			pixel = colors[label];
 		}
 	}
-	//namedWindow("labeled");
-	//imshow("labeled", labeled);
 	diagram_segment = (labeled_image == dia_idx);
-	//namedWindow("diagram segment");
-	//imshow("diagram segment", diagram_segment);
+	int left = statsMat.at<int>(dia_idx, 0);
+	int top = statsMat.at<int>(dia_idx, 1);
+	int h = statsMat.at<int>(dia_idx, 3);
+	//for (int label = 1; label < labeln; ++label)
+	//{
+	//	Mat seg_mat = ((labeled_image == label));
+	//	int templeft = statsMat.at<int>(label, 0);
+	//	int temptop = statsMat.at<int>(label, 1);
+	//	if (templeft >= left && temptop >= top && temptop <= top + h)
+	//		diagram_segment += (labeled_image == label);
+	//	
+
+	//}
+	if (showFlag)
+	{
+		namedWindow("2.labeled");
+		imshow("2.labeled", labeled);
+		namedWindow("3.diagram segment");
+		imshow("3.diagram segment", diagram_segment); 
+	}
+
 }
 
 vector<Point2f> getPointPositions(Mat bw)
@@ -184,8 +205,8 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 	}
 	if (showFlag)
 	{
-		namedWindow("graygeo blob without circles"); cv::imshow("graygeo blob without circles", diagram_segwithoutcircle);
-		namedWindow("colorgeo"); cv::imshow("colorgeo", color_img);
+		namedWindow("4.graygeo blob without circles"); cv::imshow("4.graygeo blob without circles", diagram_segwithoutcircle);
+		namedWindow("5.colorgeo"); cv::imshow("5.colorgeo", color_img);
 	}
 }
 
@@ -728,8 +749,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 	}
 	if (showFlag)
 	{ 
-		namedWindow("lines first opt version now 2"); 
-		imshow("lines first opt version now 2", color_img);
+		namedWindow("6.lines first opt version now 2"); 
+		imshow("6.lines first opt version now 2", color_img);
 
 	};
 	for (size_t i = 0; i < rawLines.size(); ++i)
@@ -751,7 +772,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 			Vec4i l = lines[j];
 			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
 		}
-		namedWindow("lines first opt version now 1"); imshow("lines first opt version now 1", color_img);
+		namedWindow("7.lines first opt version now 1"); imshow("7.lines first opt version now 1", color_img);
 	}
 	else if (fileName != "")
 	{
@@ -865,11 +886,11 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 	for (size_t j = 0; j < lines.size(); ++j)
 	{
 		Vec4i l = lines[j];
-		line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 255, 0), 2, 8);
+		line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 255, 0), 5, 8);
 	}
 	if (showFlag)
 	{
-		namedWindow("lines first opt version now"); imshow("lines first opt version now", color_img);
+		namedWindow("8.lines first opt version now"); imshow("8.lines first opt version now", color_img);
 	}
 	drawedImages = color_img;
 }
@@ -880,10 +901,12 @@ Mat preprocessing(Mat diagram_segment)
 	Mat eroded, dilated, opened, closed;
 	Mat eroEle, dilEle;
 	eroEle = getStructuringElement(MORPH_RECT, Size(3, 3));
+	morphologyEx(diagram_segment, dilated, MORPH_DILATE, eroEle);
 	//erode(diagram_segment, eroded, eroEle);
+	namedWindow("dilated image"); imshow("dilated image", dilated);
 	//namedWindow("eroded diagram"); imshow("eroded diagram", eroded);
 	morphologyEx(diagram_segment, closed, MORPH_CLOSE, eroEle);
-	//namedWindow("closed diagram"); imshow("closed diagram", closed);
+	namedWindow("closed diagram"); imshow("closed diagram", closed);
 	return closed;
 }
 void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles, Mat &drawedImages, bool showFlag=true, string fileName="")
@@ -925,14 +948,16 @@ void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> 
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-3.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
-	Mat binarized_image = image_binarizing(image);
+
+	Mat binarized_image = image_binarizing(image, true);
+	//binarized_image = preprocessing(binarized_image);
 	// then go on a process of connectivity componnent analysis
 	int labeln; Mat diagram_segment; vector<Mat> label_segment;
-	image_labelling(binarized_image, labeln, diagram_segment, label_segment);
+	image_labelling(binarized_image, labeln, diagram_segment, label_segment,true);
 	vector<pointX> points; vector<lineX> lines; vector<circleX> circles;		Mat drawedImages;
 	primitive_parse(diagram_segment, points, lines, circles, drawedImages);
 	return 0;
