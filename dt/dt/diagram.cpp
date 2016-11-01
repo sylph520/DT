@@ -1,14 +1,25 @@
 # include "stdafx.h"
 # include "diagram.h"
 
+int Sgn(double d)
+{
+	if (d<0)
+		return -1;
+	else
+		return 1;
+}
+
+/*******************************load and segment phase***********************/
 Mat image_binarizing(Mat input_image, bool showFlag=false)
 {
 	/* This function is used for transform image to its binarized image */
+	
 	int block_size; double c;
 	block_size = 13; c = 20;
 	Mat binarized_image;
 	//binarizing 
 	adaptiveThreshold(input_image, binarized_image, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, block_size, c);
+	
 	//imwrite("test_geo0.png", binarized_image);
 	if (showFlag)
 	{
@@ -77,6 +88,11 @@ void image_labelling(Mat binarized_image,int &labeln, Mat &diagram_segment, vect
 
 }
 
+
+/********** *********************detection phase *************************/
+
+/**********point part************/
+
 vector<Point2f> getPointPositions(Mat bw)
 {
 	vector<Point2f> pointPositions;
@@ -91,6 +107,60 @@ vector<Point2f> getPointPositions(Mat bw)
 	return pointPositions;
 }
 
+double p2pdistance(Vec2i pt1, Vec2i pt2)
+{
+	double distance;
+	distance = sqrt(powf((pt1[0] - pt2[0]), 2) + powf((pt1[1] - pt2[1]), 2));
+	return distance;
+}
+
+bool same_pt(Vec2i pt1, Vec2i pt2)
+{
+	double eps = 8;//to be set parameter
+	if (p2pdistance(pt1, pt2) <= eps)
+		return true;
+	else
+		return false;
+}
+
+Vec2i avg_pt(vector<Vec2i> pts)
+{
+	Vec2i new_pt; double xsum = 0.0; double ysum = 0.0;
+	int ptsSize = pts.size();
+	for (size_t i = 0; i < ptsSize; ++i)
+	{
+		xsum += pts[i][0];
+		ysum += pts[i][1];
+	}
+	new_pt = { cvRound(xsum / ptsSize), cvRound(ysum / ptsSize) };
+	return new_pt;
+}
+
+void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i &newpts)
+{
+	/*choose the leftmost and rightmost points in 4 points coz the line is is other */
+	int x[4] = { pt1[0], pt2[0], pt3[0], pt4[0] };
+	int y[4] = { pt1[1], pt2[1], pt3[1], pt4[1] };
+	int x1, y1, x2, y2; int idx1, idx2;
+	idx1 = idx2 = 0;
+	x1 = x[0]; x2 = x[0];
+	for (int i = 1; i < 4; ++i)
+	{
+		if (x[i] <= x1)
+		{
+			x1 = x[i];
+			idx1 = i;
+		}
+		if (x[i]>=x2)
+		{
+			x2 = x[i];
+			idx2 = i;
+		}
+	}
+	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
+}
+
+/*********circle part********/
 inline void getCircle(Point2f &p1, Point2f &p2, Point2f &p3, Point2f &center, float &radius)
 {
 	float x1 = p1.x;float x2 = p2.x;float x3 = p3.x;
@@ -105,7 +175,6 @@ inline void getCircle(Point2f &p1, Point2f &p2, Point2f &p3, Point2f &center, fl
 	radius = sqrt((center.x - x1)*(center.x - x1) + (center.y - y1)*(center.y - y1));
 }
 
-// specific fucntions
 float evaluateCircle(Mat dt, Point2f center, float radius)
 {
 
@@ -210,20 +279,24 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 	}
 }
 
-int Sgn(double d)
+bool on_circle(Vec2i pt, Vec3f circle)
 {
-	if (d<0)
-		return -1;
+	// check if the point pt is on one of the circles,or joints of multiple circles, or nothing to do with circles
+	// joint_flag parameter: 0 means not on any circle, 1 means on a circle, 2 means on two circles and so on
+	int dis = 5;// this parameter is to be set to check on the distance tolerants within the distance between radius and distance of pt and circle center point
+	int count = 0;
+
+	Vec2f center = { circle[0], circle[1] };
+	double radius = circle[2];
+	double distance = p2pdistance(center, pt);
+	if (abs(distance - radius) <= dis)
+		return true;
 	else
-		return 1;
+		return false;
+
 }
 
-double p2pdistance(Vec2i pt1, Vec2i pt2)
-{
-	double distance;
-	distance = sqrt(powf((pt1[0] - pt2[0]), 2) + powf((pt1[1] - pt2[1]), 2));
-	return distance;
-}
+/**************line part****************/
 
 bool on_line(Vec4i line, Vec2i pt)
 {
@@ -239,21 +312,11 @@ bool on_line(Vec4i line, Vec2i pt)
 		return false;
 }
 
-
-bool same_pt(Vec2i pt1, Vec2i pt2)
+bool on_other_noncollinearlines(vector<Vec4i> plainLines, Vec4i temp_line, Vec2i pt)
 {
-	double eps = 8;//to be set parameter
-	if (p2pdistance(pt1, pt2) <= eps)
-		return true;
-	else
-		return false;
-}
-
-bool on_other_noncollinearlines(vector<Vec4i> lines, Vec4i temp_line, Vec2i pt)
-{
-	for (size_t i = 0; i < lines.size(); i++)
+	for (size_t i = 0; i < plainLines.size(); i++)
 	{
-		Vec2i pt1 = { lines[i][0], lines[i][1] }; Vec2i pt2 = { lines[i][2], lines[i][3] };
+		Vec2i pt1 = { plainLines[i][0], plainLines[i][1] }; Vec2i pt2 = { plainLines[i][2], plainLines[i][3] };
 		if ((pt == pt1) || (pt == pt2))
 		{
 			if ((!on_line(temp_line, pt1)) || (!on_line(temp_line, pt2)))
@@ -265,7 +328,7 @@ bool on_other_noncollinearlines(vector<Vec4i> lines, Vec4i temp_line, Vec2i pt)
 	return false;
 }
 
-void findLineEnds(vector<Vec2i> colpoints, vector<Vec2i>& lineEnds, vector<Vec2i>& temp_points, vector<Vec4i> lines)
+void findLineEnds(vector<Vec2i> colpoints, vector<Vec2i>& lineEnds, vector<Vec2i>& plainPoints, vector<Vec4i> plainLines)
 {
 	vector<distance_info> distance_infos;
 	for (vector<Vec2i>::iterator iter1 = colpoints.begin(); iter1 != colpoints.end(); iter1++)
@@ -290,13 +353,13 @@ void findLineEnds(vector<Vec2i> colpoints, vector<Vec2i>& lineEnds, vector<Vec2i
 	for (vector<Vec2i>::iterator iter3 = colpoints.begin(); iter3 != colpoints.end(); iter3++)
 	{
 		Vec2i tempPt1 = *iter3;
-		bool flag = on_other_noncollinearlines(lines, { pt3[0], pt3[1], pt4[0], pt4[1] }, tempPt1);
-		for (vector<Vec2i>::iterator iter4 = temp_points.begin(); iter4 != temp_points.end();)
+		bool flag = on_other_noncollinearlines(plainLines, { pt3[0], pt3[1], pt4[0], pt4[1] }, tempPt1);
+		for (vector<Vec2i>::iterator iter4 = plainPoints.begin(); iter4 != plainPoints.end();)
 		{
 			Vec2i tempPt2 = *iter4;
 			if (tempPt2 == tempPt1 && (tempPt2 != pt3) && (tempPt2 != pt4) && (!flag))
 			{
-				iter4 = temp_points.erase(iter4);
+				iter4 = plainPoints.erase(iter4);
 				count0++;
 				//cout << "iter4 value " << ++count0 <<" "<<tempPt2<< endl;
 				break;
@@ -311,24 +374,14 @@ void findLineEnds(vector<Vec2i> colpoints, vector<Vec2i>& lineEnds, vector<Vec2i
 	//cout << " count0 " << count0 << endl;
 }
 
-Vec2i avg_pt(vector<Vec2i> pts)
-{
-	Vec2i new_pt; double xsum = 0.0; double ysum = 0.0;
-	int ptsSize = pts.size();
-	for (size_t i = 0; i < ptsSize; ++i)
-	{
-		xsum += pts[i][0];
-		ysum += pts[i][1];
-	}
-	new_pt = { cvRound(xsum / ptsSize), cvRound(ysum / ptsSize) };
-	return new_pt;
-}
+
 void erase_pointfrom_set(vector<Vec2i>& set, Vec2i pt)
 {
 	vector<Vec2i>::iterator iter = find(set.begin(), set.end(), pt);
 	if (iter != set.end())
 		set.erase(iter);
 }
+
 Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 {
 	Vec2i pt;
@@ -345,18 +398,20 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 	return pt;
 
 }
-//void detect_line(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& basicEndpoints)
+
+/***************************************ref code*****************************/
+//void detect_line(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& basicEndpoints)
 //{
-//	HoughLinesP(diagram_segwithoutcircle, lines, 1, CV_PI / 180, 30, 5, 10);
-//	vector<Vec2i> temp_points;
+//	HoughLinesP(diagram_segwithoutcircle, plainLines, 1, CV_PI / 180, 30, 5, 10);
+//	vector<Vec2i> plainPoints;
 //	// store all the initial points to a vector for handling
-//	for (size_t i = 0; i < lines.size(); ++i)
+//	for (size_t i = 0; i < plainLines.size(); ++i)
 //	{
-//		Vec2i pt1 = Vec2i(lines[i][0], lines[i][1]); Vec2i pt2 = Vec2i(lines[i][2], lines[i][3]);
-//		temp_points.push_back(pt1); temp_points.push_back(pt2);
+//		Vec2i pt1 = Vec2i(plainLines[i][0], plainLines[i][1]); Vec2i pt2 = Vec2i(plainLines[i][2], plainLines[i][3]);
+//		plainPoints.push_back(pt1); plainPoints.push_back(pt2);
 //	}
 //	// sort the points with a clear rule
-//	std::sort(temp_points.begin(), temp_points.end(), [](Vec2i a, Vec2i b)
+//	std::sort(plainPoints.begin(), plainPoints.end(), [](Vec2i a, Vec2i b)
 //	{
 //		if (a[0] != b[0])
 //			return (a[0] < b[0]);
@@ -368,16 +423,16 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 //	int count = 0;
 //	// a loop through the line candidates, first extend the line with all the points on this line
 //	// and then find the line endpoints with the longest distance and generate the new lines
-//	for (vector<Vec4i>::iterator iter3 = lines.begin(); iter3 != lines.end(); iter3++)
+//	for (vector<Vec4i>::iterator iter3 = plainLines.begin(); iter3 != plainLines.end(); iter3++)
 //	{
 //		Vec4i temp_line = *iter3;
 //		Vec2i pt1 = { temp_line[0], temp_line[1] }; Vec2i pt2 = { temp_line[2], temp_line[3] };
 //
 //		vector<Vec2i>::iterator iter5, iter6;
-//		iter5 = find(temp_points.begin(), temp_points.end(), pt1);
-//		iter6 = find(temp_points.begin(), temp_points.end(), pt2);
+//		iter5 = find(plainPoints.begin(), plainPoints.end(), pt1);
+//		iter6 = find(plainPoints.begin(), plainPoints.end(), pt2);
 //
-//		if (iter5 == temp_points.end() || iter6 == temp_points.end())
+//		if (iter5 == plainPoints.end() || iter6 == plainPoints.end())
 //		{
 //			count++;
 //			continue;
@@ -386,7 +441,7 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 //		{
 //			vector<Vec2i> tempCollinearPoints;
 //			tempCollinearPoints.push_back(pt1); tempCollinearPoints.push_back(pt2);
-//			for (vector<Vec2i>::iterator iter4 = temp_points.begin(); iter4 != temp_points.end(); iter4++)
+//			for (vector<Vec2i>::iterator iter4 = plainPoints.begin(); iter4 != plainPoints.end(); iter4++)
 //			{
 //				Vec2i temp_pt = *iter4;
 //				if (on_line(temp_line, temp_pt))
@@ -402,7 +457,7 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 //					return (a[1] < b[1]);
 //			});
 //			tempCollinearPoints.erase(unique(tempCollinearPoints.begin(), tempCollinearPoints.end()), tempCollinearPoints.end());
-//			findLineEnds(tempCollinearPoints, lineEnds, temp_points, lines);
+//			findLineEnds(tempCollinearPoints, lineEnds, plainPoints, plainLines);
 //			size_t tempSize = lineEnds.size();
 //			Vec4i newLine = { lineEnds[tempSize - 2][0], lineEnds[tempSize - 2][1], lineEnds[tempSize - 1][0], lineEnds[tempSize - 1][1] };
 //			newlines.push_back(newLine);
@@ -449,12 +504,12 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 //		}
 //	}
 //
-//	for (size_t i = 0; i < temp_points.size(); ++i)
+//	for (size_t i = 0; i < plainPoints.size(); ++i)
 //	{
 //		bool flag = true;
 //		for (size_t j = 0; j < lineEnds.size(); ++j)
 //		{
-//			if (same_pt(temp_points[i], lineEnds[j]))
+//			if (same_pt(plainPoints[i], lineEnds[j]))
 //			{
 //				flag = false;
 //				break;
@@ -462,7 +517,7 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 //		}
 //		if (flag)
 //		{
-//			lineEnds.push_back(temp_points[i]);
+//			lineEnds.push_back(plainPoints[i]);
 //		}
 //	}
 //	for (size_t i = 0; i < lineEnds.size(); i++)
@@ -485,22 +540,129 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 //	basicEndpoints.assign(lineEnds.begin(), lineEnds.end());
 //}
 
-bool on_circle(Vec2i pt, Vec3f circle)
-{
-	// check if the point pt is on one of the circles,or joints of multiple circles, or nothing to do with circles
-	// joint_flag parameter: 0 means not on any circle, 1 means on a circle, 2 means on two circles and so on
-	int dis = 5;// this parameter is to be set to check on the distance tolerants within the distance between radius and distance of pt and circle center point
-	int count = 0;
+//void detect_line2(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints)
+//{
+//	HoughLinesP(diagram_segwithoutcircle, plainLines, 1, CV_PI / 180, 30, 30, 10);
+//	//vector<Vec2i> plainPoints;
+//	for (size_t i = 0; i < plainLines.size(); ++i)
+//	{
+//		Vec2i pt1 = { plainLines[i][0], plainLines[i][1] }; Vec2i pt2 = { plainLines[i][2], plainLines[i][3] };
+//		if (pt1[0] > 0 && pt1[1] > 0 && pt2[0] > 0 && pt2[1] > 0)
+//		{
+//			plainPoints.push_back(pt1); plainPoints.push_back(pt2);
+//		}
+//
+//	}
+//	// sort the points with a clear rule
+//	std::sort(plainPoints.begin(), plainPoints.end(), [](Vec2i a, Vec2i b)
+//	{
+//		if (a[0] != b[0])
+//			return (a[0] < b[0]);
+//		else
+//			return (a[1] < b[1]);
+//	});
+//	cout << "test point" << endl;
+//	// handle the similar points
+//	for (vector<Vec2i>::iterator iter1 = plainPoints.begin(); iter1 != plainPoints.end(); iter1++)
+//	{
+//		for (vector<Vec2i>::iterator iter2 = iter1 + 1; iter2 != plainPoints.end();)
+//		{
+//			if (same_pt(*iter1, *iter2))
+//			{
+//
+//				//erase iter2 element
+//				if (iter2 != plainPoints.end())
+//					iter2 = plainPoints.erase(iter2);
+//				else
+//				{
+//					plainPoints.pop_back();
+//				}
+//					
+//			}
+//			else
+//			{
+//				iter2++;
+//			}
+//		}
+//	}
+//	//handle the intersection and add to the set
+//	vector<Vec4i> newlines;
+//	for (int i = 0; i < plainPoints.size(); ++i)
+//	{
+//		Vec2i pt1 = plainPoints[i];
+//		for (int j = i + 1; j < plainPoints.size(); ++j)
+//		{
+//			Vec2i pt2 = plainPoints[j];
+//			bool flag = false;
+//			for (int k = 0; k < plainLines.size(); ++k)
+//			{
+//				Vec4i l = plainLines[k]; Vec2i pt3 = { l[0], l[1] }; Vec2i pt4 = { l[2], l[3] };
+//				if ((same_pt(pt1, pt3) && same_pt(pt2, pt4)) || (same_pt(pt1, pt4) && same_pt(pt2, pt3)))
+//				{
+//					flag = true;
+//					break;
+//				}
+//			}
+//			if (flag)
+//			{
+//				Vec4i newline = { pt1[0], pt1[1], pt2[0], pt2[1] };
+//				newlines.push_back(newline);
+//			}
+//		}
+//	}
+//	cout << newlines.size() << endl;
+//	plainLines.clear();
+//	plainLines.assign(newlines.begin(), newlines.end());
+//	cout << "line size after removing the line with the removed points: "<<plainLines.size() << endl;
+//	// this is meant to detect the crosses which is not the end point of line
+//	for (size_t i = 0; i < plainLines.size(); i++)
+//	{
+//		Vec4i line1 = plainLines[i]; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
+//
+//		for (size_t j = i + 1; j < plainLines.size(); j++)
+//		{
+//			Vec4i line2 = plainLines[j]; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
+//			Vec2i cross_cal;
+//			bool have_line_cross = intersection(pt1, pt2, pt3, pt4, cross_cal);
+//			if (have_line_cross)
+//			{
+//				bool similar_flag = false;
+//				for (size_t k = 0; k < plainPoints.size(); ++k)
+//				{
+//					if (same_pt(cross_cal, plainPoints[k]))
+//					{
+//						similar_flag = true;
+//						break;
+//					}
+//				}
+//				if (!similar_flag)
+//					plainPoints.push_back(cross_cal);
+//			}
+//		}
+//	}
+//	for (size_t i = 0; i < plainPoints.size(); ++i)
+//	{
+//		cout << plainPoints[i][0] << ", " << plainPoints[i][1] << endl;
+//	}
+//	cout << plainPoints.size() << endl;
+//	
+//	for (size_t i = 0; i < plainPoints.size(); i++)
+//	{
+//		Vec2i pt1 = plainPoints[i];
+//		Scalar temp_color = Scalar((rand() % 255), (rand() % 255), (rand() % 255));
+//		cv::circle(color_img, Point(pt1[0], pt1[1]), 1, temp_color, 5, 8, 0);
+//	}
+//	for (size_t i = 0; i < plainLines.size(); i++)
+//	{
+//		Vec2i pt1 = { plainLines[i][0], plainLines[i][1] }; Vec2i pt2 = { plainLines[i][2], plainLines[i][3] };
+//		line(color_img, Point(pt1[0], pt1[1]), Point(pt2[0], pt2[1]), Scalar(0, 255, 0), 1, 8, 0);
+//	}
+//	//namedWindow("points test");
+//	//cv::imshow("points test", color_img);
+//}
 
-	Vec2f center = { circle[0], circle[1] };
-	double radius = circle[2];
-	double distance = p2pdistance(center, pt);
-	if (abs(distance - radius) <= dis)
-		return true;
-	else
-		return false;
+/************concrete function*********/
 
-}
 void point_on_circle_line_check(vector<Vec2i> basicEndpoints, vector<Vec3f> circle_candidates, vector<circleX> &circles,
 	vector<Vec4i> line_candidates, vector<lineX> &lines, vector<pointX> &points)
 {
@@ -563,126 +725,6 @@ bool intersection(Vec2i o1, Vec2i p1, Vec2i o2, Vec2i p2,
 	r = o1 + d1 * t1;
 	return true;
 }
-//void detect_line2(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points)
-//{
-//	HoughLinesP(diagram_segwithoutcircle, lines, 1, CV_PI / 180, 30, 30, 10);
-//	//vector<Vec2i> temp_points;
-//	for (size_t i = 0; i < lines.size(); ++i)
-//	{
-//		Vec2i pt1 = { lines[i][0], lines[i][1] }; Vec2i pt2 = { lines[i][2], lines[i][3] };
-//		if (pt1[0] > 0 && pt1[1] > 0 && pt2[0] > 0 && pt2[1] > 0)
-//		{
-//			temp_points.push_back(pt1); temp_points.push_back(pt2);
-//		}
-//
-//	}
-//	// sort the points with a clear rule
-//	std::sort(temp_points.begin(), temp_points.end(), [](Vec2i a, Vec2i b)
-//	{
-//		if (a[0] != b[0])
-//			return (a[0] < b[0]);
-//		else
-//			return (a[1] < b[1]);
-//	});
-//	cout << "test point" << endl;
-//	// handle the similar points
-//	for (vector<Vec2i>::iterator iter1 = temp_points.begin(); iter1 != temp_points.end(); iter1++)
-//	{
-//		for (vector<Vec2i>::iterator iter2 = iter1 + 1; iter2 != temp_points.end();)
-//		{
-//			if (same_pt(*iter1, *iter2))
-//			{
-//
-//				//erase iter2 element
-//				if (iter2 != temp_points.end())
-//					iter2 = temp_points.erase(iter2);
-//				else
-//				{
-//					temp_points.pop_back();
-//				}
-//					
-//			}
-//			else
-//			{
-//				iter2++;
-//			}
-//		}
-//	}
-//	//handle the intersection and add to the set
-//	vector<Vec4i> newlines;
-//	for (int i = 0; i < temp_points.size(); ++i)
-//	{
-//		Vec2i pt1 = temp_points[i];
-//		for (int j = i + 1; j < temp_points.size(); ++j)
-//		{
-//			Vec2i pt2 = temp_points[j];
-//			bool flag = false;
-//			for (int k = 0; k < lines.size(); ++k)
-//			{
-//				Vec4i l = lines[k]; Vec2i pt3 = { l[0], l[1] }; Vec2i pt4 = { l[2], l[3] };
-//				if ((same_pt(pt1, pt3) && same_pt(pt2, pt4)) || (same_pt(pt1, pt4) && same_pt(pt2, pt3)))
-//				{
-//					flag = true;
-//					break;
-//				}
-//			}
-//			if (flag)
-//			{
-//				Vec4i newline = { pt1[0], pt1[1], pt2[0], pt2[1] };
-//				newlines.push_back(newline);
-//			}
-//		}
-//	}
-//	cout << newlines.size() << endl;
-//	lines.clear();
-//	lines.assign(newlines.begin(), newlines.end());
-//	cout << "line size after removing the line with the removed points: "<<lines.size() << endl;
-//	// this is meant to detect the crosses which is not the end point of line
-//	for (size_t i = 0; i < lines.size(); i++)
-//	{
-//		Vec4i line1 = lines[i]; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
-//
-//		for (size_t j = i + 1; j < lines.size(); j++)
-//		{
-//			Vec4i line2 = lines[j]; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
-//			Vec2i cross_cal;
-//			bool have_line_cross = intersection(pt1, pt2, pt3, pt4, cross_cal);
-//			if (have_line_cross)
-//			{
-//				bool similar_flag = false;
-//				for (size_t k = 0; k < temp_points.size(); ++k)
-//				{
-//					if (same_pt(cross_cal, temp_points[k]))
-//					{
-//						similar_flag = true;
-//						break;
-//					}
-//				}
-//				if (!similar_flag)
-//					temp_points.push_back(cross_cal);
-//			}
-//		}
-//	}
-//	for (size_t i = 0; i < temp_points.size(); ++i)
-//	{
-//		cout << temp_points[i][0] << ", " << temp_points[i][1] << endl;
-//	}
-//	cout << temp_points.size() << endl;
-//	
-//	for (size_t i = 0; i < temp_points.size(); i++)
-//	{
-//		Vec2i pt1 = temp_points[i];
-//		Scalar temp_color = Scalar((rand() % 255), (rand() % 255), (rand() % 255));
-//		cv::circle(color_img, Point(pt1[0], pt1[1]), 1, temp_color, 5, 8, 0);
-//	}
-//	for (size_t i = 0; i < lines.size(); i++)
-//	{
-//		Vec2i pt1 = { lines[i][0], lines[i][1] }; Vec2i pt2 = { lines[i][2], lines[i][3] };
-//		line(color_img, Point(pt1[0], pt1[1]), Point(pt2[0], pt2[1]), Scalar(0, 255, 0), 1, 8, 0);
-//	}
-//	//namedWindow("points test");
-//	//cv::imshow("points test", color_img);
-//}
 float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 {
 	// compute the points number which is on the line
@@ -713,30 +755,42 @@ float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 	}
 	return count;
 }
-void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i &newpts)
+
+
+void PointLineRevision(Mat image, vector<Vec4i> &plainLines, vector<Vec2i> &plainPoints)
 {
-	int x[4] = { pt1[0], pt2[0], pt3[0], pt4[0] };
-	int y[4] = { pt1[1], pt2[1], pt3[1], pt4[1] };
-	int x1, y1, x2, y2; int idx1, idx2;
-	idx1 = idx2 = 0;
-	x1 = x[0]; x2 = x[0];
-	for (int i = 1; i < 4; ++i)
+	//obtain original line and points
+	for (size_t j = 0; j < plainLines.size(); ++j)
 	{
-		if (x[i] <= x1)
+		Vec4i l = plainLines[j];
+		plainPoints.push_back({ plainLines[j][0], plainLines[j][1] });
+		plainPoints.push_back({ plainLines[j][2], plainLines[j][3] });
+		//line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 255, 0), 1, 8);
+	}
+	// erase the points which is too close to each other
+	sort(plainPoints.begin(), plainPoints.end(), [](Vec2i a, Vec2i b){return a[0] < b[0]; });
+	plainPoints.erase(unique(plainPoints.begin(), plainPoints.end(), [](Vec2i a, Vec2i b){return same_pt(a, b); }));
+
+	// dash line recovery
+	//check each two points
+	for (auto i = 0; i < plainPoints.size(); i++)
+	{
+		Vec2i pt1 = plainPoints[i];
+		for (auto j = i; j < plainPoints.size(); j++)
 		{
-			x1 = x[i];
-			idx1 = i;
-		}
-		else
-		{
-			x2 = x[i];
-			idx2 = i;
+			Vec2i pt2 = plainPoints[j];
+			int tmpLen = p2pdistance(pt1, pt2);
 		}
 	}
-	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
+
+
 }
-void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &lines, vector<Vec2i>& temp_points, Mat &drawedImages, bool showFlag=true, string fileName="")
+
+void detect_line3(Mat &image, Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
+#pragma region 
+
+	/*detect line candidates by probabilistic hough transform */
 	vector<Vec4i> rawLines;
 	HoughLinesP(diagram_segwithoutcircle, rawLines, 1, CV_PI / 180, 15, 15, 10);
 	if (showFlag)
@@ -760,16 +814,16 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		float lineEV = evaluateLine(diagram_segwithoutcircle, rawLine);
 		if (lineEV > 10)//this threshold should be set a litter lower to generate enough line candidates
 		{
-			lines.push_back(rawLine);
-			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(0, 0, 0), 2, 8);
+			plainLines.push_back(rawLine);
+			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(255, 0, 0), 2, 8);
 		}
 	}
-
+	//display zone
 	if (showFlag)
 	{	
-		for (size_t j = 0; j < lines.size(); ++j)
+		for (size_t j = 0; j < plainLines.size(); ++j)
 		{
-			Vec4i l = lines[j];
+			Vec4i l = plainLines[j];
 			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
 		}
 		namedWindow("7.lines first opt version now 1"); imshow("7.lines first opt version now 1", color_img);
@@ -779,9 +833,9 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		// write into txt
 		ofstream ofile;
 		ofile.open(fileName,ios_base::app);
-		for (size_t k = 0; k < lines.size(); ++k)
+		for (size_t k = 0; k < plainLines.size(); ++k)
 		{
-			Vec4i l = lines[k];
+			Vec4i l = plainLines[k];
 			cout << l[0] << "," << l[1] << endl << l[2] << "," << l[3] << endl;
 			ofile << l[0] << "," << l[1] << "\n" << l[2] << "," << l[3] << "\n";
 		}
@@ -790,10 +844,12 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		ofile.close();
 	}
 
+
 	/* then we handle the lines specifically*/
 	/* for lines should be combined 1. colinear 2. */
 	vector<double> angs; vector<double> slopes;
-	for (vector<Vec4i>::iterator iter = lines.begin(); iter != lines.end(); iter++)
+	// store the infomation of line slope and slope angle
+	for (vector<Vec4i>::iterator iter = plainLines.begin(); iter != plainLines.end(); iter++)
 	{
 		// for collinear
 		Vec4i l = *iter; Vec2i ld = { l[2] - l[0], l[3] - l[1] };
@@ -802,30 +858,33 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 		slopes.push_back(slope);
 		angs.push_back(ang);
 	}
-	for (vector<Vec4i>::iterator iter1 = lines.begin(); iter1 != lines.end();iter1++)
+#pragma endregion
+
+#pragma region 
+
+	// loop througth, find the collinear line and combine
+	for (vector<Vec4i>::iterator iter1 = plainLines.begin(); iter1 != plainLines.end();iter1++)
 	{
 		Vec4i l1 = *iter1;
-		int i = iter1 - lines.begin();// log the location of current line
+		int i = iter1 - plainLines.begin();// log the location of current line
 		//cout << " current the first line: " << i << ";" << endl;
 		double slope1 = slopes[i];
 		
-		Vec2i pt1 = { l1[0], l1[1] };
-		Vec2i pt2 = { l1[2], l1[3] };
+		Vec2i pt1 = { l1[0], l1[1] }; Vec2i pt2 = { l1[2], l1[3] };
 		Vec2i ld1 = { pt2[0] - pt1[0], pt2[1] - pt1[1] };
 
 		double length1 = norm(ld1); Vec2f mp1 = (pt1 + pt2) / 2.0;
 		//cout << pt1[0] << "," << pt1[1] << "  " << pt2[0] << "," << pt2[1] << endl;
-		for (vector<Vec4i>::iterator iter2 = iter1 + 1; iter2 != lines.end();)
+		for (vector<Vec4i>::iterator iter2 = iter1 + 1; iter2 != plainLines.end();)
 		{
 			int ct = 0;
 			if (iter1 != iter2)
 			{			
-				int j = iter2 - lines.begin() + ct;
+				int j = iter2 - plainLines.begin() + ct;
 				//cout << " currrent the second line: " << j << ";" << endl;
 				double slope2 = slopes[j];		
 
-				Vec2i pt3 = { lines[j][0], lines[j][1] };
-				Vec2i pt4 = { lines[j][2], lines[j][3] };
+				Vec2i pt3 = { plainLines[j][0], plainLines[j][1] }; Vec2i pt4 = { plainLines[j][2], plainLines[j][3] };
 				Vec2i ld2 = { pt4[0] - pt3[0], pt4[1] - pt3[1] };
 
 				double length2 = norm(ld2); Vec2f mp2 = (pt3 + pt4) / 2.0;
@@ -834,30 +893,31 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 				double sloped = abs(slope1 - slope2);
 				//cout << "the slope diff is: "<< sloped << endl;
 				
-				if (sloped < 0.1)// the slope is considered to be equal 
+				if (sloped < 0.2)// the slope is considered to be equal 
 				{
-					if (on_line(lines[j], pt1))// the point on line i is on line j, then collinear
+					if (on_line(plainLines[j], pt1))// the point on line i is on line j, then collinear
 					{
 						//cout << abs(norm(mp1 - mp2) - (length1 + length2) / 2) << endl;
 						int dis = (norm(mp1 - mp2) - (length1 + length2) / 2);
 						//cout << "dis: " << dis << endl;
-						if ( dis< 25 && dis > -25) // the two line are close to be combined
+						if (dis< 5 && dis > -5) // the two line are close to be combined
 						{
 							Vec4i newpts;
 							computeNewPoints(pt1, pt2, pt3, pt4, newpts);
 							*iter1 = newpts;
-							iter2 = lines.erase(iter2);	
+							//plainPoints.push_back({ newpts[0], newpts[1] }); plainPoints.push_back({ newpts[2], newpts[3] });
+							iter2 = plainLines.erase(iter2);	
 							slopes.erase(slopes.begin() + j);
 							ct++;
 						}
-						else if (dis <= -25)
+						else if (dis <= -5)
 						{
 							//cout << "test test" << endl;
 							if (length1 < length2)
 							{
 								*iter1 = *iter2;
 							}
-							iter2 = lines.erase(iter2);
+							iter2 = plainLines.erase(iter2);
 							slopes.erase(slopes.begin() + j);
 
 						}
@@ -883,17 +943,20 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &l
 
 		}
 	}
-	for (size_t j = 0; j < lines.size(); ++j)
-	{
-		Vec4i l = lines[j];
-		line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 255, 0), 5, 8);
-	}
+	namedWindow("test:now the diagram without circle"); imshow("test:now the diagram without circle", image);
+	
+#pragma endregion
+
+
+	PointLineRevision(image, plainLines,plainPoints);
+	
 	if (showFlag)
 	{
 		namedWindow("8.lines first opt version now"); imshow("8.lines first opt version now", color_img);
 	}
 	drawedImages = color_img;
 }
+
 Mat preprocessing(Mat diagram_segment)
 {
 	//namedWindow("origianl diagram seg"); imshow("original diagram seg", diagram_segment);
@@ -909,41 +972,48 @@ Mat preprocessing(Mat diagram_segment)
 	namedWindow("closed diagram"); imshow("closed diagram", closed);
 	return closed;
 }
-void primitive_parse(Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles, Mat &drawedImages, bool showFlag=true, string fileName="")
+
+
+void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
-	// primitive about points, lines, and circles
-	//first detect the circle, we can get the matrix of diagram segments without circle for the next
-	// processing step
+	/* primitive about points, lines, and circles
+	first detect the circle, we can get the matrix of diagram segments without circle for the next
+	 processing step*/
 	vector<Vec3f> circle_candidates; Mat color_img; cvtColor(diagram_segment, color_img, CV_GRAY2RGB);
 	Mat diagram_segwithoutcircle;
+	
 	//diagram_segment = preprocessing(diagram_segment);
 
 	/*ransac go*/
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates,showFlag);
 	// then the line detection
 	vector<Vec4i> line_candidates; vector<Vec2i> basicEndpoints;
-	detect_line3(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
+	detect_line3(image,diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
+	
 	//detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
 	//cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
 	
 	// for points check if they are in circles
 	point_on_circle_line_check(basicEndpoints, circle_candidates, circles, line_candidates, lines, points);
-	for (int i = 0; i < points.size(); ++i)
-	{
-		pointX point = points[i];
-		//cout << "point " << point.p_idx << " ("<<point.px<<", "<< point.py<<") " << " on circle ";
-		for (int j = 0; j < point.c_idx.size(); ++j)
-		{
-			//cout << point.c_idx[j] << ", ";
-		}
-		cout << "on line ";
-		for (int k = 0; k < point.l_idx.size(); ++k)
-		{
-			//cout << point.l_idx[k] << ", ";
-		}
-		//cout << endl;
+	
+	/*display point text info*/
+	//for (int i = 0; i < points.size(); ++i)
+	//{
+	//	pointX point = points[i];
+	//	//cout << "point " << point.p_idx << " ("<<point.px<<", "<< point.py<<") " << " on circle ";
+	//	for (int j = 0; j < point.c_idx.size(); ++j)
+	//	{
+	//		//cout << point.c_idx[j] << ", ";
+	//	}
+	//	cout << "on line ";
+	//	for (int k = 0; k < point.l_idx.size(); ++k)
+	//	{
+	//		//cout << point.l_idx[k] << ", ";
+	//	}
+	//	//cout << endl;
+	//}
+
 	}
-}
 
 int test_diagram()
 {
@@ -959,7 +1029,7 @@ int test_diagram()
 	int labeln; Mat diagram_segment; vector<Mat> label_segment;
 	image_labelling(binarized_image, labeln, diagram_segment, label_segment,true);
 	vector<pointX> points; vector<lineX> lines; vector<circleX> circles;		Mat drawedImages;
-	primitive_parse(diagram_segment, points, lines, circles, drawedImages);
+	primitive_parse(image, diagram_segment, points, lines, circles, drawedImages);
 	return 0;
 }
 
@@ -985,7 +1055,7 @@ int diagram()
 		image_labelling(binarized_image, labeln, diagram_segment, label_segment);
 		vector<pointX> points; vector<lineX> lines; vector<circleX> circles;
 		Mat drawedImages;
-		primitive_parse(diagram_segment, points, lines, circles, drawedImages, false, outputFN);
+		primitive_parse(image, diagram_segment, points, lines, circles, drawedImages, false, outputFN);
 		//imwrite(saveimgName, drawedImages);
 	}
 	return 0;
