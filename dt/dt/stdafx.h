@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <vector>
+#include <map>
 #include <opencv.hpp>
 #include <iostream>
 #include <string>

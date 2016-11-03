@@ -1,6 +1,8 @@
 # include "stdafx.h"
 # include "diagram.h"
 
+
+#define N 10
 int Sgn(double d)
 {
 	if (d<0)
@@ -93,15 +95,15 @@ void image_labelling(Mat binarized_image,int &labeln, Mat &diagram_segment, vect
 
 /**********point part************/
 
-vector<Point2f> getPointPositions(Mat bw)
+vector<Point2i> getPointPositions(Mat bw)
 {
-	vector<Point2f> pointPositions;
+	vector<Point2i> pointPositions;
 	for (unsigned int y = 0; y < bw.rows; ++y)
 	{
 		for (unsigned int x = 0; x < bw.cols; ++x)
 		{
 			if (bw.at<unsigned char>(y, x)>0)
-				pointPositions.push_back(Point2f(x, y));
+				pointPositions.push_back(Point2i(x, y));
 		}
 	}
 	return pointPositions;
@@ -161,7 +163,7 @@ void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i &newpts)
 }
 
 /*********circle part********/
-inline void getCircle(Point2f &p1, Point2f &p2, Point2f &p3, Point2f &center, float &radius)
+inline void getCircle(Point2i &p1, Point2i &p2, Point2i &p3, Point2f &center, float &radius)
 {
 	float x1 = p1.x;float x2 = p2.x;float x3 = p3.x;
 	float y1 = p1.y;float y2 = p2.y;float y3 = p3.y;
@@ -214,13 +216,12 @@ float evaluateCircle(Mat dt, Point2f center, float radius)
 	return counter;
 }
 
-void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle, vector<Vec3f> &circle_candidates, bool showFlag)
+void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle, vector<Vec3f> &circle_candidates, vector<Point2i> &edgePositions, bool showFlag)
 {
 	unsigned int circleN_todetect = 2;
 	diagram_segwithoutcircle = diagram_segment;
 	for (unsigned int i = 0; i < circleN_todetect; ++i)
 	{
-		vector<Point2f> edgePositions;
 		edgePositions = getPointPositions(diagram_segment);
 		Mat dt;
 		distanceTransform(255 - diagram_segment, dt, CV_DIST_L1, 3);
@@ -729,7 +730,7 @@ float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 {
 	// compute the points number which is on the line
 	float maxDist = 1.0f; int count = 0;
-	vector<Point2f> edgePositions;
+	vector<Point2i> edgePositions;
 	edgePositions = getPointPositions(diagram_segwithoutcircle);
 	Vec2i pt1 = { rawLine[0], rawLine[1] }; Vec2i pt2 = { rawLine[2], rawLine[3] };
 	int smaller_x = (pt1[0] < pt2[0]) ? pt1[0] : pt2[0]; 
@@ -740,7 +741,7 @@ float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 	{
 		for (int j = smaller_y; j <= bigger_y; ++j)
 		{
-			Point2f testPoint = CvPoint(i, j);
+			Point2i testPoint = CvPoint(i, j);
 			Vec2i tp = { i, j };
 			if (find(edgePositions.begin(), edgePositions.end(), testPoint) != edgePositions.end())
 			{
@@ -756,10 +757,90 @@ float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 	return count;
 }
 
+//void dashlineRecovery(vector<Point2i> edgePositions, Vec4i line, Vec2i pt3, vector<Vec4i>::iterator iter1, vector<Vec2i>::iterator iter2)
+//{
+//	Vec2i pt1 = { line[0], line[1] }; Vec2i pt2 = { line[2], line[3] };
+//	Vec2i pt4; double len1, len2; int gap;
+//	len1 = p2pdistance(pt1, pt3); len2 = p2pdistance(pt2, pt3);
+//	if (len1 > len2)
+//	{
+//		pt4 = pt1;
+//		gap = abs(pt3[0] - pt1[0]);
+//	}
+//	else
+//	{
+//		pt4 = pt2;
+//		gap = abs(pt3[0] - pt2[0]);
+//	}
+//	int bitmap[3000] = { 0 }; int count[10] = { 0 }; bool flag = true;
+//	int step = int(gap / 10.0);
+//	for (auto i = 0; i < edgePositions.size(); i++)
+//	{
+//		Vec2i tmp = { edgePositions[i].x, edgePositions[i].y };
+//		if (on_line(line, tmp))
+//		{
+//			bitmap[tmp[0]] = 1;
+//		}
+//	}
+//	for (int i = 0; i < 10; i++)
+//	{
+//		count[i] = count_if(bitmap + i*step, bitmap + (i + 1)*step, [](int a){return a == 1; });
+//	}
+//	for (int j = 0; j < 10; j++)
+//	{
+//		if (count[j] == 0)
+//		{
+//			flag = false;
+//			break;
+//		}
+//	}
+//	//iter1 = plainLines.erase(iter1);
+//	//copy(count, count + 10, ostream_iterator<char>(cout, " "));
+//
+//	
+//}
 
-void PointLineRevision(Mat image, vector<Vec4i> &plainLines, vector<Vec2i> &plainPoints)
+bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 {
-	//obtain original line and points
+	Vec4i line = { pt1[0], pt1[1], pt2[0], pt2[1] }; int c = 0;
+	int bitmap[1000] = { 0 }; int count[N] = { 0 }; int step = abs(pt1[0] - pt2[0]) / N;
+	for (auto i = 0; i < edgePositions.size(); i++)
+	{
+		Vec2i tmpPt = edgePositions[i];
+		if (on_line(line, tmpPt))
+			bitmap[tmpPt[0]] = 1;
+	}
+	for (auto j = 0; j < N; j++)
+	{
+		count[j] = count_if(bitmap + j*step, bitmap + (j + 1)*step, [](int a){return a == 1; });
+		if (count[j] > 10)
+			c++;
+	}
+	int threshold = (int)(0.8*N);
+	if (c > threshold)
+		return true;
+	else
+		return false;
+	
+	
+}
+
+
+bool isParallel(Vec4i line1, Vec4i line2)
+{
+	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] }; Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
+	double theta1 = (line1V[0] <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]);
+	double theta2 = (line2V[0] <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]);
+	double angle = abs(theta1 - theta2) / CV_PI * 180;
+	return (angle < 5);
+}
+bool ptSortPred(Vec2i pt1, Vec2i pt2)
+{
+	return (pt1[0] < pt2[0]);
+}
+void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines, vector<Vec2i> &plainPoints)
+{
+	////obtain original line and points
 	for (size_t j = 0; j < plainLines.size(); ++j)
 	{
 		Vec4i l = plainLines[j];
@@ -772,21 +853,99 @@ void PointLineRevision(Mat image, vector<Vec4i> &plainLines, vector<Vec2i> &plai
 	plainPoints.erase(unique(plainPoints.begin(), plainPoints.end(), [](Vec2i a, Vec2i b){return same_pt(a, b); }));
 
 	// dash line recovery
-	//check each two points
-	for (auto i = 0; i < plainPoints.size(); i++)
+	//while(iter1 != plainLines.end())
+	//{
+	//	Vec4i line = *iter1; Vec2i pt1 = { line[0], line[1] }; Vec2i pt2 = { line[2], line[3] };
+	//	for (auto iter2 = plainPoints.begin(); iter2 != plainPoints.end();)
+	//	{
+	//		Vec2i pt3 = *iter2;
+	//		if (!same_pt(pt3, pt1) && !same_pt(pt3, pt2))
+	//		{
+	//			// dash line recovery
+	//			Vec2i pt1 = { line[0], line[1] }; Vec2i pt2 = { line[2], line[3] };
+	//			Vec2i pt4; double len1, len2; int gap;
+	//			len1 = p2pdistance(pt1, pt3); len2 = p2pdistance(pt2, pt3); 
+	//			bool zflag = true;//assume d(pt1, pt3) is bigger
+	//			if (len1 > len2)
+	//			{
+	//				pt4 = pt1;
+	//				gap = abs(pt3[0] - pt1[0]);
+	//			}
+	//			else
+	//			{
+	//				pt4 = pt2;
+	//				gap = abs(pt3[0] - pt2[0]);
+	//				zflag = false;
+	//			}
+	//			int bitmap[3000] = { 0 }; int count[10] = { 0 }; bool flag = true;
+	//			int step = int(gap / 10.0);
+	//			for (auto i = 0; i < edgePositions.size(); i++)
+	//			{
+	//				Vec2i tmp = { edgePositions[i].x, edgePositions[i].y };
+	//				if (on_line(line, tmp))
+	//				{
+	//					bitmap[tmp[0]] = 1;
+	//				}
+	//			}
+	//			for (int i = 0; i < 10; i++)
+	//			{
+	//				count[i] = count_if(bitmap + i*step, bitmap + (i + 1)*step, [](int a){return a == 1; });
+	//			}
+	//			for (int j = 0; j < 10; j++)
+	//			{
+	//				if (count[j] < 10)
+	//				{
+	//					flag = false;
+	//					break;
+	//				}
+	//			}
+	//			if (flag)
+	//			{
+	//				cout << "test" << endl;
+	//				/*iter1 = plainLines.erase(iter1);
+	//				Vec4i tmpline = { pt3[0], pt3[1], pt4[0], pt4[1] }; plainLines.push_back(tmpline);*/
+	//				if (zflag)
+	//				{
+	//					line[2] = pt3[0]; line[3] = pt3[1];
+
+	//				}
+	//			}
+	//			else
+	//			{
+	//				iter1++;
+	//				plainPoints.push_back(pt1);
+	//				plainPoints.push_back(pt2);
+	//				iter2++;
+	//			}
+	//		
+	//			//copy(count, count + 10, ostream_iterator<char>(cout, " "));	
+	//		}
+	//	}
+	//}
+		
+	for (auto iter1 = plainLines.begin(); iter1 != plainLines.end();)
 	{
-		Vec2i pt1 = plainPoints[i];
-		for (auto j = i; j < plainPoints.size(); j++)
+		Vec4i line1 = *iter1; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[0], line1[1] };
+		map<int, int> pMap; pMap[pt1[0]] = pt1[1]; pMap[pt2[0]] = pt2[1];
+		for (auto iter2 = iter1 + 1; iter2 != plainLines.end();)
 		{
-			Vec2i pt2 = plainPoints[j];
-			int tmpLen = p2pdistance(pt1, pt2);
+			Vec4i line2 = *iter2; Vec2i pt3 = { line2[0], line1[1] }; Vec2i pt4 = { line2[2], line2[3] };
+			pMap[pt3[0]] = pt3[1]; pMap[pt4[0]] = pt4[1];
+			if (isParallel(line1, line2))
+			{
+				//if two line is parallel, find the two closest point in 4 points, check if there're dash line
+				sort(pMap.begin(), pMap.end());
+				auto iter_begin = pMap.begin(); auto iter_end = pMap.end();
+				Vec2i p1 = { iter_begin->first, iter_begin->second }; Vec2i p2 = { iter_end->first, iter_end->second };
+				
+			}
+					
+
 		}
 	}
-
-
 }
 
-void detect_line3(Mat &image, Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag=true, string fileName="")
+void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
 #pragma region 
 
@@ -943,13 +1102,16 @@ void detect_line3(Mat &image, Mat diagram_segwithoutcircle, Mat &color_img, vect
 
 		}
 	}
-	namedWindow("test:now the diagram without circle"); imshow("test:now the diagram without circle", image);
 	
 #pragma endregion
 
 
-	PointLineRevision(image, plainLines,plainPoints);
-	
+	PointLineRevision(edgePositions, plainLines,plainPoints);
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		line(color_img, pt1, pt2, Scalar(255, 0, 0), 1, 8, 0);
+	}
 	if (showFlag)
 	{
 		namedWindow("8.lines first opt version now"); imshow("8.lines first opt version now", color_img);
@@ -985,10 +1147,11 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 	//diagram_segment = preprocessing(diagram_segment);
 
 	/*ransac go*/
-	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates,showFlag);
+	vector<Point2i> edgePositions;
+	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates,edgePositions,showFlag);
 	// then the line detection
 	vector<Vec4i> line_candidates; vector<Vec2i> basicEndpoints;
-	detect_line3(image,diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
+	detect_line3(edgePositions ,diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
 	
 	//detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
 	//cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
