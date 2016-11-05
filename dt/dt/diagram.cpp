@@ -2,7 +2,7 @@
 # include "diagram.h"
 
 
-#define N 10
+#define N 500
 int Sgn(double d)
 {
 	if (d<0)
@@ -313,6 +313,33 @@ bool on_line(Vec4i line, Vec2i pt)
 		return false;
 }
 
+bool in_line(Vec4i line, Vec2i pt)
+{
+	if (on_line(line, pt))
+	{
+		Vec2i pt1, pt2; pt1 = { line[0], line[1] }; pt2 = { line[2], line[3] };
+		if (p2pdistance(pt1, pt) + p2pdistance(pt2, pt) - p2pdistance(pt1, pt2) < 20)
+			return true;
+		else
+			return false;
+
+	}
+	else
+		return false;
+}
+bool on_nin_line(Vec4i line, Vec2i pt)
+{
+	if (on_line(line, pt))
+	{
+		Vec2i pt1, pt2; pt1 = { line[0], line[1] }; pt2 = { line[2], line[3] };
+		if (p2pdistance(pt1, pt) + p2pdistance(pt2, pt) - p2pdistance(pt1, pt2) > 20)
+			return true;
+		else
+			return false;
+	}
+	else
+		return false;
+}
 bool on_other_noncollinearlines(vector<Vec4i> plainLines, Vec4i temp_line, Vec2i pt)
 {
 	for (size_t i = 0; i < plainLines.size(); i++)
@@ -799,35 +826,60 @@ float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 //
 //	
 //}
-
-bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
+bool in_rect(Vec2i pt,int leftx, int rightx, int lowy, int highy)
 {
-	Vec4i line = { pt1[0], pt1[1], pt2[0], pt2[1] }; int c = 0;
-	int bitmap[1000] = { 0 }; int count[N] = { 0 }; int step = abs(pt1[0] - pt2[0]) / N;
-	for (auto i = 0; i < edgePositions.size(); i++)
-	{
-		Vec2i tmpPt = edgePositions[i];
-		if (on_line(line, tmpPt))
-			bitmap[tmpPt[0]] = 1;
-	}
-	for (auto j = 0; j < N; j++)
-	{
-		count[j] = count_if(bitmap + j*step, bitmap + (j + 1)*step, [](int a){return a == 1; });
-		if (count[j] > 10)
-			c++;
-	}
-	int threshold = (int)(0.8*N);
-	if (c > threshold)
+	if (pt[0] >= leftx && pt[0] <= rightx &&
+		pt[1] >= lowy && pt[1] <= highy)
 		return true;
 	else
 		return false;
-	
-	
 }
+bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
+{
+	Vec4i line = { pt1[0], pt1[1], pt2[0], pt2[1] }; int c = 0;
+	float len = p2pdistance(pt1, pt2); int x1, x2,y1,y2;
+	if (pt1[0] > pt2[0])
+	{
+		x1 = pt2[0];
+		x2 = pt1[0];
+	}
+	else
+	{
+		x1 = pt1[0];
+		x2 = pt2[0];
+	}
+	if (pt1[1] > pt2[1])
+	{
+		y1 = pt2[1];
+		y2 = pt1[1];
+	}
+	else
+	{
+		y1 = pt1[1];
+		y2 = pt2[1];
+	}
+	int bitmap[N] = { 0 }; 
+	for (auto i = 0; i < edgePositions.size(); i++)
+	{
+		Vec2i tmpPt = edgePositions[i];
+		int x = tmpPt[0];
+		if (in_rect(tmpPt,x1,x2,y1,y2)&&on_line(line, tmpPt))
+			bitmap[x] = 1;
+	}
+	vector<int> tmp;
+	for (int x = x1; x <= x2; x++)
+	{
+		tmp.push_back(bitmap[x]);
+	}
+	return false;
+}
+
 
 
 bool isParallel(Vec4i line1, Vec4i line2)
 {
+	if (line1 == line2)
+		return false;
 	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] }; Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
 	double theta1 = (line1V[0] <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]);
 	double theta2 = (line2V[0] <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]);
@@ -838,20 +890,35 @@ bool ptSortPred(Vec2i pt1, Vec2i pt2)
 {
 	return (pt1[0] < pt2[0]);
 }
+bool with_same_line(vector<Vec4i> &plainLines, Vec2i pt1, Vec2i pt2)
+{
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i line = plainLines[i];
+		Vec2i tmpPt1, tmpPt2; tmpPt1 = { line[0], line[1] }; tmpPt2 = { line[2], line[3] };
+		if ((same_pt(pt1, tmpPt1) && same_pt(pt2, tmpPt2)) || (same_pt(pt1, tmpPt2) && (same_pt(pt2, tmpPt1))))
+			return true;
+		else if ((same_pt(pt1, tmpPt1) && on_line(line, pt2)) || (same_pt(pt2, tmpPt2) && on_line(line, pt1)) 
+				||(same_pt(pt1, tmpPt2) && on_line(line, pt2))|| (same_pt(pt2, tmpPt1) && on_line(line, pt1)))
+			return true;
+		
+	}
+	return false;
+}
 void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines, vector<Vec2i> &plainPoints)
 {
 	////obtain original line and points
-	vector<Vec2i> tmpPlainPoints;
-	for (size_t j = 0; j < plainLines.size(); ++j)
-	{
-		Vec4i l = plainLines[j];
-		tmpPlainPoints.push_back({ plainLines[j][0], plainLines[j][1] });
-		tmpPlainPoints.push_back({ plainLines[j][2], plainLines[j][3] });
-		//line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 255, 0), 1, 8);
-	}
-	// erase the points which is too close to each other
-	sort(tmpPlainPoints.begin(), tmpPlainPoints.end(), [](Vec2i a, Vec2i b){return a[0] < b[0]; });
-	tmpPlainPoints.erase(unique(tmpPlainPoints.begin(), tmpPlainPoints.end(), [](Vec2i a, Vec2i b){return same_pt(a, b); }));
+	//vector<Vec2i> tmpPlainPoints;
+	//for (size_t j = 0; j < plainLines.size(); ++j)
+	//{
+	//	Vec4i l = plainLines[j];
+	//	tmpPlainPoints.push_back({ plainLines[j][0], plainLines[j][1] });
+	//	tmpPlainPoints.push_back({ plainLines[j][2], plainLines[j][3] });
+	//	//line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255, 255, 0), 1, 8);
+	//}
+	//// erase the points which is too close to each other
+	//sort(tmpPlainPoints.begin(), tmpPlainPoints.end(), [](Vec2i a, Vec2i b){return a[0] < b[0]; });
+	//tmpPlainPoints.erase(unique(tmpPlainPoints.begin(), tmpPlainPoints.end(), [](Vec2i a, Vec2i b){return same_pt(a, b); }));
 
 	// dash line recovery
 	//while(iter1 != plainLines.end())
@@ -924,17 +991,18 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 	//	}
 	//}
 		
-	for (auto iter1 = plainLines.begin(); iter1 != plainLines.end();)
+	for (auto iter1 = plainLines.begin(); iter1 != plainLines.end();iter1++)
 	{
-		Vec4i line1 = *iter1; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[0], line1[1] };
-		map<int, int> pMap; pMap[pt1[0]] = pt1[1]; pMap[pt2[0]] = pt2[1]; // pMap is a Map storing the x-axis and y-axis and from x-axis we can infer the y axis
-		for (auto iter2 = iter1 + 1; iter2 != plainLines.end();)
+		Vec4i line1 = *iter1; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
+		for (auto iter2 = plainLines.begin(); iter2 != plainLines.end();)
 		{
-			Vec4i line2 = *iter2; Vec2i pt3 = { line2[0], line1[1] }; Vec2i pt4 = { line2[2], line2[3] };
-			pMap[pt3[0]] = pt3[1]; pMap[pt4[0]] = pt4[1];
-			auto iter_begin = pMap.begin(); auto iter_end = pMap.end();
+			Vec4i line2 = *iter2; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
 			if (isParallel(line1, line2))
 			{
+				map<int, int> pMap; // pMap is a Map storing the x-axis and y-axis and from x-axis we can infer the y axis
+				pMap[pt1[0]] = pt1[1]; pMap[pt2[0]] = pt2[1]; 
+				pMap[pt3[0]] = pt3[1]; pMap[pt4[0]] = pt4[1];
+				auto iter_begin = pMap.begin(); auto iter_end = pMap.end();
 				//if two line is parallel, find the two closest point in 4 points, check if there're dash line
 				Vec2i p1 = { iter_begin->first, iter_begin->second }; Vec2i p2 = { iter_end->first, iter_end->second };
 				if (dashLineRecovery(edgePositions, p1, p2))
@@ -951,6 +1019,7 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 				{
 					plainPoints.push_back(pt1); plainPoints.push_back(pt2);
 					plainPoints.push_back(pt3); plainPoints.push_back(pt4);
+					iter2++;
 				}
 
 				
@@ -958,13 +1027,18 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 			else
 			{
 				//not parallel, choose the two end points pt3, pt4 to be tested for the dash line recovery
-				if (on_line(line1, pt3))
+				if (same_pt(pt3, pt1)||same_pt(pt3, pt2)||same_pt(pt4,pt1)||same_pt(pt4,pt2))
+				{
+					plainPoints.push_back(pt1); plainPoints.push_back(pt2);
+				}
+				else if (on_nin_line(line1, pt3))
 				{
 					if (abs(pt1[0] - pt3[0]) > abs(pt2[0] - pt3[0]))
 					{
-						if (dashLineRecovery(edgePositions, pt1, pt3))
+						// pt1-pt3 longer
+						if (dashLineRecovery(edgePositions, pt2, pt3))
 						{
-							Vec4i newline = { pt1[0], pt1[0], pt3[0], pt3[1] };
+							Vec4i newline = { pt1[0], pt1[1], pt3[0], pt3[1] };
 							*iter1 = newline;
 							plainPoints.push_back(pt1); plainPoints.push_back(pt3);
 						}
@@ -975,9 +1049,10 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 					}
 					else
 					{
-						if (dashLineRecovery(edgePositions, pt2, pt3))
+						//pt2-pt3 longer
+						if (dashLineRecovery(edgePositions, pt1, pt3))
 						{
-							Vec4i newline = { pt2[0], pt2[0], pt3[0], pt3[1] };
+							Vec4i newline = { pt2[0], pt2[1], pt3[0], pt3[1] };
 							*iter1 = newline;
 							plainPoints.push_back(pt2); plainPoints.push_back(pt3);
 						}
@@ -987,13 +1062,13 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 						}
 					}
 				}
-				else if (on_line(line1, pt4))
+				else if (on_nin_line(line1, pt4))
 				{
-					if (abs(pt1[0] - pt4[0]) > abs(pt2[0] - pt4[0]))
+					if (abs(pt1[0] - pt4[0]) > abs(pt2[1] - pt4[0]))
 					{
-						if (dashLineRecovery(edgePositions, pt1, pt4))
+						if (dashLineRecovery(edgePositions, pt2, pt4))
 						{
-							Vec4i newline = { pt1[0], pt1[0], pt4[0], pt4[1] };
+							Vec4i newline = { pt1[0], pt1[1], pt4[0], pt4[1] };
 							*iter1 = newline;
 							plainPoints.push_back(pt1); plainPoints.push_back(pt4);
 						}
@@ -1004,9 +1079,9 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 					}
 					else
 					{
-						if (dashLineRecovery(edgePositions, pt2, pt4))
+						if (dashLineRecovery(edgePositions, pt1, pt4))
 						{
-							Vec4i newline = { pt2[0], pt2[0], pt4[0], pt4[1] };
+							Vec4i newline = { pt2[0], pt2[1], pt4[0], pt4[1] };
 							*iter1 = newline;
 							plainPoints.push_back(pt2); plainPoints.push_back(pt4);
 						}
@@ -1017,11 +1092,38 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 
 					}
 				}
+				else
+				{
+					cout << "test" << endl;
+				}
+				iter2++;
 			}
-
+		}
+	}
+	// erase the points which is too close to each other
+	sort(plainPoints.begin(), plainPoints.end(), [](Vec2i a, Vec2i b){return a[0] < b[0]; });
+	plainPoints.erase(unique(plainPoints.begin(), plainPoints.end(), [](Vec2i a, Vec2i b){return same_pt(a, b); }), plainPoints.end());
+	for (auto i = 0; i < plainPoints.size(); i++)
+	{
+		Vec2i pt1 = plainPoints[i];
+		for (auto j = i+1; j < plainPoints.size(); j++)
+		{
+			Vec2i pt2 = plainPoints[j];
+			if (with_same_line(plainLines, pt1, pt2))
+				continue;
+			else
+			{
+				if (dashLineRecovery(edgePositions, pt1, pt2))
+				{
+					Vec4i newline = { pt1[0], pt1[1], pt2[0], pt2[1] };
+					plainLines.push_back(newline);
+				}
+			}
+			
 		}
 	}
 }
+
 
 void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
@@ -1188,7 +1290,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-		line(color_img, pt1, pt2, Scalar(255, 0, 0), 1, 8, 0);
+		line(color_img, pt1, pt2, Scalar(0, 0, 255), 1, 8, 0);
 	}
 	if (showFlag)
 	{

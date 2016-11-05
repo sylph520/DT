@@ -14,6 +14,7 @@
 #include <opencv.hpp>
 #include <iostream>
 #include <string>
+#include <algorithm>
 #include <set>
 #include <utility>
 #include <iomanip>
