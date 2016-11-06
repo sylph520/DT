@@ -3,6 +3,7 @@
 
 
 #define N 500
+vector<Point2i> edgePoints;
 int Sgn(double d)
 {
 	if (d<0)
@@ -269,15 +270,17 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 			// in this current version the chosen radius to overwrite the mask is fixed and might remove parts of other circles too!
 
 			// update mask: remove the detected circle!
-			cv::circle(diagram_segwithoutcircle, bestCircleCenter, bestCircleRadius, 0, 5); // here the radius is fixed which isnt so nice.
+			cv::circle(diagram_segwithoutcircle, bestCircleCenter, bestCircleRadius, 0, 3); // here the radius is fixed which isnt so nice.
 			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
 		}
 	}
+	
 	if (showFlag)
 	{
 		namedWindow("4.graygeo blob without circles"); cv::imshow("4.graygeo blob without circles", diagram_segwithoutcircle);
 		namedWindow("5.colorgeo"); cv::imshow("5.colorgeo", color_img);
 	}
+
 }
 
 bool on_circle(Vec2i pt, Vec3f circle)
@@ -828,8 +831,9 @@ float evaluateLine(Mat diagram_segwithoutcircle, Vec4i rawLine)
 //}
 bool in_rect(Vec2i pt,int leftx, int rightx, int lowy, int highy)
 {
-	if (pt[0] >= leftx && pt[0] <= rightx &&
-		pt[1] >= lowy && pt[1] <= highy)
+	int eps = 5;
+	if (pt[0] >= leftx - eps && pt[0] <= rightx + eps &&
+		pt[1] >= lowy - eps && pt[1] <= highy + eps)
 		return true;
 	else
 		return false;
@@ -838,6 +842,9 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 {
 	Vec4i line = { pt1[0], pt1[1], pt2[0], pt2[1] }; int c = 0;
 	float len = p2pdistance(pt1, pt2); int x1, x2,y1,y2;
+	sort(edgePositions.begin(), edgePositions.end(), [](Vec2i a, Vec2i b){return a[0] < b[0]; });
+	
+	
 	if (pt1[0] > pt2[0])
 	{
 		x1 = pt2[0];
@@ -858,20 +865,46 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 		y1 = pt1[1];
 		y2 = pt2[1];
 	}
-	int bitmap[N] = { 0 }; 
-	for (auto i = 0; i < edgePositions.size(); i++)
+	int bitmap[N] = { 0 }; int tmpc = 0;
+	float alpha = 0.5;
+	if (x2 - x1 > y2 - y1)
 	{
-		Vec2i tmpPt = edgePositions[i];
-		int x = tmpPt[0];
-		if (in_rect(tmpPt,x1,x2,y1,y2)&&on_line(line, tmpPt))
-			bitmap[x] = 1;
+		for (auto i = 0; i < edgePositions.size(); i++)
+		{
+			Vec2i tmpPt = edgePositions[i];
+			int x = tmpPt[0];
+			if (in_rect(tmpPt, x1, x2, y1, y2) && on_line(line, tmpPt))
+			{
+				bitmap[x] = 1; tmpc++;
+			}
+		}
+		float low_threshold = alpha*(x2 - x1);
+		int ptsCount = count(bitmap, bitmap + N, 1);
+		if (ptsCount >= low_threshold)
+			return true;
+		else
+			return false;
 	}
-	vector<int> tmp;
-	for (int x = x1; x <= x2; x++)
+	else
 	{
-		tmp.push_back(bitmap[x]);
+		for (auto i = 0; i < edgePositions.size(); i++)
+		{
+			Vec2i tmpPt = edgePositions[i];
+			int y = tmpPt[1];
+			if (in_rect(tmpPt, x1, x2, y1, y2) && on_line(line, tmpPt))
+			{
+				bitmap[y] = 1; tmpc++;
+			}
+		}
+		float low_threshold = alpha*(y2 - y1);
+		int ptsCount = count(bitmap, bitmap + N, 1);
+		if (ptsCount >= low_threshold)
+			return true;
+		else
+			return false;
 	}
-	return false;
+		
+
 }
 
 
@@ -990,7 +1023,8 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 	//		}
 	//	}
 	//}
-		
+	
+	
 	for (auto iter1 = plainLines.begin(); iter1 != plainLines.end();iter1++)
 	{
 		Vec4i line1 = *iter1; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
@@ -1002,7 +1036,8 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 				map<int, int> pMap; // pMap is a Map storing the x-axis and y-axis and from x-axis we can infer the y axis
 				pMap[pt1[0]] = pt1[1]; pMap[pt2[0]] = pt2[1]; 
 				pMap[pt3[0]] = pt3[1]; pMap[pt4[0]] = pt4[1];
-				auto iter_begin = pMap.begin(); auto iter_end = pMap.end();
+				auto iter_begin = pMap.begin(); 
+				auto iter_end = pMap.end(); iter_end--;
 				//if two line is parallel, find the two closest point in 4 points, check if there're dash line
 				Vec2i p1 = { iter_begin->first, iter_begin->second }; Vec2i p2 = { iter_end->first, iter_end->second };
 				if (dashLineRecovery(edgePositions, p1, p2))
@@ -1106,14 +1141,18 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 	for (auto i = 0; i < plainPoints.size(); i++)
 	{
 		Vec2i pt1 = plainPoints[i];
+		if (pt1[1] == 77)
+			cout << "li" << endl;
 		for (auto j = i+1; j < plainPoints.size(); j++)
 		{
 			Vec2i pt2 = plainPoints[j];
+			if (pt2[1] == 77)
+				cout << "li" << endl;
 			if (with_same_line(plainLines, pt1, pt2))
 				continue;
 			else
 			{
-				if (dashLineRecovery(edgePositions, pt1, pt2))
+				if (dashLineRecovery(edgePoints, pt1, pt2))
 				{
 					Vec4i newline = { pt1[0], pt1[1], pt2[0], pt2[1] };
 					plainLines.push_back(newline);
@@ -1272,6 +1311,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				}
 				else
 				{
+					
 					iter2++;
 				}
 			}
@@ -1331,7 +1371,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates,edgePositions,showFlag);
 	// then the line detection
 	vector<Vec4i> line_candidates; vector<Vec2i> basicEndpoints;
-	detect_line3(edgePositions ,diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
+	detect_line3(edgePoints ,diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
 	
 	//detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
 	//cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
@@ -1361,7 +1401,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("Sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -1370,6 +1410,15 @@ int test_diagram()
 	//binarized_image = preprocessing(binarized_image);
 	// then go on a process of connectivity componnent analysis
 	int labeln; Mat diagram_segment; vector<Mat> label_segment;
+	
+	edgePoints = getPointPositions(binarized_image);
+	Mat pointss = Mat::zeros(1000, 1000, CV_8UC3);
+	for (auto i = 0; i < edgePoints.size(); i++)
+	{
+		Point2i pt = edgePoints[i];
+		circle(pointss, pt, 1, Scalar(0, 0, 255));
+	}
+	namedWindow("points"); imshow("points", pointss);
 	image_labelling(binarized_image, labeln, diagram_segment, label_segment,true);
 	vector<pointX> points; vector<lineX> lines; vector<circleX> circles;		Mat drawedImages;
 	primitive_parse(image, diagram_segment, points, lines, circles, drawedImages);
