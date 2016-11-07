@@ -163,6 +163,16 @@ void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i &newpts)
 	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
 }
 
+void getRangePts(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec2i &leftPt, Vec2i &rightPt)
+{
+	map<int, int> tmpMap;
+	tmpMap[pt1[0]] = pt1[1];tmpMap[pt2[0]] = pt2[1];
+	tmpMap[pt3[0]] = pt3[1];tmpMap[pt4[0]] = pt4[1];
+	auto iterBegin = tmpMap.begin(); auto iterEnd = tmpMap.end(); iterEnd--;
+	leftPt = { iterBegin->first, iterBegin->second }; rightPt = { iterEnd->first, iterEnd->second };
+}
+
+
 /*********circle part********/
 inline void getCircle(Point2i &p1, Point2i &p2, Point2i &p3, Point2f &center, float &radius)
 {
@@ -330,6 +340,25 @@ bool in_line(Vec4i line, Vec2i pt)
 	else
 		return false;
 }
+bool onLinePtInLine(Vec4i line, Vec2i pt)
+{
+	Vec2i pt1, pt2; pt1 = { line[0], line[1] }; pt2 = { line[2], line[3] };
+	int xLeft, xRight;
+	if (pt1[0] > pt2[0])
+	{
+		xLeft = pt2[0];
+		xRight = pt1[0];
+	}
+	else
+	{
+		xLeft = pt1[0];
+		xRight = pt2[0];
+	}
+	if (pt[0] >= xLeft && pt[0] <= xRight)
+		return true;
+	else
+		return false;
+}
 bool on_nin_line(Vec4i line, Vec2i pt)
 {
 	if (on_line(line, pt))
@@ -357,6 +386,22 @@ bool on_other_noncollinearlines(vector<Vec4i> plainLines, Vec4i temp_line, Vec2i
 		}
 	}
 	return false;
+}
+
+bool crossPtWithinLines(Vec4i line1, Vec4i line2, Vec2i cross)
+{
+	if (in_line(line1, cross) && in_line(line2, cross))
+		return true;
+	else
+		return false;
+}
+
+void getCrossPt(Vec4i line1, Vec4i line2, Vec2i &cross)
+{
+	int x1 = line1[0]; int x2 = line1[2]; int x3 = line2[0]; int x4 = line2[2];
+	int y1 = line1[1]; int y2 = line1[3]; int y3 = line2[1]; int y4 = line2[3];
+	cross[0] = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
+	cross[1] = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 }
 
 void findLineEnds(vector<Vec2i> colpoints, vector<Vec2i>& lineEnds, vector<Vec2i>& plainPoints, vector<Vec4i> plainLines)
@@ -1166,7 +1211,7 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 
 void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
-#pragma region 
+//#pragma region 
 
 	/*detect line candidates by probabilistic hough transform */
 	vector<Vec4i> rawLines;
@@ -1225,84 +1270,30 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 
 	/* then we handle the lines specifically*/
 	/* for lines should be combined 1. colinear 2. */
-	vector<double> angs; vector<double> slopes;
-	// store the infomation of line slope and slope angle
-	for (vector<Vec4i>::iterator iter = plainLines.begin(); iter != plainLines.end(); iter++)
+	for (auto iter1 = plainLines.begin(); iter1 != plainLines.end(); iter1++)
 	{
-		// for collinear
-		Vec4i l = *iter; Vec2i ld = { l[2] - l[0], l[3] - l[1] };
-		double slope = (ld[0] <= 3) ?  10000000 : ld[1] * 1.0 / ld[0];
-		double ang = (ld[0] <= 3) ? CV_PI / 2 : atan2(ld[1], ld[0]);
-		slopes.push_back(slope);
-		angs.push_back(ang);
-	}
-#pragma endregion
-
-#pragma region 
-
-	// loop througth, find the collinear line and combine
-	for (vector<Vec4i>::iterator iter1 = plainLines.begin(); iter1 != plainLines.end();iter1++)
-	{
-		Vec4i l1 = *iter1;
-		int i = iter1 - plainLines.begin();// log the location of current line
-		//cout << " current the first line: " << i << ";" << endl;
-		double slope1 = slopes[i];
-		
-		Vec2i pt1 = { l1[0], l1[1] }; Vec2i pt2 = { l1[2], l1[3] };
-		Vec2i ld1 = { pt2[0] - pt1[0], pt2[1] - pt1[1] };
-
-		double length1 = norm(ld1); Vec2f mp1 = (pt1 + pt2) / 2.0;
-		//cout << pt1[0] << "," << pt1[1] << "  " << pt2[0] << "," << pt2[1] << endl;
-		for (vector<Vec4i>::iterator iter2 = iter1 + 1; iter2 != plainLines.end();)
+		Vec4i line1 = *iter1; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
+		for (auto iter2 = iter1 + 1; iter2 != plainLines.end(); )
 		{
-			int ct = 0;
-			if (iter1 != iter2)
-			{			
-				int j = iter2 - plainLines.begin() + ct;
-				//cout << " currrent the second line: " << j << ";" << endl;
-				double slope2 = slopes[j];		
-
-				Vec2i pt3 = { plainLines[j][0], plainLines[j][1] }; Vec2i pt4 = { plainLines[j][2], plainLines[j][3] };
-				Vec2i ld2 = { pt4[0] - pt3[0], pt4[1] - pt3[1] };
-
-				double length2 = norm(ld2); Vec2f mp2 = (pt3 + pt4) / 2.0;
-
-				//cout << pt3[0] << "," << pt3[1] << "  " << pt4[0] << "," << pt4[1] << endl;
-				double sloped = abs(slope1 - slope2);
-				//cout << "the slope diff is: "<< sloped << endl;
-				
-				if (sloped < 0.2)// the slope is considered to be equal 
+			Vec4i line2 = *iter2; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
+			if (isParallel(line1, line2))
+			{
+				//if it's parallel
+				vector<Vec2i> tmpPtVec;
+				tmpPtVec.push_back(pt1); tmpPtVec.push_back(pt2); 
+				tmpPtVec.push_back(pt3); tmpPtVec.push_back(pt4);
+				sort(tmpPtVec.begin(), tmpPtVec.end(), ptSortPred);	
+				Vec2i leftPt = tmpPtVec[0]; Vec2i rightPt = tmpPtVec[3];
+				Vec2i secondPt = tmpPtVec[1]; Vec2i thirdPt = tmpPtVec[2];
+				// if it's parallel
+				if (on_line(line1, pt3))
 				{
-					if (on_line(plainLines[j], pt1))// the point on line i is on line j, then collinear
+					// if it's collinear
+					if (onLinePtInLine(line1, pt3) || onLinePtInLine(line1, pt4)|| dashLineRecovery(edgePoints,secondPt,thirdPt))
 					{
-						//cout << abs(norm(mp1 - mp2) - (length1 + length2) / 2) << endl;
-						int dis = (norm(mp1 - mp2) - (length1 + length2) / 2);
-						//cout << "dis: " << dis << endl;
-						if (dis< 5 && dis > -5) // the two line are close to be combined
-						{
-							Vec4i newpts;
-							computeNewPoints(pt1, pt2, pt3, pt4, newpts);
-							*iter1 = newpts;
-							//plainPoints.push_back({ newpts[0], newpts[1] }); plainPoints.push_back({ newpts[2], newpts[3] });
-							iter2 = plainLines.erase(iter2);	
-							slopes.erase(slopes.begin() + j);
-							ct++;
-						}
-						else if (dis <= -5)
-						{
-							//cout << "test test" << endl;
-							if (length1 < length2)
-							{
-								*iter1 = *iter2;
-							}
-							iter2 = plainLines.erase(iter2);
-							slopes.erase(slopes.begin() + j);
-
-						}
-						else
-						{
-							iter2++;
-						}
+						// pt3 or pt4 of line2 is in line1
+						*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+						iter2 = plainLines.erase(iter2);
 					}
 					else
 					{
@@ -1311,26 +1302,57 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				}
 				else
 				{
-					
+					//parallel but not collinear;
 					iter2++;
 				}
 			}
 			else
 			{
-				iter2++;
+				//if it's not parallel then check the end points should be refined.
+				Vec2i cross;getCrossPt(line1, line2, cross);
+				if (crossPtWithinLines(line1, line2, cross))
+				{
+					//cross within two lines
+					plainPoints.push_back(cross);
+					iter2++;
+				}
+				else
+				{
+					//otherwise check if we need to refine the line1's endpoints
+					if ( (abs(cross[0] - pt1[0]) < 5 || abs(cross[1] - pt1[1]) < 5) && (abs(cross[0] - pt3[0]) < 5 || abs(cross[1] - pt3[1]) < 5) )
+					{
+						//1,3
+						*iter1 = { cross[0], cross[1], pt2[0], pt2[1] };
+						*iter2 = { cross[0], cross[1], pt4[0], pt4[1] };
+					}
+					else if ( (abs(cross[0] - pt2[0]) < 5 || abs(cross[1] - pt2[1]) < 5) && (abs(cross[0] - pt3[0]) < 5 || abs(cross[1] - pt3[1]) < 5) )
+					{
+						//2, 3
+						*iter1 = { pt1[0], pt1[1], cross[0], cross[1] };
+						*iter2 = { cross[0], cross[1], pt4[0], pt4[1] };
+					}
+					else if ( (abs(cross[0] - pt4[0]) < 5 || abs(cross[1] - pt4[1]) < 5) && (abs(cross[0] - pt2[0]) < 5 || abs(cross[1] - pt2[1]) < 5) )
+					{
+						//2,4
+						*iter1 = { pt1[0], pt1[1], cross[0], cross[1] };
+						*iter2 = { pt3[0], pt3[1], cross[0], cross[1] };
+					}
+					else if ( (abs(cross[0] - pt4[0]) < 5 || abs(cross[1] - pt4[1] < 5)) && (abs(cross[0] - pt1[0]) < 5 || abs(cross[1] - pt1[1]) < 5))
+					{
+						//1,4
+						*iter2 = { pt3[0], pt3[1], cross[0], cross[1] };
+						*iter1 = { cross[0], cross[1], pt2[0], pt2[1] };
+					}
+					iter2++;
+				}
 			}
-
 		}
 	}
 	
-#pragma endregion
-
-
-	PointLineRevision(edgePositions, plainLines,plainPoints);
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-		line(color_img, pt1, pt2, Scalar(0, 0, 255), 1, 8, 0);
+		line(color_img, pt1, pt2, Scalar(0, 0, 255), 2, 8, 0);
 	}
 	if (showFlag)
 	{
