@@ -280,7 +280,7 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 			// in this current version the chosen radius to overwrite the mask is fixed and might remove parts of other circles too!
 
 			// update mask: remove the detected circle!
-			cv::circle(diagram_segwithoutcircle, bestCircleCenter, bestCircleRadius, 0, 3); // here the radius is fixed which isnt so nice.
+			cv::circle(diagram_segwithoutcircle, bestCircleCenter, bestCircleRadius, 0, 5); // here the radius is fixed which isnt so nice.
 			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
 		}
 	}
@@ -1273,9 +1273,13 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	for (auto iter1 = plainLines.begin(); iter1 != plainLines.end(); iter1++)
 	{
 		Vec4i line1 = *iter1; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
+		cout << pt1 << "pt" << pt2 << endl;
+		int maxXDiff = 0;
 		for (auto iter2 = iter1 + 1; iter2 != plainLines.end(); )
 		{
 			Vec4i line2 = *iter2; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
+			cout << pt3 << "pt" << pt4 << endl;
+			
 			if (isParallel(line1, line2))
 			{
 				//if it's parallel
@@ -1286,13 +1290,22 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				Vec2i leftPt = tmpPtVec[0]; Vec2i rightPt = tmpPtVec[3];
 				Vec2i secondPt = tmpPtVec[1]; Vec2i thirdPt = tmpPtVec[2];
 				// if it's parallel
+				cout << leftPt << "sp" << rightPt << endl;
 				if (on_line(line1, pt3))
 				{
 					// if it's collinear
+					cout << secondPt << "sp" << thirdPt << endl;
+					
+					if (leftPt[0] == 45)
+						cout << "stop" << endl;
 					if (onLinePtInLine(line1, pt3) || onLinePtInLine(line1, pt4)|| dashLineRecovery(edgePoints,secondPt,thirdPt))
 					{
 						// pt3 or pt4 of line2 is in line1
-						*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+						if (abs(rightPt[0] - leftPt[0]) > maxXDiff)
+						{
+							maxXDiff = abs(rightPt[0] - leftPt[0]);
+							*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+						}
 						iter2 = plainLines.erase(iter2);
 					}
 					else
@@ -1347,6 +1360,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				}
 			}
 		}
+		cout << endl;
 	}
 	
 	for (auto i = 0; i < plainLines.size(); i++)
@@ -1423,7 +1437,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-1.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
