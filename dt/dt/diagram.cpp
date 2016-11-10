@@ -311,15 +311,22 @@ bool on_circle(Vec2i pt, Vec3f circle)
 }
 
 /**************line part****************/
-
+double cross_product(Vec2i a, Vec2i b){
+	return a[0] * b[1] - a[1] * b[0];
+}
 bool on_line(Vec4i line, Vec2i pt)
 {
 	double linedis_eps = 3; double pointdis_eps = 5;
-	Vec2i ref_point = { line[0], line[1] };
+	/*Vec2i ref_point = { line[0], line[1] };
 	Vec2i pt2 = { -pt[1], pt[0] };
 	Vec2i ref_point_t = { line[1], -line[0] };
 	Vec2i vec = { line[2] - line[0], line[3] - line[1] };
-	double point2line = abs((pt2.dot(vec) + ref_point_t.dot(vec))) / sqrt(vec.dot(vec));
+	double point2line0 = abs((pt2.dot(vec) + ref_point_t.dot(vec))) / sqrt(vec.dot(vec));*/
+	//point2line0 is always equal to point2line
+	Vec2i bottom = { line[2] - line[0], line[3] - line[1] };
+	Vec2i slope = { pt[0] - line[0], pt[1] - line[1]};
+	double point2line = abs(cross_product(bottom, slope) / norm(bottom));
+//	cout << "test  " << point2line0 << "," << point2line << "  " << (point2line == point2line0) << endl;
 	if (point2line < linedis_eps)
 		return true;
 	else
@@ -328,17 +335,40 @@ bool on_line(Vec4i line, Vec2i pt)
 
 bool in_line(Vec4i line, Vec2i pt)
 {
-	if (on_line(line, pt))
+	//if (on_line(line, pt))
 	{
 		Vec2i pt1, pt2; pt1 = { line[0], line[1] }; pt2 = { line[2], line[3] };
-		if (p2pdistance(pt1, pt) + p2pdistance(pt2, pt) - p2pdistance(pt1, pt2) < 20)
+		if (p2pdistance(pt1, pt) + p2pdistance(pt2, pt) - p2pdistance(pt1, pt2) < 101)
 			return true;
 		else
 			return false;
 
 	}
+	//else
+	//	return false;
+}
+
+int ptLine(Vec4i line, Vec2i pt)
+{
+	//check the relationship between pt and line
+	//returns: 0- not on line, 1 - on line but not in line, 2 - in line
+	if (on_line(line, pt))
+	{
+		if (in_line(line, pt))
+		{
+			cout << "pt is in line" << endl;
+			return 2;
+		}
+		else
+		{
+			cout << "pt is on line but not in line" << endl;
+		}
+	}
 	else
-		return false;
+	{
+		cout << "pt is not ever on line" << endl;
+		return 0;
+	}
 }
 bool onLinePtInLine(Vec4i line, Vec2i pt)
 {
@@ -390,10 +420,23 @@ bool on_other_noncollinearlines(vector<Vec4i> plainLines, Vec4i temp_line, Vec2i
 
 bool crossPtWithinLines(Vec4i line1, Vec4i line2, Vec2i cross)
 {
-	if (in_line(line1, cross) && in_line(line2, cross))
-		return true;
+	if (in_line(line1, cross))
+	{
+		if (in_line(line2, cross))
+		{
+			return true;
+		}
+		else
+		{
+			cout << "cross not in line2" << endl;
+			return false;
+		}
+	}
 	else
+	{
+		cout << "cross not in line1" << endl;
 		return false;
+	}
 }
 
 void getCrossPt(Vec4i line1, Vec4i line2, Vec2i &cross)
@@ -1208,11 +1251,17 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 	}
 }
 
+bool withinPtCRegion(Vec2i center, Vec2i pt)
+{
+	if (p2pdistance(center, pt) < 8)
+		return true;
+	else
+		return false;
+}
 
 void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
-//#pragma region 
-
+#pragma region region1
 	/*detect line candidates by probabilistic hough transform */
 	vector<Vec4i> rawLines;
 	HoughLinesP(diagram_segwithoutcircle, rawLines, 1, CV_PI / 180, 15, 15, 10);
@@ -1266,7 +1315,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		cout << endl;
 		ofile.close();
 	}
-
+#pragma endregion region1
 
 	/* then we handle the lines specifically*/
 	/* for lines should be combined 1. colinear 2. */
@@ -1289,15 +1338,16 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				sort(tmpPtVec.begin(), tmpPtVec.end(), ptSortPred);	
 				Vec2i leftPt = tmpPtVec[0]; Vec2i rightPt = tmpPtVec[3];
 				Vec2i secondPt = tmpPtVec[1]; Vec2i thirdPt = tmpPtVec[2];
-				// if it's parallel
+				
 				cout << leftPt << "sp" << rightPt << endl;
-				if (on_line(line1, pt3))
+				if (ptLine(line1, pt3))// pt3 of line2 is on line 1
 				{
 					// if it's collinear
 					cout << secondPt << "sp" << thirdPt << endl;
-					
-					if (leftPt[0] == 45)
-						cout << "stop" << endl;
+					int eps = 5;
+					bool flag3 = ((pt3[0] - pt1[0])*(pt3[0] - pt2[0]) > 0); //appoximate if pt3 is in line1
+					bool flag4 = ((pt4[0] - pt1[0])*(pt4[0] - pt2[0]) > 0);//approximate if pt4 is in  line1
+	
 					if (onLinePtInLine(line1, pt3) || onLinePtInLine(line1, pt4)|| dashLineRecovery(edgePoints,secondPt,thirdPt))
 					{
 						// pt3 or pt4 of line2 is in line1
@@ -1305,6 +1355,11 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 						{
 							maxXDiff = abs(rightPt[0] - leftPt[0]);
 							*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+							cout << "now the line1 is " << *iter1 << endl;
+						}
+						else
+						{
+							cout << "ignore shorter one." << endl;
 						}
 						iter2 = plainLines.erase(iter2);
 					}
@@ -1323,38 +1378,101 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 			{
 				//if it's not parallel then check the end points should be refined.
 				Vec2i cross;getCrossPt(line1, line2, cross);
+				if (cross[0] < 0 || cross[1] < 0)
+				{
+					iter2++;
+					continue;
+				}
+				else
+					cout << cross << endl;
 				if (crossPtWithinLines(line1, line2, cross))
 				{
 					//cross within two lines
 					plainPoints.push_back(cross);
 					iter2++;
+					cout << "crossPtWithinLines " << endl;
+					continue;
 				}
 				else
 				{
 					//otherwise check if we need to refine the line1's endpoints
-					if ( (abs(cross[0] - pt1[0]) < 5 || abs(cross[1] - pt1[1]) < 5) && (abs(cross[0] - pt3[0]) < 5 || abs(cross[1] - pt3[1]) < 5) )
+					// if cross in a one line
+					if (in_line(line1, cross))
+					{
+						// cross within line1
+						if (abs(cross[0] - pt3[0]) < abs(cross[0] - pt4[0]))
+						{
+							// pt3 is closer to cross
+							if (dashLineRecovery(edgePoints, cross, pt3))
+							{
+								*iter2 = { cross[0], cross[1], pt4[0], pt4[1] };
+								cout << "now the line2 is " << *iter2 << endl;
+							}
+						}
+						else
+						{
+							// pt4 is closer to the cross
+							if (dashLineRecovery(edgePoints, cross, pt4))
+							{
+								*iter2 = { pt3[0], pt3[1], cross[0], cross[1] };
+								cout << "now the line2 is " << *iter2 << endl;
+							}
+						}
+					}
+					else if (in_line(line2, cross))
+					{
+						// cross within line2
+						if (abs(cross[0] - pt1[0]) < abs(cross[0] - pt2[0]))
+						{
+							// pt1 is closer to the cross
+							if (dashLineRecovery(edgePoints, cross, pt1))
+							{
+								*iter1 = { cross[0], cross[1], pt2[0], pt2[1] };
+								cout << "now the line1 is " << *iter1 << endl;
+							}
+						}
+						else
+						{
+							// pt2 is  closer to the cross
+							if (dashLineRecovery(edgePoints, cross, pt2))
+							{
+								*iter1 = { pt1[0], pt1[1], cross[0], cross[1] };
+								cout << "now the line1 is " << *iter1 << endl;
+							}
+						}
+					}
+					// if cross is not within both the line here, then check if it's wihtin the small region around two endpoints from two lines
+					else if (withinPtCRegion(cross,pt1)&& withinPtCRegion(cross,pt3))
 					{
 						//1,3
 						*iter1 = { cross[0], cross[1], pt2[0], pt2[1] };
 						*iter2 = { cross[0], cross[1], pt4[0], pt4[1] };
+						cout << "now the line1 is " << *iter1 << endl;
+						cout << "now the line2 is " << *iter2 << endl;
 					}
-					else if ( (abs(cross[0] - pt2[0]) < 5 || abs(cross[1] - pt2[1]) < 5) && (abs(cross[0] - pt3[0]) < 5 || abs(cross[1] - pt3[1]) < 5) )
+					else if ( withinPtCRegion(cross,pt2) && withinPtCRegion(cross,pt3))
 					{
 						//2, 3
 						*iter1 = { pt1[0], pt1[1], cross[0], cross[1] };
 						*iter2 = { cross[0], cross[1], pt4[0], pt4[1] };
+						cout << "now the line1 is " << *iter1 << endl;
+						cout << "now the line2 is " << *iter2 << endl;
 					}
-					else if ( (abs(cross[0] - pt4[0]) < 5 || abs(cross[1] - pt4[1]) < 5) && (abs(cross[0] - pt2[0]) < 5 || abs(cross[1] - pt2[1]) < 5) )
+					else if (  withinPtCRegion(cross,pt2) &&  withinPtCRegion(cross,pt4))
 					{
 						//2,4
 						*iter1 = { pt1[0], pt1[1], cross[0], cross[1] };
 						*iter2 = { pt3[0], pt3[1], cross[0], cross[1] };
+						cout << "now the line1 is " << *iter1 << endl;
+						cout << "now the line2 is " << *iter2 << endl;
 					}
-					else if ( (abs(cross[0] - pt4[0]) < 5 || abs(cross[1] - pt4[1] < 5)) && (abs(cross[0] - pt1[0]) < 5 || abs(cross[1] - pt1[1]) < 5))
+					else if ( withinPtCRegion(cross,pt1) && withinPtCRegion(cross,pt4))
 					{
 						//1,4
+						*iter1 = { cross[0], cross[1], pt2[0], pt2[1] };	
 						*iter2 = { pt3[0], pt3[1], cross[0], cross[1] };
-						*iter1 = { cross[0], cross[1], pt2[0], pt2[1] };
+						cout << "now the line1 is " << *iter1 << endl;
+						cout << "now the line2 is " << *iter2 << endl;
 					}
 					iter2++;
 				}
@@ -1437,7 +1555,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("Sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
