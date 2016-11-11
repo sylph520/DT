@@ -422,8 +422,10 @@ bool crossPtWithinLines(Vec4i line1, Vec4i line2, Vec2i cross)
 {
 	if (in_line(line1, cross))
 	{
+		//cross in line1
 		if (in_line(line2, cross))
 		{
+			//cross in line2
 			return true;
 		}
 		else
@@ -1329,6 +1331,8 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 			Vec4i line2 = *iter2; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
 			cout << pt3 << "pt" << pt4 << endl;
 			
+			/*if (pt4[0] == 164)
+				cout << "stop" << endl;*/
 			if (isParallel(line1, line2))
 			{
 				//if it's parallel
@@ -1339,32 +1343,62 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				Vec2i leftPt = tmpPtVec[0]; Vec2i rightPt = tmpPtVec[3];
 				Vec2i secondPt = tmpPtVec[1]; Vec2i thirdPt = tmpPtVec[2];
 				
-				cout << leftPt << "sp" << rightPt << endl;
+				
 				if (ptLine(line1, pt3))// pt3 of line2 is on line 1
 				{
 					// if it's collinear
-					cout << secondPt << "sp" << thirdPt << endl;
 					int eps = 5;
 					bool flag3 = ((pt3[0] - pt1[0])*(pt3[0] - pt2[0]) > 0); //appoximate if pt3 is in line1
 					bool flag4 = ((pt4[0] - pt1[0])*(pt4[0] - pt2[0]) > 0);//approximate if pt4 is in  line1
-	
-					if (onLinePtInLine(line1, pt3) || onLinePtInLine(line1, pt4)|| dashLineRecovery(edgePoints,secondPt,thirdPt))
+					if (same_pt(pt1, pt3))
 					{
-						// pt3 or pt4 of line2 is in line1
-						if (abs(rightPt[0] - leftPt[0]) > maxXDiff)
+						if (abs(pt4[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
 						{
-							maxXDiff = abs(rightPt[0] - leftPt[0]);
-							*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
-							cout << "now the line1 is " << *iter1 << endl;
-						}
-						else
-						{
-							cout << "ignore shorter one." << endl;
+							*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
 						}
 						iter2 = plainLines.erase(iter2);
 					}
+					else if(same_pt(pt1, pt4))
+					{
+						if (abs(pt3[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
+						{
+							*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
+						}
+						iter2 = plainLines.erase(iter2);
+					}
+					else if (same_pt(pt2, pt3))
+					{
+						if (abs(pt4[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
+						{
+							*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
+						}
+						iter2 = plainLines.erase(iter2);
+					}
+					else if (same_pt(pt2, pt4))
+					{
+						if (abs(pt3[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
+						{
+							*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
+						}
+						iter2 = plainLines.erase(iter2);
+					}
+					// four points are all different
+					else if (flag3&&flag4)
+					{
+						// two disjoint collinear line
+						cout << leftPt << "range" << rightPt << endl;
+						if (dashLineRecovery(edgePoints,secondPt, thirdPt))
+						{
+							*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+							cout << "now the line1 is " << *iter1 << endl;
+						}
+						iter2++;
+					}
 					else
 					{
+						cout << leftPt << "range" << rightPt << endl;
+						*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+						cout << "now the line1 is " << *iter1 << endl;
 						iter2++;
 					}
 				}
@@ -1389,8 +1423,33 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				{
 					//cross within two lines
 					plainPoints.push_back(cross);
-					iter2++;
 					cout << "crossPtWithinLines " << endl;
+					if (same_pt(cross, pt1))
+					{
+						*iter1 = { cross[0], cross[1], pt2[0], pt2[1] };
+						cout << "now the line1 is " << *iter1 << endl;
+					}
+					else if (same_pt(cross, pt2))
+					{
+						*iter1 = { pt1[0], pt1[1], cross[0], cross[1] };
+						cout << "now the line1 is " << *iter1 << endl;
+					}
+					else if (same_pt(cross, pt3))
+					{
+						*iter2 = { cross[0], cross[1], pt4[0], pt4[1] };
+						cout << "now the line2 is " << *iter2 << endl;
+					}
+					else if (same_pt(cross, pt4))
+					{
+						*iter2 = { pt3[0], pt3[1], cross[0], cross[1] };
+						cout << "now the line2 is " << *iter2 << endl;
+					}
+					else
+					{
+						cout << "not changed now" << endl;
+					}
+					iter2++;
+					
 					continue;
 				}
 				else
