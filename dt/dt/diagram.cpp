@@ -1347,24 +1347,53 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 					int eps = 5;
 					bool flag3 = ((pt3[0] - pt1[0])*(pt3[0] - pt2[0]) > 0); //appoximate if pt3 is in line1
 					bool flag4 = ((pt4[0] - pt1[0])*(pt4[0] - pt2[0]) > 0);//approximate if pt4 is in  line1
-	
-					if (onLinePtInLine(line1, pt3) || onLinePtInLine(line1, pt4)|| dashLineRecovery(edgePoints,secondPt,thirdPt))
+					if (same_pt(pt1, pt3))
 					{
-						// pt3 or pt4 of line2 is in line1
-						if (abs(rightPt[0] - leftPt[0]) > maxXDiff)
+						if (abs(pt4[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
 						{
-							maxXDiff = abs(rightPt[0] - leftPt[0]);
-							*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
-							cout << "now the line1 is " << *iter1 << endl;
-						}
-						else
-						{
-							cout << "ignore shorter one." << endl;
+							*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
 						}
 						iter2 = plainLines.erase(iter2);
 					}
+					else if(same_pt(pt1, pt4))
+					{
+						if (abs(pt3[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
+						{
+							*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
+						}
+						iter2 = plainLines.erase(iter2);
+					}
+					else if (same_pt(pt2, pt3))
+					{
+						if (abs(pt4[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
+						{
+							*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
+						}
+						iter2 = plainLines.erase(iter2);
+					}
+					else if (same_pt(pt2, pt4))
+					{
+						if (abs(pt3[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
+						{
+							*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
+						}
+						iter2 = plainLines.erase(iter2);
+					}
+					// four points are all different
+					else if (flag3&&flag4)
+					{
+						// two disjoint collinear line
+						if (dashLineRecovery(edgePoints,secondPt, thirdPt))
+						{
+							*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+							cout << "now the line1 is " << *iter1 << endl;
+						}
+						iter2++;
+					}
 					else
 					{
+						*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+						cout << "now the line1 is " << *iter1 << endl;
 						iter2++;
 					}
 				}
