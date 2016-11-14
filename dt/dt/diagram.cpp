@@ -1270,7 +1270,7 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 
 bool withinPtCRegion(Vec2i center, Vec2i pt)
 {
-	if (p2pdistance(center, pt) < 8)
+	if (p2pdistance(center, pt) < 1)
 		return true;
 	else
 		return false;
@@ -1698,86 +1698,89 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//	plainPoints.push_back(pt1); plainPoints.push_back(pt2);
 	//}
 
-//#pragma region recover dash line and point refinement
-//	
-//	for (auto i = 0; i < plainLines.size(); i++)
-//	{
-//		
-//		for (auto j = i + 1; j < plainLines.size(); j++)
-//		{
-//			Vec4i line1 = plainLines[i]; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
-//			int maxXD1 = abs(pt2[0] - pt1[0]);
-//			Vec4i line2 = plainLines[j]; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
-//			int maxXD2 = abs(pt4[0] - pt3[0]);
-//			Vec2i cross; getCrossPt(line1, line2, cross);
-//			if (!isInImage(color_img.rows, color_img.cols, cross))
-//			{
-//				// take it as no cross
-//				continue;
-//			}
-//			else
-//			{
-//				//cross point in image
-//				//first check if the cross is same with 
-//				if (abs(cross[0] - pt1[0]) < abs(cross[0] - pt2[0]))
-//				{
-//					// pt1 is closer to cross
-//					if (withinPtCRegion(cross, pt1) || dashLineRecovery(edgePoints, cross, pt1))
-//					{
-//						if (abs(cross[0] - pt2[0]) > maxXD1)
-//						{
-//							//chooseNearCircle(circle_candidates, cross, pt1);
-//							plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
-//							maxXD1 = abs(cross[0] - pt2[0]);
-//						}
-//					}
-//
-//				}
-//				else
-//				{
-//					// pt2 is closer to the cross
-//					if (withinPtCRegion(cross, pt2) || dashLineRecovery(edgePoints, cross, pt2))
-//					{
-//						if (abs(cross[0] - pt1[0])> maxXD1)
-//						{
-//							//chooseNearCircle(circle_candidates, cross, pt2);
-//							plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
-//							maxXD1 = abs(cross[0] - pt1[0]);
-//						}
-//					}
-//				}
-//				if (abs(cross[0] - pt3[0]) < abs(cross[0] - pt4[0]))
-//				{
-//					if (withinPtCRegion(cross, pt4) || dashLineRecovery(edgePoints, cross, pt3))
-//					{
-//						if (abs(cross[0] - pt3[0]) > maxXD2)
-//						{
-//							//chooseNearCircle(circle_candidates, cross, pt3);
-//							plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
-//							maxXD2 = abs(cross[0] - pt3[0]);
-//						}
-//					}
-//				}
-//				else
-//				{
-//					if (withinPtCRegion(cross, pt4) || dashLineRecovery(edgePoints, cross, pt4))
-//					{
-//						if (abs(cross[0] - pt3[0])> maxXD2)
-//						{
-//							//chooseNearCircle(circle_candidates, cross, pt4);
-//							plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
-//							maxXD2 = abs(cross[0] - pt3[0]);
-//						}
-//					}
-//				}
-//				////refresh basic var
-//				//line1 = plainLines[i]; pt1 = { line1[0], line1[1] }; pt2 = { line1[2], line1[3] };
-//				//line2 = plainLines[j]; pt3 = { line2[0], line2[1] }; pt4 = { line2[2], line2[3] };	
-//			}
-//		}
-//	}
-//
-//#pragma endregion recover dash line and point refinement
+#pragma region recover dash line and point refinement
+	
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		for (auto j = i + 1; j < plainLines.size(); j++)
+		{
+			Vec4i line1 = plainLines[i]; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
+			int maxXD1 = abs(pt2[0] - pt1[0]);
+			Vec4i line2 = plainLines[j]; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
+			int maxXD2 = abs(pt4[0] - pt3[0]);
+			if (pt3[0] == 107 || pt4[0] == 107)
+				cout << "test" << endl;
+			Vec2i cross; getCrossPt(line1, line2, cross);
+			if (!isInImage(color_img.rows, color_img.cols, cross))
+			{
+				// take it as no cross
+				continue;
+			}
+			else
+			{
+				//cross point in image
+				//first check if the cross is same with 
+				if (abs(cross[0] - pt1[0]) < abs(cross[0] - pt2[0]))
+				{
+					// pt1 is closer to cross
+					if (withinPtCRegion(cross, pt1) || dashLineRecovery(edgePoints, cross, pt1))
+					{
+						if (abs(cross[0] - pt2[0]) > maxXD1)
+						{
+							//chooseNearCircle(circle_candidates, cross, pt1);
+							plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
+							maxXD1 = abs(cross[0] - pt2[0]);
+						}
+					}
+
+				}
+				else
+				{
+					// pt2 is closer to the cross
+					if (withinPtCRegion(cross, pt2) || dashLineRecovery(edgePoints, cross, pt2))
+					{
+						if (abs(cross[0] - pt1[0])> maxXD1)
+						{
+							//chooseNearCircle(circle_candidates, cross, pt2);
+							plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
+							maxXD1 = abs(cross[0] - pt1[0]);
+						}
+					}
+				}
+				if (abs(cross[0] - pt3[0]) < abs(cross[0] - pt4[0]))
+				{
+					//pt3 is closer to the cross
+					if (withinPtCRegion(cross, pt3) || dashLineRecovery(edgePoints, cross, pt3))
+					{
+						if (abs(cross[0] - pt4[0]) > maxXD2)
+						{
+							//chooseNearCircle(circle_candidates, cross, pt3);
+							plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
+							maxXD2 = abs(cross[0] - pt3[0]);
+						}
+					}
+				}
+				else
+				{
+					//pt4 is closer to the cross
+					if (withinPtCRegion(cross, pt4) || dashLineRecovery(edgePoints, cross, pt4))
+					{
+						if (abs(cross[0] - pt3[0])> maxXD2)
+						{
+							//chooseNearCircle(circle_candidates, cross, pt4);
+							plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
+							maxXD2 = abs(cross[0] - pt3[0]);
+						}
+					}
+				}
+				////refresh basic var
+				//line1 = plainLines[i]; pt1 = { line1[0], line1[1] }; pt2 = { line1[2], line1[3] };
+				//line2 = plainLines[j]; pt3 = { line2[0], line2[1] }; pt4 = { line2[2], line2[3] };	
+			}
+		}
+	}
+
+#pragma endregion recover dash line and point refinement
 	
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
