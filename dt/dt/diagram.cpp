@@ -1296,6 +1296,21 @@ int isEndPoint(Vec4i line, Vec2i pt)
 		return 0;
 }
 
+void chooseNearCircle(vector<Vec3f> &circle_candidates, Vec2i &cross, Vec2i &pt)
+{
+	for (auto i = 0; i < circle_candidates.size(); i++)
+	{
+		Vec3f circle = circle_candidates[i];
+		Vec2i center = { int(circle[0]), int(circle[1]) };
+		if (p2pdistance(pt, center) - circle[2] < 5)
+		{
+			if (p2pdistance(pt, center) > p2pdistance(cross, center))
+			{
+				cross = pt;
+			}
+		}
+	}
+}
 
 void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, vector<Vec3f> &circle_candidates, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
 {
@@ -1687,10 +1702,11 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i line1 = plainLines[i]; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
-
+		int maxXD1 = abs(pt2[0] - pt1[0]);
 		for (auto j = i+1; j < plainLines.size(); j++)
 		{
 			Vec4i line2 = plainLines[j]; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
+			int maxXD2 = abs(pt4[0] - pt3[0]);
 			Vec2i tmp[4] = { pt1, pt2, pt3, pt4 };
 			sort(tmp, tmp + 4, [](Vec2i a, Vec2i b){return a[0] < b[0]; });
 			Vec2i cross; getCrossPt(line1, line2, cross);
@@ -1703,25 +1719,58 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 			{
 				//cross point in image
 				//first check if the cross is same with 
-				if (withinPtCRegion(cross, pt1)||dashLineRecovery(edgePoints,cross,pt1))
+				if (abs(cross[0] - pt1[0]) < abs(cross[0] - pt2[0]))
 				{
-					plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
+					if (withinPtCRegion(cross, pt1) || dashLineRecovery(edgePoints, cross, pt1))
+					{
+						if (abs(cross[0] - pt1[0]) > maxXD1)
+						{
+							//chooseNearCircle(circle_candidates, cross, pt1);
+							plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
+							maxXD1 = abs(cross[0] - pt1[0]);
+						}
+					}
+
 				}
-				else if (withinPtCRegion(cross, pt2)||dashLineRecovery(edgePoints,cross,pt2))
+				else
 				{
-					plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
+					if (withinPtCRegion(cross, pt2) || dashLineRecovery(edgePoints, cross, pt2))
+					{
+						if (abs(cross[0] - pt2[0]) > maxXD1)
+						{
+							//chooseNearCircle(circle_candidates, cross, pt2);
+							plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
+							maxXD1 = abs(cross[0] - pt2[0]);
+						}
+					}
 				}
-				else if (withinPtCRegion(cross, pt3)||dashLineRecovery(edgePoints,cross,pt3))
+				if (abs(cross[0] - pt3[0]) < abs(cross[0] - pt4[0]))
 				{
-					plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
+					if (withinPtCRegion(cross, pt3) || dashLineRecovery(edgePoints, cross, pt3))
+					{
+						if (abs(cross[0] - pt3[0])> maxXD2)
+						{
+							//chooseNearCircle(circle_candidates, cross, pt3);
+							plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
+							maxXD2 = abs(cross[0] - pt3[0]);
+						}
+					}
 				}
-				else if (withinPtCRegion(cross, pt4)||dashLineRecovery(edgePoints,cross,pt4))
+				else
 				{
-					plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
+					if (withinPtCRegion(cross, pt4) || dashLineRecovery(edgePoints, cross, pt4))
+					{
+						if (abs(cross[0] - pt4[0]) > maxXD2)
+						{
+							//chooseNearCircle(circle_candidates, cross, pt4);
+							plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
+							maxXD2 = abs(cross[0] - pt4[0]);
+						}
+					}
 				}
-				//refresh basic var
+				////refresh basic var
 				line1 = plainLines[i]; pt1 = { line1[0], line1[1] }; pt2 = { line1[2], line1[3] };
-				line2 = plainLines[j]; pt3 = { line2[0], line2[1] }; pt4 = { line2[2], line2[3] };
+				//line2 = plainLines[j]; pt3 = { line2[0], line2[1] }; pt4 = { line2[2], line2[3] };
 			}
 		}
 	}
