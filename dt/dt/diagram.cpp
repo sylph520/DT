@@ -1711,7 +1711,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				{
 					plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
 				}
-				if (withinPtCRegion(cross, pt3)||dashLineRecovery(edgePoints,cross,pt3))
+				else if (withinPtCRegion(cross, pt3)||dashLineRecovery(edgePoints,cross,pt3))
 				{
 					plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
 				}
