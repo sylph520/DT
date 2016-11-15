@@ -947,7 +947,7 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 {
 	Vec4i line = { pt1[0], pt1[1], pt2[0], pt2[1] }; int c = 0;
 	float len = p2pdistance(pt1, pt2); int x1, x2,y1,y2;
-	sort(edgePositions.begin(), edgePositions.end(), [](Vec2i a, Vec2i b){return a[0] < b[0]; });
+	
 	
 	
 	if (pt1[0] > pt2[0])
@@ -974,16 +974,19 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 	float alpha = 0.5;
 	if (x2 - x1 > y2 - y1)
 	{
+		sort(edgePositions.begin(), edgePositions.end(), [](Vec2i a, Vec2i b){return a[0] < b[0]; });
 		for (auto i = 0; i < edgePositions.size(); i++)
 		{
 			Vec2i tmpPt = edgePositions[i];
 			int x = tmpPt[0];
-			if (in_rect(tmpPt, x1, x2, y1, y2) && on_line(line, tmpPt))
+			if (in_rect(tmpPt, x1, x2, y1, y2) && in_line(line, tmpPt))
 			{
 				bitmap[x] = 1; tmpc++;
 			}
 		}
 		float low_threshold = alpha*(x2 - x1);
+		if (low_threshold < 10)
+			low_threshold = x2 - x1;
 		int ptsCount = count(bitmap, bitmap + N, 1);
 		if (ptsCount >= low_threshold)
 			return true;
@@ -992,6 +995,7 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 	}
 	else
 	{
+		sort(edgePositions.begin(), edgePositions.end(), [](Vec2i a, Vec2i b){return a[1] < b[1]; });
 		for (auto i = 0; i < edgePositions.size(); i++)
 		{
 			Vec2i tmpPt = edgePositions[i];
@@ -1002,6 +1006,8 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 			}
 		}
 		float low_threshold = alpha*(y2 - y1);
+		if (low_threshold < 10)
+			low_threshold = y2 - y1;
 		int ptsCount = count(bitmap, bitmap + N, 1);
 		if (ptsCount >= low_threshold)
 			return true;
@@ -1270,7 +1276,7 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 
 bool withinPtCRegion(Vec2i center, Vec2i pt)
 {
-	if (p2pdistance(center, pt) < 1)
+	if (p2pdistance(center, pt) < 8)
 		return true;
 	else
 		return false;
@@ -1708,7 +1714,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 			int maxXD1 = abs(pt2[0] - pt1[0]);
 			Vec4i line2 = plainLines[j]; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
 			int maxXD2 = abs(pt4[0] - pt3[0]);
-			if (pt3[0] == 107 || pt4[0] == 107)
+			if (i == 5)
 				cout << "test" << endl;
 			Vec2i cross; getCrossPt(line1, line2, cross);
 			if (!isInImage(color_img.rows, color_img.cols, cross))
@@ -1860,7 +1866,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-1.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
