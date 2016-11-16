@@ -1866,11 +1866,13 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	{
 		pointX p1 = pointXs[i];
 		int erasenum1 = 0;
+		if (p1.p_idx == 9)
+			cout << "test" << endl;
 		//int div1 = i / 2; int mod1 = i % 2;
 		for (int j = i + 1; j < pointXs.size(); j++)
 		{
 			pointX p2 = pointXs[j - erasenum1];
-			if (p2.px == 70)
+			if (p2.p_idx == 9)
 				cout << "test" << endl;
 			if (same_pt(p1,p2))
 			{
@@ -1885,7 +1887,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 					lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
 					lineXs[div2].pidx1 = p1.p_idx;
 					//pointXs[j - erasenum].pxy = p1.pxy;
-					pointXs.erase(pointXs.begin() + j - erasenum);
+					pointXs.erase(pointXs.begin() + j - erasenum1);
 					erasenum++; erasenum1++;
 					
 				}
@@ -1896,7 +1898,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 					lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
 					lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
 					lineXs[div2].pidx2 = p1.p_idx;
-					pointXs.erase(pointXs.begin() + j - erasenum);
+					pointXs.erase(pointXs.begin() + j - erasenum1);
 					erasenum++; erasenum1++;
 				}
 			}
