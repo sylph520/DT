@@ -128,7 +128,10 @@ bool same_pt(Vec2i pt1, Vec2i pt2)
 
 bool same_pt(pointX pt1, pointX pt2)
 {
-	double eps = 5;//to be set parameter
+	double eps = 8;//to be set parameter
+	double high_eps = 15;
+	if (abs(pt1.px - pt2.px) < 3 && p2pdistance(pt1.pxy,pt2.pxy) < high_eps)
+		return true;
 	if (p2pdistance(pt1.pxy, pt2.pxy) <= eps)
 		return true;
 	else
@@ -1327,6 +1330,33 @@ void chooseNearCircle(vector<Vec3f> &circle_candidates, Vec2i &cross, Vec2i &pt)
 	}
 }
 
+bool isPartOfLongerLine(Vec4i line1, Vec4i line2)
+{
+	//check if line1 is part of line2;
+	Vec2i pt1, pt2;
+	pt1 = { line1[0], line1[1] }; pt2 = { line1[2], line1[3] };
+	if (in_line(line2, pt1) && in_line(line2, pt2))
+		return true;
+	else
+		return false;
+}
+bool existRealLineWithinPtxs(vector<lineX> &lineXs, pointX ptx1, pointX ptx2)
+{
+	Vec4i tmpLxy = { ptx1.px, ptx1.py, ptx2.px, ptx2.py };
+	auto iter = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return a.lxy == tmpLxy; });
+	if (iter != lineXs.end())
+		return true;
+	else
+	{
+		//not find
+		auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return isPartOfLongerLine(tmpLxy, a.lxy); });
+		if (iter2 != lineXs.end())
+			return true;
+		else
+			return false;
+	}
+}
+
 void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, vector<Vec3f> &circle_candidates, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
 {
 #pragma region region1
@@ -1905,6 +1935,46 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 
 		}
 	}
+
+	/*for (auto i = 0; i < lineXs.size(); i++)
+	{
+		lineX lx1 = lineXs[i]; Vec4i line1 = lx1.lxy;
+		Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
+		for (auto j = 0; j < lineXs.size(); j++)
+		{
+			lineX lx2 = lineXs[j]; Vec4i line2 = lx2.lxy;
+			Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
+			if (same_pt(pt1, pt3))
+			{
+
+			}
+			
+		}
+	}*/
+	for (auto i = 0; i < pointXs.size(); i++)
+	{
+		pointX ptx1 = pointXs[i];
+		for (auto j = 0; j < pointXs.size(); j++)
+		{
+			pointX ptx2 = pointXs[j];
+			if (!existRealLineWithinPtxs(lineXs, ptx1, ptx2))
+			{
+				if (dashLineRecovery(edgePoints, ptx1.pxy, ptx2.pxy))
+				{
+					Vec4i tmpLine = { ptx1.px, ptx1.py, ptx2.px, ptx2.py };
+					lineX tmpLx;
+					tmpLx.lxy = tmpLine; tmpLx.pidx1 = ptx1.p_idx; tmpLx.pidx2 = ptx2.p_idx;
+					tmpLx.l_idx = lineXs.size(); tmpLx.pt1 = ptx1.pxy; tmpLx.pt2 = ptx2.pxy;
+					tmpLx.px1 = ptx1.px; tmpLx.py1 = ptx1.py; tmpLx.px2 = ptx2.px; tmpLx.py2 = ptx2.py;
+					lineXs.push_back(tmpLx);
+				}
+			}
+			else
+			{
+				continue;
+			}
+		}
+	}
 	/*sort(pointXs.begin(), pointXs.end(), [](pointX a, pointX b){return a.px < b.px; };
 	pointXs.erase()*/
 #pragma endregion recover line-based dash line and point refinement
@@ -1918,6 +1988,8 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//	circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	//}
+	
+	
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
 		Vec4i l = lineXs[i].lxy;
@@ -1928,6 +2000,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
+	
 	//if (showFlag)
 	
 	{
@@ -1998,7 +2071,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-1.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
