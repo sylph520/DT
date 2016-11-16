@@ -1844,13 +1844,20 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 
 		}
 		line1 = plainLines[i]; pt1 = { line1[0], line1[1] }; pt2 = { line1[2], line1[3] };
+		
 		p1.px = pt1[0]; p1.py = pt1[1];p1.pxy =pt1 ; p1.p_idx = 2*i; pointXs.push_back(p1);
 		p2.px = pt2[0]; p2.py = pt2[1];p2.pxy =pt2 ; p2.p_idx = 2*i + 1; pointXs.push_back(p2);
 
-		lineX1.l_idx = i;
+		
+		
+		lineX1.l_idx = i; lineX1.lxy = line1;
+		
 		lineX1.pt1 = pt1; lineX1.pt2 = pt2; lineX1.pidx1 = p1.p_idx; lineX1.pidx2 = p2.p_idx;
-		lineX1.px1 = line1[0]; lineX1.py1 = line1[1]; lineX1.px2 = line1[2]; lineX1.py2 = line1[3];
-		lineX1.lxy = line1;
+		
+		lineX1.px1 = line1[0]; lineX1.py1 = line1[1]; lineX1.px2 = line1[2]; lineX1.py2 = line1[3]; 
+
+		
+		
 		lineXs.push_back(lineX1);
 	}
 	int pxsize = pointXs.size();
@@ -1858,34 +1865,39 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	for (auto i = 0; i < pointXs.size(); i++)
 	{
 		pointX p1 = pointXs[i];
+		int erasenum1 = 0;
 		//int div1 = i / 2; int mod1 = i % 2;
 		for (int j = i + 1; j < pointXs.size(); j++)
 		{
-			pointX p2 = pointXs[j];
+			pointX p2 = pointXs[j - erasenum1];
 			if (p2.px == 70)
 				cout << "test" << endl;
 			if (same_pt(p1,p2))
 			{
 				//erase point2
-				int div2 = (j + erasenum) / 2;
-				int mod2 = (j + erasenum) % 2;
+				int div2 = p2.p_idx/ 2;
+				int mod2 = p2.p_idx % 2;
 				if (mod2)
 				{
-					//first point in line to be changed
+					//second point in line to be changed
 					lineXs[div2].pt2 = p1.pxy;
+					lineXs[div2].px2 = p1.pxy[0]; lineXs[div2].py2 = p1.pxy[1];
+					lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
 					lineXs[div2].pidx1 = p1.p_idx;
 					//pointXs[j - erasenum].pxy = p1.pxy;
-					pointXs.erase(pointXs.begin() + j);
-					erasenum++;
+					pointXs.erase(pointXs.begin() + j - erasenum);
+					erasenum++; erasenum1++;
 					
 				}
 				else
 				{
-					//second point in line to be changed
-					lineXs[div2].pt1 = p1.pxy;
+					//first point in line to be changed
+					lineXs[div2].pt1 = p1.pxy; 
+					lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
+					lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
 					lineXs[div2].pidx2 = p1.p_idx;
-					pointXs.erase(pointXs.begin() + j);
-					erasenum++;
+					pointXs.erase(pointXs.begin() + j - erasenum);
+					erasenum++; erasenum1++;
 				}
 			}
 
