@@ -175,13 +175,13 @@ void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i &newpts)
 	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
 }
 
-void getRangePts(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec2i &leftPt, Vec2i &rightPt)
+void getRangePts(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec2i &firstPt, Vec2i &fourthPt)
 {
 	map<int, int> tmpMap;
 	tmpMap[pt1[0]] = pt1[1];tmpMap[pt2[0]] = pt2[1];
 	tmpMap[pt3[0]] = pt3[1];tmpMap[pt4[0]] = pt4[1];
 	auto iterBegin = tmpMap.begin(); auto iterEnd = tmpMap.end(); iterEnd--;
-	leftPt = { iterBegin->first, iterBegin->second }; rightPt = { iterEnd->first, iterEnd->second };
+	firstPt = { iterBegin->first, iterBegin->second }; fourthPt = { iterEnd->first, iterEnd->second };
 }
 
 
@@ -1037,8 +1037,34 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	if (line1 == line2)
 		return false;
 	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] }; Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
-	double theta1 = (line1V[0] <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]);
-	double theta2 = (line2V[0] <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]);
+	double theta1, theta2;
+	if (abs(line1V[0]) <= 3)
+	{
+		theta1 = CV_PI / 2.0;
+	}
+	else if (abs(line1V[1]) <= 3)
+	{
+		theta1 = 0;
+	}
+	else
+	{
+		theta1 = atan2(line1V[1], line1V[0]);
+	}
+	if (abs(line2V[0]) <= 3)
+	{
+		theta2 = CV_PI / 2.0;
+	}
+	else if (abs(line2V[1]) <= 3)
+	{
+		theta2 = 0;
+	}
+	else
+	{
+		theta2 = atan2(line2V[1], line2V[0]);
+	}
+
+	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
+	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
 	double angle = abs(theta1 - theta2) / CV_PI * 180;
 	return (angle < 5);
 }
@@ -1423,6 +1449,18 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 
 	/* then we handle the lines specifically*/
 	/* for lines should be combined 1. colinear 2. */
+	
+	/*for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	}
+	namedWindow("5.lines first opt version now", 0); imshow("5.lines first opt version now", color_img);*/
+
 	//for (auto iter1 = plainLines.begin(); iter1 != plainLines.end(); iter1++)
 	//{
 	//	Vec4i line1 = *iter1; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
@@ -1443,7 +1481,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//			tmpPtVec.push_back(pt1); tmpPtVec.push_back(pt2); 
 	//			tmpPtVec.push_back(pt3); tmpPtVec.push_back(pt4);
 	//			sort(tmpPtVec.begin(), tmpPtVec.end(), ptSortPred);	
-	//			Vec2i leftPt = tmpPtVec[0]; Vec2i rightPt = tmpPtVec[3];
+	//			Vec2i firstPt = tmpPtVec[0]; Vec2i fourthPt = tmpPtVec[3];
 	//			Vec2i secondPt = tmpPtVec[1]; Vec2i thirdPt = tmpPtVec[2];
 	//			
 	//			
@@ -1489,18 +1527,18 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//				else if (flag3&&flag4)
 	//				{
 	//					// two disjoint collinear line
-	//					cout << leftPt << "range" << rightPt << endl;
+	//					cout << firstPt << "range" << fourthPt << endl;
 	//					if (dashLineRecovery(edgePoints,secondPt, thirdPt))
 	//					{
-	//						*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+	//						*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
 	//						cout << "now the line1 is " << *iter1 << endl;
 	//					}
 	//					iter2++;
 	//				}
 	//				else
 	//				{
-	//					cout << leftPt << "range" << rightPt << endl;
-	//					*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+	//					cout << firstPt << "range" << fourthPt << endl;
+	//					*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
 	//					cout << "now the line1 is " << *iter1 << endl;
 	//					iter2++;
 	//				}
@@ -1664,8 +1702,18 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				vector<Vec2i> tmpPtVec;
 				tmpPtVec.push_back(pt1); tmpPtVec.push_back(pt2);
 				tmpPtVec.push_back(pt3); tmpPtVec.push_back(pt4);
-				sort(tmpPtVec.begin(), tmpPtVec.end(), ptSortPred);
-				Vec2i leftPt = tmpPtVec[0]; Vec2i rightPt = tmpPtVec[3];
+				bool flag0 = false;
+				if ( flag0 =(abs(pt1[0] - pt2[0]) < 3))
+				{
+					sort(tmpPtVec.begin(), tmpPtVec.end(), [](Vec2i a, Vec2i b){return a[1] < b[1]; });
+
+				}
+				else
+				{
+					sort(tmpPtVec.begin(), tmpPtVec.end(), ptSortPred);
+					
+				}
+				Vec2i firstPt = tmpPtVec[0]; Vec2i fourthPt = tmpPtVec[3];
 				Vec2i secondPt = tmpPtVec[1]; Vec2i thirdPt = tmpPtVec[2];
 				//check;
 
@@ -1673,37 +1721,87 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				{
 					// if it's collinear
 					int eps = 5;
-					bool flag3 = ((pt3[0] - pt1[0])*(pt3[0] - pt2[0]) > 0); //appoximate if pt3 is in line1
-					bool flag4 = ((pt4[0] - pt1[0])*(pt4[0] - pt2[0]) > 0);//approximate if pt4 is in  line1
+					bool flag3, flag4;
+					if (!flag0)
+					{
+						flag3 = ((pt3[0] - pt1[0])*(pt3[0] - pt2[0]) > 0); //appoximate if pt3 is in line1
+						flag4 = ((pt4[0] - pt1[0])*(pt4[0] - pt2[0]) > 0);//approximate if pt4 is in  line1
+					}
+					else
+					{
+						flag3 = ((pt3[1] - pt1[1])*(pt3[1] - pt2[1]) > 0); //appoximate if pt3 is in line1
+						flag4 = ((pt4[1] - pt1[1])*(pt4[1] - pt2[1]) > 0);//approximate if pt4 is in  line1					
+					}
 					if (same_pt(pt1, pt3))
 					{
-						if (abs(pt4[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
+						if (!flag0)
 						{
-							*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
+							if (abs(pt4[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
+							{
+								*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
+							}
+						}
+						else
+						{
+							if (abs(pt4[1] - pt1[1]) > abs(pt2[1] - pt1[1]))
+							{
+								*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
+							}
 						}
 						iter2 = plainLines.erase(iter2);
 					}
 					else if (same_pt(pt1, pt4))
 					{
-						if (abs(pt3[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
+						if (!flag0)
 						{
-							*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
+							if (abs(pt3[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
+							{
+								*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
+							}
+						}
+						else
+						{
+							if (abs(pt3[1] - pt1[1]) > abs(pt2[1] - pt1[1]))
+							{
+								*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
+							}
 						}
 						iter2 = plainLines.erase(iter2);
 					}
 					else if (same_pt(pt2, pt3))
 					{
-						if (abs(pt4[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
+						if (!flag0)
 						{
-							*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
+							if (abs(pt4[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
+							{
+								*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
+							}
+						}
+						else
+						{
+							if (abs(pt4[1] - pt2[1]) > abs(pt1[1] - pt2[1]))
+							{
+								*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
+							}
 						}
 						iter2 = plainLines.erase(iter2);
 					}
 					else if (same_pt(pt2, pt4))
 					{
-						if (abs(pt3[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
+						if (!flag0)
+
 						{
-							*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
+							if (abs(pt3[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
+							{
+								*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
+							}
+						}
+						else
+						{
+							if (abs(pt3[1] - pt2[1]) > abs(pt1[1] - pt2[1]))
+							{
+								*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
+							}
 						}
 						iter2 = plainLines.erase(iter2);
 					}
@@ -1711,18 +1809,23 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 					else if (flag3&&flag4)
 					{
 						// two disjoint collinear line
-						cout << leftPt << "range" << rightPt << endl;
+						cout << firstPt << "range" << fourthPt << endl;
 						if (dashLineRecovery(edgePoints, secondPt, thirdPt))
 						{
-							*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+							*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
 							cout << "now the line1 is " << *iter1 << endl;
+							iter2 = plainLines.erase(iter2);
 						}
-						iter2 = plainLines.erase(iter2);
+						else
+						{
+							iter2++;
+						}
+						//iter2++;
 					}
 					else
 					{
-						cout << leftPt << "range" << rightPt << endl;
-						*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
+						cout << firstPt << "range" << fourthPt << endl;
+						*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
 						cout << "now the line1 is " << *iter1 << endl;
 						iter2 = plainLines.erase(iter2);
 					}
@@ -1740,6 +1843,16 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		}
 		cout << endl;
 	}
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		cout << "*********************"<<pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand()%255, rand()%255, rand()%255), 2, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	}
+	namedWindow("6.lines first opt version now", 0); imshow("6.lines first opt version now", color_img);
 #pragma endregion rmParallel
 
 	//point revision
@@ -1750,6 +1863,8 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//}
 
 #pragma region recover line-based dash line and point refinement
+
+#pragma region cross point combination
 	vector<Vec4i> tmpLines; vector<lineX> lineXs; vector<pointX> pointXs;
 	for (int i = 0; i < plainLines.size(); i++)
 	{
@@ -1757,125 +1872,259 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		pointX p1, p2; p1.l_idx.push_back(i); p2.l_idx.push_back(i); 
 		for (int j = i + 1; j < plainLines.size(); j++)
 		{
-			
-			line1 = plainLines[i]; 
-			pt1 = { line1[0], line1[1] }; pt2 = { line1[2], line1[3] };int maxXD1 = abs(pt2[0] - pt1[0]);
+			line1 = plainLines[i];
+			pt1 = { line1[0], line1[1] }; pt2 = { line1[2], line1[3] }; 
 			Vec4i line2 = plainLines[j]; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
-			int maxXD2 = abs(pt4[0] - pt3[0]);
-			if (i == 4)
-				cout << "test" << endl;
-			if (j == 4)
-				cout << "test" << endl;
-			Vec2i cross; getCrossPt(line1, line2, cross);
-			if (!isInImage(color_img.rows, color_img.cols, cross))
+			bool flag00 = (abs(pt1[0] - pt2[0]) < 3); bool flag01 = (abs(pt3[0] - pt4[0]) < 3);
+			int maxD1, maxD2;
+			maxD1 = (abs(pt1[0] - pt2[0]) < 3) ? abs(pt2[1] - pt1[1]) : abs(pt2[0] - pt1[0]);
+			maxD2 = (abs(pt4[0] - pt3[0]) < 3) ? abs(pt4[1] - pt3[1]) : abs(pt4[0] - pt3[0]);
+			/*if (!flag00)
 			{
-				// take it as no cross
-					
-				continue;
+				maxD1 = abs(pt2[0] - pt1[0]);
 			}
 			else
 			{
-				//cross point in image
-				//first check if the cross is same with 
-				int flag1, flag2; flag1 = flag2 = -1;
-				if (abs(cross[0] - pt1[0]) < abs(cross[0] - pt2[0]))
-				{
-					
-					// pt1 is closer to cross
-					flag1 = 0;
-					if (withinPtCRegion(cross, pt1) || dashLineRecovery(edgePoints, cross, pt1))
-					{
-						if (abs(cross[0] - pt2[0]) > maxXD1)
-						{
-							//chooseNearCircle(circle_candidates, cross, pt1);
-							plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
-							maxXD1 = abs(cross[0] - pt2[0]);
-						}
-					}
-					
+				maxD1 = abs(pt2[1] - pt1[1]);
+			}
+			if (!flag01)
+			{
+				maxD2 = abs(pt4[0] - pt3[0]);
+			}
+			else
+			{
+				maxD2 = abs(pt4[1] - pt3[1]);
+			}*/
 
+			if (isParallel(line1, line2))
+			{
+				//parallel lines
+				//if (dashLineRecovery(edgePoints, pt1, pt3))
+				//{
+
+				//}
+				//else if (dashLineRecovery(edgePoints, pt1, pt4))
+				//{
+
+				//}
+				//else if (dashLineRecovery(edgePoints, pt2, pt3))
+				//{
+
+				//}
+				//else if (dashLineRecovery(edgePoints, pt2, pt4))
+				//{
+
+				//}
+				cout << "8**8" << endl;
+			}
+			else
+			{
+				// not parallel
+				Vec2i cross; getCrossPt(line1, line2, cross);
+				if (!isInImage(color_img.rows, color_img.cols, cross))
+				{
+					// take it as no cross
+
+					continue;
 				}
 				else
 				{
-					// pt2 is closer to the cross
-					flag1 = 1;
-					if (withinPtCRegion(cross, pt2) || dashLineRecovery(edgePoints, cross, pt2))
+					//cross point in image
+					//first check if the cross is same with 
+					int flag1, flag2; flag1 = flag2 = -1;
+					if (!flag00)
 					{
-						if (abs(cross[0] - pt1[0])> maxXD1)
+						// use x;
+						if (abs(cross[0] - pt1[0]) < abs(cross[0] - pt2[0]))
 						{
-							//chooseNearCircle(circle_candidates, cross, pt2);
-							plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
-							maxXD1 = abs(cross[0] - pt1[0]);
+
+							// pt1 is closer to cross
+							flag1 = 0;
+							if (withinPtCRegion(cross, pt1) || dashLineRecovery(edgePoints, cross, pt1))
+							{
+								if (abs(cross[0] - pt2[0]) > maxD1)
+								{
+									plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
+									maxD1 = abs(cross[0] - pt2[0]);
+								}
+							}
+
+
+						}
+						else
+						{
+							// pt2 is closer to the cross
+							flag1 = 1;
+							if (withinPtCRegion(cross, pt2) || dashLineRecovery(edgePoints, cross, pt2))
+							{
+								if (abs(cross[0] - pt1[0]) > maxD1)
+								{
+									//chooseNearCircle(circle_candidates, cross, pt2);
+									plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
+									maxD1 = abs(cross[0] - pt1[0]);
+								}
+							}
 						}
 					}
-				}
-				if (abs(cross[0] - pt3[0]) < abs(cross[0] - pt4[0]))
-				{
-					//pt3 is closer to the cross
-					flag2 = 0;
-					if (withinPtCRegion(cross, pt3) || dashLineRecovery(edgePoints, cross, pt3))
+					else
 					{
-						if (abs(cross[0] - pt4[0]) > maxXD2)
+						//use y
+						if (abs(cross[1] - pt1[1]) < abs(cross[1] - pt2[1]))
 						{
-							//chooseNearCircle(circle_candidates, cross, pt3);
-							plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
-							maxXD2 = abs(cross[0] - pt3[0]);
+
+							// pt1 is closer to cross
+							flag1 = 0;
+							if (withinPtCRegion(cross, pt1) || dashLineRecovery(edgePoints, cross, pt1))
+							{
+								if (abs(cross[1] - pt2[1]) > maxD1)
+								{
+									plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
+									maxD1 = abs(cross[1] - pt2[1]);
+								}
+							}
+
+
+						}
+						else
+						{
+							// pt2 is closer to the cross
+							flag1 = 1;
+							if (withinPtCRegion(cross, pt2) || dashLineRecovery(edgePoints, cross, pt2))
+							{
+								if (abs(cross[1] - pt1[1]) > maxD1)
+								{
+									//chooseNearCircle(circle_candidates, cross, pt2);
+									plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
+									maxD1 = abs(cross[1] - pt1[1]);
+								}
+							}
 						}
 					}
-				}
-				else
-				{
-					//pt4 is closer to the cross
-					flag2 = 1;
-					if (withinPtCRegion(cross, pt4) || dashLineRecovery(edgePoints, cross, pt4))
+					if (!flag01)
 					{
-						if (abs(cross[0] - pt3[0])> maxXD2)
+						if (abs(cross[0] - pt3[0]) < abs(cross[0] - pt4[0]))
 						{
-							//chooseNearCircle(circle_candidates, cross, pt4);
-							plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
-							maxXD2 = abs(cross[0] - pt3[0]);
+							//pt3 is closer to the cross
+							flag2 = 0;
+							if (withinPtCRegion(cross, pt3) || dashLineRecovery(edgePoints, cross, pt3))
+							{
+								if (abs(cross[0] - pt4[0]) > maxD2)
+								{
+									//chooseNearCircle(circle_candidates, cross, pt3);
+									plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
+									maxD2 = abs(cross[0] - pt3[0]);
+								}
+							}
+						}
+						else
+						{
+							//pt4 is closer to the cross
+							flag2 = 1;
+							if (withinPtCRegion(cross, pt4) || dashLineRecovery(edgePoints, cross, pt4))
+							{
+								if (abs(cross[0] - pt3[0]) > maxD2)
+								{
+									//chooseNearCircle(circle_candidates, cross, pt4);
+									plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
+									maxD2 = abs(cross[0] - pt3[0]);
+								}
+							}
 						}
 					}
-				}
-				
+					else
+					{
+						if (abs(cross[0] - pt3[0]) < abs(cross[0] - pt4[0]))
+						{
+							//pt3 is closer to the cross
+							flag2 = 0;
+							if (withinPtCRegion(cross, pt3) || dashLineRecovery(edgePoints, cross, pt3))
+							{
+								if (abs(cross[1] - pt4[1]) > maxD2)
+								{
+									//chooseNearCircle(circle_candidates, cross, pt3);
+									plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
+									maxD2 = abs(cross[1] - pt3[1]);
+								}
+							}
+						}
+						else
+						{
+							//pt4 is closer to the cross
+							flag2 = 1;
+							if (withinPtCRegion(cross, pt4) || dashLineRecovery(edgePoints, cross, pt4))
+							{
+								if (abs(cross[1] - pt3[1]) > maxD2)
+								{
+									//chooseNearCircle(circle_candidates, cross, pt4);
+									plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
+									maxD2 = abs(cross[1] - pt3[1]);
+								}
+							}
+						}
+					}
 					
-				//// begin pointwise dashline recovery
-				//if (flag1 == 0 && flag2 == 0)
-				//{
-				//	if (dashLineRecovery(edgePoints, pt2, pt4))
-				//	{
-				//		Vec4i tmpLine = { pt2[0], pt2[1], pt4[0], pt4[1] };
-				//		tmpLines.push_back(tmpLine);
-				//	}
-				//}
-				//else if (flag1 == 0 && flag2 == 1)
-				//{
-				//	if (dashLineRecovery(edgePoints, pt2, pt3))
-				//	{
-				//		Vec4i tmpLine = { pt2[0], pt2[1], pt3[0], pt3[1] };
-				//		tmpLines.push_back(tmpLine);
-				//	}
-				//}
-				//else if (flag1 == 1 && flag2 == 0)
-				//{
-				//	if (dashLineRecovery(edgePoints, pt1, pt4))
-				//	{
-				//		Vec4i tmpLine = { pt1[0], pt1[1], pt4[0], pt4[1] };
-				//		tmpLines.push_back(tmpLine);
-				//	}
-				//}
-				//else if (flag1 = 1 && flag2 == 1)
-				//{
-				//	if (dashLineRecovery(edgePoints, pt1, pt3))
-				//	{
-				//		Vec4i tmpLine = { pt1[0], pt1[1], pt3[0], pt3[1] };
-				//		tmpLines.push_back(tmpLine);
-				//	}
-				//}
+					//{
+					//	if (abs(cross[0] - pt1[1]) < abs(cross[1] - pt2[1]))
+					//	{
+					//		// pt1 is closer to cross
+					//		flag1 = 0;
+					//		if (withinPtCRegion(cross, pt1) || dashLineRecovery(edgePoints, cross, pt1))
+					//		{
+					//			if (abs(cross[1] - pt2[1]) > maxD1)
+					//			{
+					//				//chooseNearCircle(circle_candidates, cross, pt1);
+					//				plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
+					//				maxD1 = abs(cross[1] - pt2[1]);
+					//			}
+					//		}
+					//	}
+					//	else
+					//	{
+					//		// pt2 is closer to the cross
+					//		flag1 = 1;
+					//		if (withinPtCRegion(cross, pt2) || dashLineRecovery(edgePoints, cross, pt2))
+					//		{
+					//			if (abs(cross[1] - pt1[1]) > maxD1)
+					//			{
+					//				//chooseNearCircle(circle_candidates, cross, pt2);
+					//				plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
+					//				maxD1 = abs(cross[1] - pt1[1]);
+					//			}
+					//		}
+					//	}
+					//	if (abs(cross[1] - pt3[1]) < abs(cross[1] - pt4[1]))
+					//	{
+					//		//pt3 is closer to the cross
+					//		flag2 = 0;
+					//		if (withinPtCRegion(cross, pt3) || dashLineRecovery(edgePoints, cross, pt3))
+					//		{
+					//			if (abs(cross[1] - pt4[1]) > maxD2)
+					//			{
+					//				//chooseNearCircle(circle_candidates, cross, pt3);
+					//				plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
+					//				maxD2 = abs(cross[1] - pt3[1]);
+					//			}
+					//		}
+					//	}
+					//	else
+					//	{
+					//		//pt4 is closer to the cross
+					//		flag2 = 1;
+					//		if (withinPtCRegion(cross, pt4) || dashLineRecovery(edgePoints, cross, pt4))
+					//		{
+					//			if (abs(cross[1] - pt3[1]) > maxD2)
+					//			{
+					//				//chooseNearCircle(circle_candidates, cross, pt4);
+					//				plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
+					//				maxD2 = abs(cross[1] - pt3[1]);
+					//			}
+					//		}
+					//	}
+					//}
+				}
+
 
 			}
- 
-
 		}
 		line1 = plainLines[i]; pt1 = { line1[0], line1[1] }; pt2 = { line1[2], line1[3] };
 		
@@ -1894,71 +2143,67 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		
 		lineXs.push_back(lineX1);
 	}
-	int pxsize = pointXs.size();
-	int erasenum = 0;
+	//int pxsize = pointXs.size();
+	//int erasenum = 0;
+	//for (auto i = 0; i < pointXs.size(); i++)
+	//{
+	//	pointX p1 = pointXs[i];
+	//	int erasenum1 = 0;
+	//	if (p1.p_idx == 3)
+	//		cout << "test" << endl;
+	//	//int div1 = i / 2; int mod1 = i % 2;
+	//	for (int j = i + 1; j < pointXs.size(); j++)
+	//	{
+	//		pointX p2 = pointXs[j];
+	//		if (same_pt(p1,p2))
+	//		{
+	//			//erase point2
+	//			int div2 = p2.p_idx/ 2;
+	//			int mod2 = p2.p_idx % 2;
+	//			if (mod2)
+	//			{
+	//				//second point in line to be changed
+	//				lineXs[div2].pt2 = p1.pxy;
+	//				lineXs[div2].px2 = p1.pxy[0]; lineXs[div2].py2 = p1.pxy[1];
+	//				lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
+	//				lineXs[div2].pidx1 = p1.p_idx;
+	//				//pointXs[j - erasenum].pxy = p1.pxy;
+	//				pointXs.erase(pointXs.begin() + j);
+	//				j--;
+	//				erasenum++; erasenum1++;
+	//				
+	//			}
+	//			else
+	//			{
+	//				//first point in line to be changed
+	//				lineXs[div2].pt1 = p1.pxy; 
+	//				lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
+	//				lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
+	//				lineXs[div2].pidx2 = p1.p_idx;
+	//				pointXs.erase(pointXs.begin() + j );
+	//				j--;
+	//				erasenum++; erasenum1++;
+	//			}
+	//		}
+	//	}
+	//}
+
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	}
+	namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
+#pragma endregion cross point combination
+	
 	for (auto i = 0; i < pointXs.size(); i++)
 	{
-		pointX p1 = pointXs[i];
-		int erasenum1 = 0;
-		if (p1.p_idx == 3)
-			cout << "test" << endl;
-		//int div1 = i / 2; int mod1 = i % 2;
-		for (int j = i + 1; j < pointXs.size(); j++)
-		{
-			pointX p2 = pointXs[j];
-			if (same_pt(p1,p2))
-			{
-				//erase point2
-				int div2 = p2.p_idx/ 2;
-				int mod2 = p2.p_idx % 2;
-				if (mod2)
-				{
-					//second point in line to be changed
-					lineXs[div2].pt2 = p1.pxy;
-					lineXs[div2].px2 = p1.pxy[0]; lineXs[div2].py2 = p1.pxy[1];
-					lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
-					lineXs[div2].pidx1 = p1.p_idx;
-					//pointXs[j - erasenum].pxy = p1.pxy;
-					pointXs.erase(pointXs.begin() + j);
-					j--;
-					erasenum++; erasenum1++;
-					
-				}
-				else
-				{
-					//first point in line to be changed
-					lineXs[div2].pt1 = p1.pxy; 
-					lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
-					lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
-					lineXs[div2].pidx2 = p1.p_idx;
-					pointXs.erase(pointXs.begin() + j );
-					j--;
-					erasenum++; erasenum1++;
-				}
-			}
-
-		}
-	}
-
-	/*for (auto i = 0; i < lineXs.size(); i++)
-	{
-		lineX lx1 = lineXs[i]; Vec4i line1 = lx1.lxy;
-		Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
-		for (auto j = 0; j < lineXs.size(); j++)
-		{
-			lineX lx2 = lineXs[j]; Vec4i line2 = lx2.lxy;
-			Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
-			if (same_pt(pt1, pt3))
-			{
-
-			}
-			
-		}
-	}*/
-	/*for (auto i = 0; i < pointXs.size(); i++)
-	{
 		pointX ptx1 = pointXs[i];
-		for (auto j = 0; j < pointXs.size(); j++)
+		for (auto j = i + 1; j < pointXs.size(); j++)
 		{
 			pointX ptx2 = pointXs[j];
 			if (!existRealLineWithinPtxs(lineXs, ptx1, ptx2))
@@ -1978,9 +2223,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				continue;
 			}
 		}
-	}*/
-	/*sort(pointXs.begin(), pointXs.end(), [](pointX a, pointX b){return a.px < b.px; };
-	pointXs.erase()*/
+	}
 #pragma endregion recover line-based dash line and point refinement
 	
 	//for (auto i = 0; i < plainLines.size(); i++)
@@ -2075,7 +2318,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("Sg-17.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
