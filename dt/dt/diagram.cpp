@@ -1,7 +1,7 @@
 # include "stdafx.h"
 # include "diagram.h"
 
-
+#include "time.h"
 #define N 500
 vector<Point2i> edgePoints;
 int Sgn(double d)
@@ -1402,17 +1402,21 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	else if (fileName != "")
 	{
 		// write into txt
-		ofstream ofile;
+		ofstream ofile, ofile2;
 		ofile.open(fileName, ios_base::app);
+		//ofile2.open("t22222.txt", ios_base::app);
 		for (size_t k = 0; k < plainLines.size(); ++k)
 		{
 			Vec4i l = plainLines[k];
 			cout << l[0] << "," << l[1] << endl << l[2] << "," << l[3] << endl;
 			ofile << l[0] << "," << l[1] << "\n" << l[2] << "," << l[3] << "\n";
+			//ofile2 << l[0] << "," << l[1] << "," << l[2] << "," << l[3] << "\n";
+			
 		}
 		ofile << "\n";
 		cout << endl;
 		ofile.close();
+		//ofile2.close();
 	}
 
 #pragma endregion region1
@@ -1720,7 +1724,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 						cout << leftPt << "range" << rightPt << endl;
 						*iter1 = { leftPt[0], leftPt[1], rightPt[0], rightPt[1] };
 						cout << "now the line1 is " << *iter1 << endl;
-						iter2++;
+						iter2 = plainLines.erase(iter2);
 					}
 				}
 				else
@@ -1896,14 +1900,12 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	{
 		pointX p1 = pointXs[i];
 		int erasenum1 = 0;
-		if (p1.p_idx == 9)
+		if (p1.p_idx == 3)
 			cout << "test" << endl;
 		//int div1 = i / 2; int mod1 = i % 2;
 		for (int j = i + 1; j < pointXs.size(); j++)
 		{
-			pointX p2 = pointXs[j - erasenum1];
-			if (p2.p_idx == 9)
-				cout << "test" << endl;
+			pointX p2 = pointXs[j];
 			if (same_pt(p1,p2))
 			{
 				//erase point2
@@ -1917,7 +1919,8 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 					lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
 					lineXs[div2].pidx1 = p1.p_idx;
 					//pointXs[j - erasenum].pxy = p1.pxy;
-					pointXs.erase(pointXs.begin() + j - erasenum1);
+					pointXs.erase(pointXs.begin() + j);
+					j--;
 					erasenum++; erasenum1++;
 					
 				}
@@ -1928,7 +1931,8 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 					lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
 					lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
 					lineXs[div2].pidx2 = p1.p_idx;
-					pointXs.erase(pointXs.begin() + j - erasenum1);
+					pointXs.erase(pointXs.begin() + j );
+					j--;
 					erasenum++; erasenum1++;
 				}
 			}
@@ -1951,7 +1955,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 			
 		}
 	}*/
-	for (auto i = 0; i < pointXs.size(); i++)
+	/*for (auto i = 0; i < pointXs.size(); i++)
 	{
 		pointX ptx1 = pointXs[i];
 		for (auto j = 0; j < pointXs.size(); j++)
@@ -1974,7 +1978,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				continue;
 			}
 		}
-	}
+	}*/
 	/*sort(pointXs.begin(), pointXs.end(), [](pointX a, pointX b){return a.px < b.px; };
 	pointXs.erase()*/
 #pragma endregion recover line-based dash line and point refinement
@@ -1988,7 +1992,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//	circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	//}
-	
+	//
 	
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
@@ -2000,7 +2004,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
-	
+	//
 	//if (showFlag)
 	
 	{
