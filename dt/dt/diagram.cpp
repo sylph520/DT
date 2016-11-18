@@ -1048,7 +1048,7 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	}
 	else
 	{
-		theta1 = atan2(line1V[1], line1V[0]);
+		theta1 = (atan2(line1V[1], line1V[0]));
 	}
 	if (abs(line2V[0]) <= 3)
 	{
@@ -1060,13 +1060,13 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	}
 	else
 	{
-		theta2 = atan2(line2V[1], line2V[0]);
+		theta2 = (atan2(line2V[1], line2V[0]));
 	}
 
 	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
 	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
 	double angle = abs(theta1 - theta2) / CV_PI * 180;
-	return (angle < 5);
+	return (angle < 8);
 }
 bool ptSortPred(Vec2i pt1, Vec2i pt2)
 {
@@ -1692,6 +1692,11 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//}
 
 #pragma region rmParallel
+
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		cout << plainLines[i][0] << "," << plainLines[i][1] << "," << plainLines[i][2] << "," << plainLines[i][3] << endl;
+	}
 	for (auto iter1 = plainLines.begin(); iter1 != plainLines.end(); iter1++)
 	{
 		// first combine collinear line
@@ -1706,9 +1711,12 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 
 			/*if (pt4[0] == 164)
 			cout << "stop" << endl;*/
+			if (pt1[0] == 31 && pt3[0] == 57)
+				cout << "test" << endl;
 			if (isParallel(line1, line2))
 			{
 				//if it's parallel
+				cout << "line1 and line2 is parallel" << endl;
 				vector<Vec2i> tmpPtVec;
 				tmpPtVec.push_back(pt1); tmpPtVec.push_back(pt2);
 				tmpPtVec.push_back(pt3); tmpPtVec.push_back(pt4);
@@ -1716,11 +1724,13 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				if ( flag0 =(abs(pt1[0] - pt2[0]) < 3))
 				{
 					sort(tmpPtVec.begin(), tmpPtVec.end(), [](Vec2i a, Vec2i b){return a[1] < b[1]; });
+					cout << "line1 is vertical" << endl;
 
 				}
 				else
 				{
 					sort(tmpPtVec.begin(), tmpPtVec.end(), ptSortPred);
+					cout << "line1 is not vertical" << endl;
 					
 				}
 				Vec2i firstPt = tmpPtVec[0]; Vec2i fourthPt = tmpPtVec[3];
@@ -1730,6 +1740,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				if (ptLine(line1, pt3))// pt3 of line2 is on line 1
 				{
 					// if it's collinear
+					cout << "two line is collinear" << endl;
 					int eps = 5;
 					bool flag3, flag4;
 					if (!flag0)
@@ -1744,11 +1755,20 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 					}
 					if (same_pt(pt1, pt3))
 					{
+						cout << "pt1 and pt3 seems the same" << endl;
 						if (!flag0)
 						{
 							if (abs(pt4[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
 							{
 								*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
+								cout << "pt4 is farther to pt1 than pt2, and the line1 changed to " << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
+							}
+							else
+							{
+								*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
+								cout << "pt2 is farther to pt1 than pt4, and the line1 changed to " << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 							}
 						}
 						else
@@ -1756,8 +1776,17 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 							if (abs(pt4[1] - pt1[1]) > abs(pt2[1] - pt1[1]))
 							{
 								*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
+								cout << "pt4 is farther to pt1 than pt2, and the line1 changed to " << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
+							}
+							else
+							{
+								*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
+								cout << "pt2 is farther to pt1 than pt4, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 							}
 						}
+						cout << "erase line2" << endl << endl;
 						iter2 = plainLines.erase(iter2);
 					}
 					else if (same_pt(pt1, pt4))
@@ -1766,7 +1795,15 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 						{
 							if (abs(pt3[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
 							{
+								cout << "pt3 is farther to pt1 than pt2, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 								*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
+							}
+							else
+							{
+								*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
+								cout << "pt2 is farther to pt1 than pt2, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 							}
 						}
 						else
@@ -1774,8 +1811,17 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 							if (abs(pt3[1] - pt1[1]) > abs(pt2[1] - pt1[1]))
 							{
 								*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
+								cout << "pt3 is farther to pt1 than pt2, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
+							}
+							else
+							{
+								*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
+								cout << "pt2 is farther to pt1 than pt2, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 							}
 						}
+						cout << "erase line2" << endl << endl;
 						iter2 = plainLines.erase(iter2);
 					}
 					else if (same_pt(pt2, pt3))
@@ -1785,6 +1831,14 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 							if (abs(pt4[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
 							{
 								*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
+								cout << "pt4 is farther to pt2 than pt1, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
+							}
+							else
+							{
+								*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
+								cout << "pt1 is farther to pt2 than pt4, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 							}
 						}
 						else
@@ -1792,8 +1846,18 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 							if (abs(pt4[1] - pt2[1]) > abs(pt1[1] - pt2[1]))
 							{
 								*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
+								cout << "pt1 is farther to pt2 than pt4, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
+
+							}
+							else
+							{
+								*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
+								cout << "pt1 is farther to pt2 than pt4, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 							}
 						}
+						cout << "erase line2" << endl << endl;
 						iter2 = plainLines.erase(iter2);
 					}
 					else if (same_pt(pt2, pt4))
@@ -1804,6 +1868,14 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 							if (abs(pt3[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
 							{
 								*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
+								cout << "pt3 is farther to pt2 than pt1, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
+							}
+							else
+							{
+								*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
+								cout << "pt1 is farther to pt2 than pt3, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 							}
 						}
 						else
@@ -1811,43 +1883,56 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 							if (abs(pt3[1] - pt2[1]) > abs(pt1[1] - pt2[1]))
 							{
 								*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
+								cout << "pt3 is farther to pt2 than pt1, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
+							}
+							else
+							{
+								*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
+								cout << "pt1 is farther to pt2 than pt3, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
+									<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
 							}
 						}
+						cout << "erase line2" << endl << endl;
 						iter2 = plainLines.erase(iter2);
 					}
 					// four points are all different
 					else if (flag3&&flag4)
 					{
 						// two disjoint collinear line
+						cout << "four point are all different,";
 						cout << firstPt << "range" << fourthPt << endl;
 						if (dashLineRecovery(edgePoints, secondPt, thirdPt))
 						{
 							*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
-							cout << "now the line1 is " << *iter1 << endl;
+							cout << "collinear line recovery, now the line1 is " << *iter1 << "and erase line2" << endl << endl;
 							iter2 = plainLines.erase(iter2);
 						}
 						else
 						{
+							cout << "collinear but two differnent line" << endl << endl;
 							iter2++;
 						}
 						//iter2++;
 					}
 					else
 					{
+						cout << "colliner line cross over" << endl;
 						cout << firstPt << "range" << fourthPt << endl;
 						*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
-						cout << "now the line1 is " << *iter1 << endl;
+						cout << "now the line1 is " << *iter1 << endl << endl;
 						iter2 = plainLines.erase(iter2);
 					}
 				}
 				else
 				{
-					//parallel but not collinear;
+					cout << "parallel but not collinear" << endl << endl;
 					iter2++;
 				}
 			}
 			else
 			{
+				cout << "line1 and line2 is not parallel" << endl << endl;
 				iter2++;
 			}
 		}
@@ -2198,7 +2283,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		}
 	}
 
-	/*for (auto i = 0; i < plainLines.size(); i++)
+	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		cout << "*********************" << pt1 << " " << pt2 << endl;
@@ -2207,7 +2292,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
-	namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);*/
+	namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
 #pragma endregion cross point combination
 	
 	for (auto i = 0; i < pointXs.size(); i++)
@@ -2328,7 +2413,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-4.jpg", 0);
+	Mat image = imread("Sg-69.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2356,9 +2441,9 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest";
 	char imageName[150], saveimgName[150];
-	string outputFN = "D:\\data\\graph-DB\\output.txt";
+	string outputFN = "D:\\data\\graph-DB\\newtest\\output.txt";
 	for (int i = 1; i < 136; i++)
 	{
 		sprintf_s(imageName, "%s\\Sg-%d.jpg", abs_path, i);
@@ -2371,11 +2456,18 @@ int diagram()
 		Mat binarized_image = image_binarizing(image);
 		// then go on a process of connectivity componnent analysis
 		int labeln; Mat diagram_segment; vector<Mat> label_segment;
+		edgePoints = getPointPositions(binarized_image);
+		Mat pointss = Mat::zeros(1000, 1000, CV_8UC3);
+		for (auto i = 0; i < edgePoints.size(); i++)
+		{
+			Point2i pt = edgePoints[i];
+			circle(pointss, pt, 1, Scalar(0, 0, 255));
+		}
 		image_labelling(binarized_image, labeln, diagram_segment, label_segment);
 		vector<pointX> points; vector<lineX> lines; vector<circleX> circles;
 		Mat drawedImages;
 		primitive_parse(image, diagram_segment, points, lines, circles, drawedImages, false, outputFN);
-		//imwrite(saveimgName, drawedImages);
+		imwrite(saveimgName, drawedImages);
 	}
 	return 0;
 }
