@@ -293,7 +293,7 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 
 			// update mask: remove the detected circle!
 			cv::circle(diagram_segwithoutcircle, bestCircleCenter, bestCircleRadius, 0, 5); // here the radius is fixed which isnt so nice.
-			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
+			cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
 		}
 	}
 	
@@ -1368,19 +1368,29 @@ bool isPartOfLongerLine(Vec4i line1, Vec4i line2)
 }
 bool existRealLineWithinPtxs(vector<lineX> &lineXs, pointX ptx1, pointX ptx2)
 {
-	Vec4i tmpLxy = { ptx1.px, ptx1.py, ptx2.px, ptx2.py };
-	auto iter = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return a.lxy == tmpLxy; });
-	if (iter != lineXs.end())
-		return true;
-	else
+	//Vec4i tmpLxy = { ptx1.px, ptx1.py, ptx2.px, ptx2.py };
+	//auto iter = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return a.lxy == tmpLxy; });
+	//if (iter != lineXs.end())
+	//	return true;
+	//else
+	//{
+	//	//not find exact line
+	//	auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return isPartOfLongerLine(tmpLxy, a.lxy); });
+	//	if (iter2 != lineXs.end())
+	//		return true;
+	//	else
+	//	{
+	//		//not part of line
+	//	}
+	//}
+	auto iter1 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return in_line(a.lxy, ptx1.pxy); });
+	auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return in_line(a.lxy, ptx2.pxy); });
+	if (iter1 != lineXs.begin() || iter2 != lineXs.end())
 	{
-		//not find
-		auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return isPartOfLongerLine(tmpLxy, a.lxy); });
-		if (iter2 != lineXs.end())
-			return true;
-		else
-			return false;
+		return true;
 	}
+	else
+		return false;
 }
 
 void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, vector<Vec3f> &circle_candidates, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
@@ -1843,7 +1853,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		}
 		cout << endl;
 	}
-	for (auto i = 0; i < plainLines.size(); i++)
+	/*for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		cout << "*********************"<<pt1 << " " << pt2 << endl;
@@ -1852,7 +1862,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
-	namedWindow("6.lines first opt version now", 0); imshow("6.lines first opt version now", color_img);
+	namedWindow("6.lines first opt version now", 0); imshow("6.lines first opt version now", color_img);*/
 #pragma endregion rmParallel
 
 	//point revision
@@ -2143,52 +2153,52 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		
 		lineXs.push_back(lineX1);
 	}
-	//int pxsize = pointXs.size();
-	//int erasenum = 0;
-	//for (auto i = 0; i < pointXs.size(); i++)
-	//{
-	//	pointX p1 = pointXs[i];
-	//	int erasenum1 = 0;
-	//	if (p1.p_idx == 3)
-	//		cout << "test" << endl;
-	//	//int div1 = i / 2; int mod1 = i % 2;
-	//	for (int j = i + 1; j < pointXs.size(); j++)
-	//	{
-	//		pointX p2 = pointXs[j];
-	//		if (same_pt(p1,p2))
-	//		{
-	//			//erase point2
-	//			int div2 = p2.p_idx/ 2;
-	//			int mod2 = p2.p_idx % 2;
-	//			if (mod2)
-	//			{
-	//				//second point in line to be changed
-	//				lineXs[div2].pt2 = p1.pxy;
-	//				lineXs[div2].px2 = p1.pxy[0]; lineXs[div2].py2 = p1.pxy[1];
-	//				lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
-	//				lineXs[div2].pidx1 = p1.p_idx;
-	//				//pointXs[j - erasenum].pxy = p1.pxy;
-	//				pointXs.erase(pointXs.begin() + j);
-	//				j--;
-	//				erasenum++; erasenum1++;
-	//				
-	//			}
-	//			else
-	//			{
-	//				//first point in line to be changed
-	//				lineXs[div2].pt1 = p1.pxy; 
-	//				lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
-	//				lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
-	//				lineXs[div2].pidx2 = p1.p_idx;
-	//				pointXs.erase(pointXs.begin() + j );
-	//				j--;
-	//				erasenum++; erasenum1++;
-	//			}
-	//		}
-	//	}
-	//}
+	int pxsize = pointXs.size();
+	int erasenum = 0;
+	for (auto i = 0; i < pointXs.size(); i++)
+	{
+		pointX p1 = pointXs[i];
+		int erasenum1 = 0;
+		if (p1.p_idx == 3)
+			cout << "test" << endl;
+		//int div1 = i / 2; int mod1 = i % 2;
+		for (int j = i + 1; j < pointXs.size(); j++)
+		{
+			pointX p2 = pointXs[j];
+			if (same_pt(p1,p2))
+			{
+				//erase point2
+				int div2 = p2.p_idx/ 2;
+				int mod2 = p2.p_idx % 2;
+				if (mod2)
+				{
+					//second point in line to be changed
+					lineXs[div2].pt2 = p1.pxy;
+					lineXs[div2].px2 = p1.pxy[0]; lineXs[div2].py2 = p1.pxy[1];
+					lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
+					lineXs[div2].pidx1 = p1.p_idx;
+					//pointXs[j - erasenum].pxy = p1.pxy;
+					pointXs.erase(pointXs.begin() + j);
+					j--;
+					erasenum++; erasenum1++;
+					
+				}
+				else
+				{
+					//first point in line to be changed
+					lineXs[div2].pt1 = p1.pxy; 
+					lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
+					lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
+					lineXs[div2].pidx2 = p1.p_idx;
+					pointXs.erase(pointXs.begin() + j );
+					j--;
+					erasenum++; erasenum1++;
+				}
+			}
+		}
+	}
 
-	for (auto i = 0; i < plainLines.size(); i++)
+	/*for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		cout << "*********************" << pt1 << " " << pt2 << endl;
@@ -2197,7 +2207,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
-	namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
+	namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);*/
 #pragma endregion cross point combination
 	
 	for (auto i = 0; i < pointXs.size(); i++)
@@ -2318,7 +2328,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-17.jpg", 0);
+	Mat image = imread("Sg-4.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
