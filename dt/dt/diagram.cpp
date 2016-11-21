@@ -293,7 +293,7 @@ void detect_circle(Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutci
 
 			// update mask: remove the detected circle!
 			cv::circle(diagram_segwithoutcircle, bestCircleCenter, bestCircleRadius, 0, 5); // here the radius is fixed which isnt so nice.
-			cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
+			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
 		}
 	}
 	
@@ -997,7 +997,7 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 			}
 		}
 		float low_threshold = alpha*(x2 - x1);
-		if (low_threshold < 10)
+		if (low_threshold < 5)
 			low_threshold = x2 - x1;
 		int ptsCount = count(bitmap, bitmap + N, 1);
 		if (ptsCount >= low_threshold)
@@ -1018,7 +1018,7 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 			}
 		}
 		float low_threshold = alpha*(y2 - y1);
-		if (low_threshold < 10)
+		if (low_threshold < 5)
 			low_threshold = y2 - y1;
 		int ptsCount = count(bitmap, bitmap + N, 1);
 		if (ptsCount >= low_threshold)
@@ -1314,7 +1314,7 @@ void PointLineRevision(vector<Point2i> &edgePositions, vector<Vec4i> &plainLines
 
 bool withinPtCRegion(Vec2i center, Vec2i pt)
 {
-	if (p2pdistance(center, pt) < 8)
+	if (p2pdistance(center, pt) < 10)
 		return true;
 	else
 		return false;
@@ -1383,12 +1383,18 @@ bool existRealLineWithinPtxs(vector<lineX> &lineXs, pointX ptx1, pointX ptx2)
 	//		//not part of line
 	//	}
 	//}
+	Vec4i line1, line2;
+	line1 = { ptx1.px, ptx1.py, ptx2.px, ptx2.py }; line2 = { ptx2.px, ptx2.py, ptx1.px, ptx1.py };
 	auto iter1 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return in_line(a.lxy, ptx1.pxy); });
 	auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return in_line(a.lxy, ptx2.pxy); });
-	if (iter1 != lineXs.begin() || iter2 != lineXs.end())
-	{
+	auto iter = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){
+		if (a.lxy == line1 || a.lxy == line2)
+			return true;
+		else
+			return false;
+	});
+	if (iter != lineXs.end())
 		return true;
-	}
 	else
 		return false;
 }
@@ -1938,17 +1944,20 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		}
 		cout << endl;
 	}
+	
+
+#pragma endregion rmParallel
+	
 	/*for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-		cout << "*********************"<<pt1 << " " << pt2 << endl;
-		line(color_img, pt1, pt2, Scalar(rand()%255, rand()%255, rand()%255), 2, 8, 0);
+		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
 		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
 	namedWindow("6.lines first opt version now", 0); imshow("6.lines first opt version now", color_img);*/
-#pragma endregion rmParallel
 
 	//point revision
 	//for (auto i = 0; i < plainLines.size(); i++)
@@ -2010,7 +2019,8 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 				//{
 
 				//}
-				cout << "8**8" << endl;
+				//cout << "8**8" << endl;
+				continue;
 			}
 			else
 			{
@@ -2283,7 +2293,9 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		}
 	}
 
-	for (auto i = 0; i < plainLines.size(); i++)
+	
+#pragma endregion cross point combination
+	/*for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		cout << "*********************" << pt1 << " " << pt2 << endl;
@@ -2292,8 +2304,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
-	namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
-#pragma endregion cross point combination
+	namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);*/
 	
 	for (auto i = 0; i < pointXs.size(); i++)
 	{
@@ -2413,7 +2424,7 @@ void primitive_parse(Mat &image, Mat diagram_segment, vector<pointX> &points, ve
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-69.jpg", 0);
+	Mat image = imread("Sg-18.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2441,9 +2452,9 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest3";
 	char imageName[150], saveimgName[150];
-	string outputFN = "D:\\data\\graph-DB\\newtest\\output.txt";
+	string outputFN = "D:\\data\\graph-DB\\newtest2\\output.txt";
 	for (int i = 1; i < 136; i++)
 	{
 		sprintf_s(imageName, "%s\\Sg-%d.jpg", abs_path, i);
