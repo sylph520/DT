@@ -328,6 +328,14 @@ bool on_circle(Vec2i pt, Vec3f circle)
 double cross_product(Vec2i a, Vec2i b){
 	return a[0] * b[1] - a[1] * b[0];
 }
+
+float point2Line(Vec4i line, Vec2i pt)
+{
+	Vec2i bottom = { line[2] - line[0], line[3] - line[1] };
+	Vec2i slope = { pt[0] - line[0], pt[1] - line[1] };
+	float p2l= abs(cross_product(bottom, slope) / norm(bottom));
+	return p2l;
+}
 bool on_line(Vec4i line, Vec2i pt)
 {
 	double linedis_eps = 3; double pointdis_eps = 5;
@@ -965,12 +973,16 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vect
 	for (auto i = 0; i < circle_candidates.size(); i++)
 	{
 		Vec3f c = circle_candidates[i];
+		Vec2i center = { int(c[0]), int(c[1]) };
+		float radius = c[2];
 		if (on_circle(pt1, c) && on_circle(pt2, c) && len < 25 && !pwflag)
 			return true;
 		if (on_circle(mid, c) && len < 20)
 		{
 			return true;
 		}
+		if (abs(point2Line(line, center) - radius) < 5)
+			return true;
 	}
 	
 	
@@ -2389,7 +2401,12 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	}*/
 	//namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
 	cout << endl<<"block stop" << endl << endl;
-
+	Mat withoutCLBw = withoutCirBw;
+	for (auto i = 0; i < lineXs.size(); i++)
+	{
+		line(withoutCLBw, lineXs[i].pt1, lineXs[i].pt2, 0, 1);
+	}
+	vector<Point2i> ept2 = getPointPositions(withoutCLBw);
 	for (auto i = 0; i < pointXs.size(); i++)
 	{
 		pointX ptx1 = pointXs[i];
@@ -2398,7 +2415,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			pointX ptx2 = pointXs[j];
 			if (!existRealLineWithinPtxs(lineXs, ptx1, ptx2))
 			{
-				if (dashLineRecovery(ept, ptx1.pxy, ptx2.pxy, circle_candidates, true))
+				if (dashLineRecovery(ept2, ptx1.pxy, ptx2.pxy, circle_candidates, true))
 				{
 					Vec4i tmpLine = { ptx1.px, ptx1.py, ptx2.px, ptx2.py };
 					lineX tmpLx;
@@ -2510,7 +2527,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-18.jpg", 0);
+	Mat image = imread("Sg-51.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2538,7 +2555,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest9";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest10";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
