@@ -1001,14 +1001,14 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 		if (low_threshold < 5)
 			low_threshold = x2 - x1;
 		int ptsCount = count(bitmap, bitmap + N, 1);
-		if (ptsCount >= low_threshold)
+		if (ptsCount > low_threshold)
 		{
-			cout << "exist dashline" << endl;
+			cout << "exist dashline between " << pt1<<" "<<pt2<<endl;
 			return true;
 		}
 		else
 		{
-			cout << "not exist dashline" << endl;
+			cout << "not exist dashline between " << pt1<<" "<<pt2<<endl;
 			return false;
 		}
 	}
@@ -1028,14 +1028,14 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2)
 		if (low_threshold < 5)
 			low_threshold = y2 - y1;
 		int ptsCount = count(bitmap, bitmap + N, 1);
-		if (ptsCount >= low_threshold)
+		if (ptsCount > low_threshold)
 		{
-			cout << "exist dashline" << endl;
+			cout << "exist dashline between " << pt1<<" "<<pt2<<endl;
 			return true;
 		}
 		else
 		{
-			cout << "not exist dashline" << endl;
+			cout << "not exist dashline between " << pt1<<" "<<pt2<<endl;
 			return false;
 		}
 	}
@@ -1419,7 +1419,7 @@ bool existRealLineWithinPtxs(vector<lineX> &lineXs, pointX ptx1, pointX ptx2)
 }
 
 
-void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, vector<Point2i> &edgePoints,vector<Vec3f> &circle_candidates, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
+void detect_line3(Mat diagram_segwithoutcircle, vector<Point2i> &edgePoints,vector<Vec3f> &circle_candidates, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
 {
 #pragma region region1
 	
@@ -1983,7 +1983,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//namedWindow("6.lines first opt version now", 0); imshow("6.lines first opt version now", color_img);
 
 #pragma region recover line-based dash line and point refinement
-	cout << "block stop" << endl;
+	cout <<endl<< "block stop" << endl << endl;
 #pragma region cross point combination
 	vector<Vec4i> tmpLines; vector<lineX> lineXs; vector<pointX> pointXs;
 	for (int i = 0; i < plainLines.size(); i++)
@@ -2376,7 +2376,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
 	namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);*/
-	
+	cout << endl<<"block stop" << endl << endl;
 	for (auto i = 0; i < pointXs.size(); i++)
 	{
 		pointX ptx1 = pointXs[i];
@@ -2413,7 +2413,7 @@ void detect_line3(vector<Point2i> &edgePositions, Mat diagram_segwithoutcircle, 
 	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	//}
 	//
-	
+
 
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
@@ -2466,7 +2466,7 @@ void primitive_parse(const Mat diagram_segment, vector<Point2i> &edgePoints,vect
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle,circle_candidates,showFlag);
 	// then the line detection
 	vector<Vec4i> line_candidates = {}; vector<Vec2i> basicEndpoints = {};
-	detect_line3(edgePoints ,diagram_segwithoutcircle,edgePoints,circle_candidates, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
+	detect_line3( diagram_segwithoutcircle,edgePoints,circle_candidates, color_img, line_candidates, basicEndpoints, drawedImages,showFlag, fileName);
 	
 	//detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
 	//cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
@@ -2496,7 +2496,7 @@ void primitive_parse(const Mat diagram_segment, vector<Point2i> &edgePoints,vect
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("Sg-114.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
