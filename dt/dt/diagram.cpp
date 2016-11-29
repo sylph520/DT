@@ -505,30 +505,36 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle
 	for (int i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i line = plainLines[i];
-		for (int j = 0; j < circle_candidates.size(); j++)
+		if (circle_candidates.size() != 0)
 		{
-			Vec3f c = circle_candidates[j];
-			Vec2f center = { c[0], c[1] }; float radius = c[2];
-			if (on_circle(tmp, c))
+			for (int j = 0; j < circle_candidates.size(); j++)
 			{
-				float minDiff = 100;
-				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
-				for (auto m = cenx - 3; m <= cenx + 3; m++)
+				Vec3f c = circle_candidates[j];
+				Vec2f center = { c[0], c[1] }; float radius = c[2];
+				if (on_circle(tmp, c))
 				{
-					for (auto n = ceny - 3; n <= ceny + 3; n++)
+					float minDiff = 100;
+					int cenx = int(tmp[0]); int ceny = int(tmp[1]);
+					for (auto m = cenx - 3; m <= cenx + 3; m++)
 					{
-						Vec2i tmp2 = { m, n };
-						float tmpDiff = abs(p2pdistance(tmp2, center) - radius);
-						if (tmpDiff < minDiff)
+						for (auto n = ceny - 3; n <= ceny + 3; n++)
 						{
-							cross = tmp2;
-							minDiff = tmpDiff;
-						}
+							Vec2i tmp2 = { m, n };
+							float tmpDiff = abs(p2pdistance(tmp2, center) - radius);
+							if (tmpDiff < minDiff)
+							{
+								cross = tmp2;
+								minDiff = tmpDiff;
+							}
 
+						}
 					}
 				}
 			}
-			else if (in_line(line, tmp))
+		}
+		else
+		{
+			if (in_line(line, tmp))
 			{
 				Vec2f tmp1, tmp2;
 				getCrossPt(line, line1, tmp1); getCrossPt(line, line2, tmp2);
@@ -2117,7 +2123,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				// not parallel
 				cout << "line1 and line2 is not parallel" << endl;
 				Vec2i cross; getCrossPtRev(line1, line2, cross,circle_candidates, plainLines);
-				
+				//Vec2f cross; getCrossPt(line1, line2, cross);
 				cout << "cross point is now " << cross << endl;
 				if (!isInImage(color_img.cols, color_img.rows, cross))
 				{
@@ -2135,15 +2141,16 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					{
 						// use x;
 						cout << "line1 is not vertical, use x" << endl;
+						bool tmpFlag;
 						if (abs(cross[0] - pt1[0]) < abs(cross[0] - pt2[0]))
 						{
 
 							// pt1 is closer to cross
 							cout << "pt1 is closer to the cross" << endl;
 							flag1 = 0;
-							if (withinPtCRegion(cross, pt1) || dashLineRecovery(ept, cross, pt1, circle_candidates,false,true,false))
+							if ( (tmpFlag = withinPtCRegion(cross, pt1)) || dashLineRecovery(ept, cross, pt1, circle_candidates,false,true,false))
 							{
-								if (abs(cross[0] - pt2[0]) >= maxD1)
+								if (tmpFlag||abs(cross[0] - pt2[0]) >= maxD1)
 								{
 									plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
 									line1 = plainLines[i];
@@ -2163,9 +2170,9 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt2 is closer to the cross
 							cout << "pt2 is closer to the cross" << endl;
 							flag1 = 1;
-							if (withinPtCRegion(cross, pt2) || dashLineRecovery(ept, cross, pt2, circle_candidates, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt2)) || dashLineRecovery(ept, cross, pt2, circle_candidates, false, true, false))
 							{
-								if (abs(cross[0] - pt1[0]) >= maxD1)
+								if (tmpFlag || abs(cross[0] - pt1[0]) >= maxD1)
 								{
 									//chooseNearCircle(circle_candidates, cross, pt2);
 									plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
@@ -2184,15 +2191,16 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					{
 						//use y
 						cout << "line1 is vertical, use y" << endl;
+						bool tmpFlag;
 						if (abs(cross[1] - pt1[1]) < abs(cross[1] - pt2[1]))
 						{
 
 							// pt1 is closer to cross
 							cout << "pt1 is closer to the cross" << endl;
 							flag1 = 0;
-							if (withinPtCRegion(cross, pt1) || dashLineRecovery(ept, cross, pt1, circle_candidates, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt1)) || dashLineRecovery(ept, cross, pt1, circle_candidates, false, true, false))
 							{
-								if (abs(cross[1] - pt2[1]) >= maxD1)
+								if (tmpFlag || abs(cross[1] - pt2[1]) >= maxD1)
 								{
 									plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
 									line1 = plainLines[i];
@@ -2212,9 +2220,9 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt2 is closer to the cross
 							cout << "pt2 is closer to the cross" << endl;
 							flag1 = 1;
-							if (withinPtCRegion(cross, pt2) || dashLineRecovery(ept, cross, pt2, circle_candidates, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt2)) || dashLineRecovery(ept, cross, pt2, circle_candidates, false, true, false))
 							{
-								if (abs(cross[1] - pt1[1]) >= maxD1)
+								if (tmpFlag || abs(cross[1] - pt1[1]) >= maxD1)
 								{
 									//chooseNearCircle(circle_candidates, cross, pt2);
 									plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
@@ -2232,14 +2240,15 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					if (!flag01)
 					{
 						cout << "line2 is not vertical, use x" << endl;
+						bool tmpFlag;
 						if (abs(cross[0] - pt3[0]) < abs(cross[0] - pt4[0]))
 						{
 							//pt3 is closer to the cross
 							cout << "pt3 is closer to the cross" << endl;
 							flag2 = 0;
-							if (withinPtCRegion(cross, pt3) || dashLineRecovery(ept, cross, pt3, circle_candidates, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt3)) || dashLineRecovery(ept, cross, pt3, circle_candidates, false, true, false))
 							{
-								if (abs(cross[0] - pt4[0]) >= maxD2)
+								if (tmpFlag || abs(cross[0] - pt4[0]) >= maxD2)
 								{
 									//chooseNearCircle(circle_candidates, cross, pt3);
 									plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
@@ -2258,9 +2267,9 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							//pt4 is closer to the cross
 							cout << "pt4 is closer to the cross" << endl;
 							flag2 = 1;
-							if (withinPtCRegion(cross, pt4) || dashLineRecovery(ept, cross, pt4, circle_candidates, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt4)) || dashLineRecovery(ept, cross, pt4, circle_candidates, false, true, false))
 							{
-								if (abs(cross[0] - pt3[0]) >= maxD2)
+								if (tmpFlag || abs(cross[0] - pt3[0]) >= maxD2)
 								{
 									//chooseNearCircle(circle_candidates, cross, pt4);
 									plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
@@ -2278,14 +2287,15 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					else
 					{
 						cout << "line2 is vertical, use y" << endl;
+						bool tmpFlag;
 						if (abs(cross[1] - pt3[1]) < abs(cross[1] - pt4[1]))
 						{
 							//pt3 is closer to the cross
 							cout << "pt3 is closer to the cross" << endl;
 							flag2 = 0;
-							if (withinPtCRegion(cross, pt3) || dashLineRecovery(ept, cross, pt3, circle_candidates, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt3)) || dashLineRecovery(ept, cross, pt3, circle_candidates, false, true, false))
 							{
-								if (abs(cross[1] - pt4[1]) >= maxD2)
+								if (tmpFlag || abs(cross[1] - pt4[1]) >= maxD2)
 								{
 									//chooseNearCircle(circle_candidates, cross, pt3);
 									plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
@@ -2304,9 +2314,9 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							//pt4 is closer to the cross
 							cout << "pt4 is closer to the cross" << endl;
 							flag2 = 1;
-							if (withinPtCRegion(cross, pt4) || dashLineRecovery(ept, cross, pt4, circle_candidates, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt4)) || dashLineRecovery(ept, cross, pt4, circle_candidates, false, true, false))
 							{
-								if (abs(cross[1] - pt3[1]) >= maxD2)
+								if (tmpFlag||abs(cross[1] - pt3[1]) >= maxD2)
 								{
 									//chooseNearCircle(circle_candidates, cross, pt4);
 									plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
