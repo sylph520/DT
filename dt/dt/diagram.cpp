@@ -294,7 +294,7 @@ void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwit
 			// update mask: remove the detected circle!
 			cv::circle(diagram_segwithoutcircle, bestCircleCenter, bestCircleRadius, 0, 5); // here the radius is fixed which isnt so nice.
 			//edgePointsWithoutCircle = getPointPositions(diagram_segwithoutcircle);
-			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 3);
+			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 1);
 			cv::circle(withoutCirBw, bestCircleCenter, bestCircleRadius, 0, 5);
 		}
 	}
@@ -322,6 +322,19 @@ bool on_circle(Vec2i pt, Vec3f circle)
 	else
 		return false;
 
+}
+bool on_circle(Vec2f pt, Vec3f circle)
+{
+	int dis = 5;// this parameter is to be set to check on the distance tolerants within the distance between radius and distance of pt and circle center point
+	int count = 0;
+
+	Vec2f center = { circle[0], circle[1] };
+	double radius = circle[2];
+	double distance = norm(center, pt);
+	if (abs(distance - radius) <= dis)
+		return true;
+	else
+		return false;
 }
 
 /**************line part****************/
@@ -485,23 +498,47 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 	tmpCross[0] = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 	tmpCross[1] = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 }
-void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec4i> plainLines)
+void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle_candidates, vector<Vec4i> &plainLines)
 {
 	Vec2f tmp;
 	getCrossPt(line1, line2, tmp);
 	for (int i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i line = plainLines[i];
-		if (on_line(line, tmp))
+		for (int j = 0; j < circle_candidates.size(); j++)
 		{
-			Vec2f tmp1, tmp2;
-			getCrossPt(line, line1, tmp1); getCrossPt(line, line2, tmp2);
-			Vec2i tmp3 = (tmp1 + tmp2) / 2.0;
-			cross = { int(tmp3[0]), int(tmp3[1]) };
-		}
-		else
-		{
-			cross = { int(tmp[0]), int(tmp[1]) };
+			Vec3f c = circle_candidates[j];
+			Vec2f center = { c[0], c[1] }; float radius = c[2];
+			if (on_circle(tmp, c))
+			{
+				float minDiff = 100;
+				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
+				for (auto m = cenx - 3; m <= cenx + 3; m++)
+				{
+					for (auto n = ceny - 3; n <= ceny + 3; n++)
+					{
+						Vec2i tmp2 = { m, n };
+						float tmpDiff = abs(p2pdistance(tmp2, center) - radius);
+						if (tmpDiff < minDiff)
+						{
+							cross = tmp2;
+							minDiff = tmpDiff;
+						}
+
+					}
+				}
+			}
+			else if (in_line(line, tmp))
+			{
+				Vec2f tmp1, tmp2;
+				getCrossPt(line, line1, tmp1); getCrossPt(line, line2, tmp2);
+				Vec2i tmp3 = (tmp1 + tmp2) / 2.0;
+				cross = { int(tmp3[0]), int(tmp3[1]) };
+			}
+			else
+			{
+				cross = { int(tmp[0]), int(tmp[1]) };
+			}
 		}
 	}
 }
@@ -2079,7 +2116,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			{
 				// not parallel
 				cout << "line1 and line2 is not parallel" << endl;
-				Vec2i cross; getCrossPtRev(line1, line2, cross, plainLines);
+				Vec2i cross; getCrossPtRev(line1, line2, cross,circle_candidates, plainLines);
 				
 				cout << "cross point is now " << cross << endl;
 				if (!isInImage(color_img.cols, color_img.rows, cross))
