@@ -2518,7 +2518,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	Mat withoutCLBw = withoutCirBw;
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
-		line(withoutCLBw, lineXs[i].pt1, lineXs[i].pt2, 0, 1);
+		line(withoutCLBw, lineXs[i].pt1, lineXs[i].pt2, 0, 2);
 	}
 	vector<Point2i> ept2 = getPointPositions(withoutCLBw);
 	for (auto i = 0; i < pointXs.size(); i++)
