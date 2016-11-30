@@ -239,14 +239,87 @@ float evaluateCircle(Mat dt, Point2f center, float radius)
 
 	return counter;
 }
-
+Vec3i radiusThicknessRev(Vec3f circle, Mat bw, int &width)
+{
+	Vec3i ret = {};
+	Vec2i center0 = { int(circle[0]), int(circle[1]) };
+	int radius0 = int(circle[2]);
+	Vec2i center = {}; int radius = 0; 
+	int ptnumCurrent = (getPointPositions(bw)).size();
+	bool breakFlag = false;
+	int minPtnum = 10000; Vec3i cCandidate = {}; 
+	/*for (int w = 1; w <= 3; w++)
+	{
+		if (breakFlag)
+			break;
+		for (int i = center0[0]; i < center0[0] + 2; i++)
+		{
+			for (int j = center0[1]; j < center0[1] + 2; j++)
+			{
+				for (int k = radius0; k < radius0 + 2; k++)
+				{
+					Mat tmp = bw.clone();
+					Vec2i tmpCenter = { i, j }; int tmpRadius = k; int tmpW = w;
+					cv::circle(tmp, tmpCenter, tmpRadius, 0, tmpW);
+					int tmpPtnum = (getPointPositions(tmp)).size();
+					if (tmpPtnum < minPtnum)
+					{
+						minPtnum = tmpPtnum;
+						cCandidate = { i, j, k };
+						width = w;
+						if (ptnumCurrent - minPtnum < 10)
+						{
+							breakFlag = true;
+						}
+					}
+				}
+			}
+		}
+		ptnumCurrent = minPtnum;
+		ret = cCandidate;
+	}*/
+	for (int i = center0[0]; i < center0[0] + 2; i++)
+	{
+		for (int j = center0[1]; j < center0[1] + 2; j++)
+		{
+			for (int k = radius0; k < radius0 + 2; k++)
+			{
+				Mat tmp = bw.clone();
+				Vec2i tmpCenter = { i, j }; int tmpRadius = k; 
+				cv::circle(tmp, tmpCenter, tmpRadius, 0, 1);
+				int tmpPtnum = (getPointPositions(tmp)).size();
+				if (tmpPtnum < minPtnum)
+				{
+					minPtnum = tmpPtnum;
+					cCandidate = { i, j, k };
+				}
+			}
+		}
+	}
+	int a[3] = {};
+	for (int w = 1; w <= 3; w++)
+	{
+		Mat tmp = bw.clone();
+		Vec2i center = { cCandidate[0], cCandidate[1] }; int radius = cCandidate[2]; 
+		cv::circle(tmp, center, radius, 0, w);
+		int tmpPtnum = (getPointPositions(tmp)).size();
+		a[w-1] = tmpPtnum;
+		width = w;
+		if (w != 1 && (a[w - 1] - a[w]) < 50)
+			break;
+		
+	}
+	ret = cCandidate;
+	int test = (getPointPositions(bw)).size();
+	return ret;
+}
 void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle,Mat &withoutCirBw, vector<Vec3f> &circle_candidates,  bool showFlag)
 {
 	unsigned int circleN_todetect = 2;
 	diagram_segwithoutcircle = diagram_segment;
 	for (unsigned int i = 0; i < circleN_todetect; ++i)
 	{
-		vector<Point2i> edgePositions = getPointPositions(diagram_segment);
+		vector<Point2i> edgePositions = getPointPositions(diagram_segwithoutcircle);
 		Mat dt; distanceTransform(255 - diagram_segment, dt, CV_DIST_L1, 3);
 		unsigned int nIter = 0;
 		Point2f bestCircleCenter = {}; float bestCircleRadius = -1.0f;
@@ -282,7 +355,10 @@ void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwit
 		if (bestCVal > 125)
 		{
 			//std::cout << "current best circle: " << bestCircleCenter << " with radius: " << bestCircleRadius << " and nInlier " << bestCVal << endl;
-			Vec3f circle = { bestCircleCenter.x, bestCircleCenter.y, bestCircleRadius };
+			
+			Vec3f circlef = { bestCircleCenter.x, bestCircleCenter.y, bestCircleRadius };
+			int width = 0;
+			Vec3i circle = radiusThicknessRev(circlef, diagram_segment,width);
 			circle_candidates.push_back(circle);
 			//draw the cicle detected in red within the colorgeo blob image
 			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(0, 0, 255));
@@ -292,10 +368,10 @@ void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwit
 			// in this current version the chosen radius to overwrite the mask is fixed and might remove parts of other circles too!
 
 			// update mask: remove the detected circle!
-			cv::circle(diagram_segwithoutcircle, bestCircleCenter, bestCircleRadius, 0, 5); // here the radius is fixed which isnt so nice.
+			cv::circle(diagram_segwithoutcircle, { circle[0], circle[1] }, circle[2], 0, width); // here the radius is fixed which isnt so nice.
 			//edgePointsWithoutCircle = getPointPositions(diagram_segwithoutcircle);
-			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 255), 1);
-			cv::circle(withoutCirBw, bestCircleCenter, bestCircleRadius, 0, 5);
+			cv::circle(color_img, { circle[0], circle[1] }, circle[2], Scalar(255, 0, 255), width);
+			cv::circle(withoutCirBw, { circle[0], circle[1] }, circle[2], 0, width);
 		}
 	}
 	
@@ -502,49 +578,57 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle
 {
 	Vec2f tmp;
 	getCrossPt(line1, line2, tmp);
-	for (int i = 0; i < plainLines.size(); i++)
+	if (circle_candidates.size() != 0)
 	{
-		Vec4i line = plainLines[i];
-		if (circle_candidates.size() != 0)
+		for (int j = 0; j < circle_candidates.size(); j++)
 		{
-			for (int j = 0; j < circle_candidates.size(); j++)
+			Vec3f c = circle_candidates[j];
+			Vec2f center = { c[0], c[1] }; float radius = c[2];
+			if (on_circle(tmp, c))
 			{
-				Vec3f c = circle_candidates[j];
-				Vec2f center = { c[0], c[1] }; float radius = c[2];
-				if (on_circle(tmp, c))
+				float minDiff = 100;
+				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
+				int offset = int(p2pdistance(tmp, center) - radius);
+				for (auto m = cenx - offset; m <= cenx + offset; m++)
 				{
-					float minDiff = 100;
-					int cenx = int(tmp[0]); int ceny = int(tmp[1]);
-					for (auto m = cenx - 3; m <= cenx + 3; m++)
+					for (auto n = ceny - offset; n <= ceny + offset; n++)
 					{
-						for (auto n = ceny - 3; n <= ceny + 3; n++)
+						Vec2i tmp2 = { m, n };
+						float tmpDiff = abs(p2pdistance(tmp2, center) - radius);
+						if (tmpDiff < minDiff)
 						{
-							Vec2i tmp2 = { m, n };
-							float tmpDiff = abs(p2pdistance(tmp2, center) - radius);
-							if (tmpDiff < minDiff)
-							{
-								cross = tmp2;
-								minDiff = tmpDiff;
-							}
-
+							tmp = tmp2;
+							minDiff = tmpDiff;
 						}
+
 					}
 				}
 			}
 		}
+		cross = { int(tmp[0]), int(tmp[1]) };
+	}
+	else
+	{
+		if (on_line(line1, tmp) || on_line(line2, tmp))
+		{
+			cross = { int(tmp[0]), int(tmp[1]) };
+		}
 		else
 		{
-			if (in_line(line, tmp))
+			for (int i = 0; i < plainLines.size(); i++)
 			{
-				Vec2f tmp1, tmp2;
-				getCrossPt(line, line1, tmp1); getCrossPt(line, line2, tmp2);
-				Vec2i tmp3 = (tmp1 + tmp2) / 2.0;
-				cross = { int(tmp3[0]), int(tmp3[1]) };
+				Vec4i line = plainLines[i];
+				if (in_line(line, tmp))
+				{
+					Vec2f tmp1, tmp2;
+					getCrossPt(line, line1, tmp1); getCrossPt(line, line2, tmp2);
+					Vec2f tmp3 = (tmp1 + tmp2) / 2.0;
+					tmp = { tmp3[0], tmp3[1] };
+					break;
+				}
+
 			}
-			else
-			{
-				cross = { int(tmp[0]), int(tmp[1]) };
-			}
+			cross = { int(tmp[0]), int(tmp[1]) };
 		}
 	}
 }
@@ -1048,6 +1132,8 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vect
 		}
 		if (p2pdistance(center, pt1) - radius < 10 && p2pdistance(center, pt2)  - radius < 10 && abs(point2Line(line, center) - radius) < 5 && plflag)
 			return true;
+		if (pcflag&&on_circle(pt1, c) && len < 30)
+			return true;
 	}
 	
 	
@@ -1415,7 +1501,7 @@ bool with_same_line(vector<Vec4i> &plainLines, Vec2i pt1, Vec2i pt2)
 
 bool withinPtCRegion(Vec2i center, Vec2i pt)
 {
-	if (p2pdistance(center, pt) < 10)
+	if (p2pdistance(center, pt) < 8)
 	{
 		cout << "within center area" << endl;
 		return true;
@@ -1430,9 +1516,9 @@ bool isInImage(int xMax, int yMax, Vec2i pt)
 {
 	//the axis is supposed to be within[0,x]*[0,y]
 	int x = pt[0]; int y = pt[1];
-	if (x<0 || x>xMax)
+	if (x<=0 || x>xMax)
 		return false;
-	if (y<0 || y>yMax)
+	if (y<=0 || y>yMax)
 		return false;
 	return true;
 }
@@ -1826,9 +1912,6 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			Vec4i line2 = *iter2; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
 			cout << pt3 << "pt" << pt4 << endl;
 
-			/*if (pt4[0] == 164)
-			cout << "stop" << endl;*/
-			
 			if (isParallel(line1, line2))
 			{
 				//if it's parallel
@@ -2072,11 +2155,17 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	//}
 	//namedWindow("6.lines first opt version now", 0); imshow("6.lines first opt version now", color_img);
+
+	bool testflag = true;
+	ofstream test; test.open("test/test.txt");
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		cout << pt1 << " " << pt2 << endl;
+		if (testflag)
+			test << pt1[0] <<" "<<pt1[1]<<" "<< pt2[0] <<" "<<pt2[1] << endl;
 	}
+	test.close();
 	cout << endl << "***********block stop" << endl << endl;
 #pragma region recover line-based dash line and point refinement
 	
@@ -2136,7 +2225,6 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					//cross point in image
 					//first check if the cross is same with 
 					int flag1, flag2; flag1 = flag2 = -1;
-					
 					if (!flag00)
 					{
 						// use x;
@@ -2412,6 +2500,15 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		
 		lineXs.push_back(lineX1);
 	}
+	/*for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	}*/
 	int pxsize = pointXs.size();
 	int erasenum = 0;
 	for (auto i = 0; i < pointXs.size(); i++)
@@ -2433,7 +2530,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					lineXs[div2].pt2 = p1.pxy;
 					lineXs[div2].px2 = p1.pxy[0]; lineXs[div2].py2 = p1.pxy[1];
 					lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
-					lineXs[div2].pidx1 = p1.p_idx;
+					lineXs[div2].pidx2 = p1.p_idx;
 					//pointXs[j - erasenum].pxy = p1.pxy;
 					pointXs.erase(pointXs.begin() + j);
 					j--;
@@ -2446,7 +2543,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					lineXs[div2].pt1 = p1.pxy; 
 					lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
 					lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
-					lineXs[div2].pidx2 = p1.p_idx;
+					lineXs[div2].pidx1 = p1.p_idx;
 					pointXs.erase(pointXs.begin() + j );
 					j--;
 					erasenum++; erasenum1++;
@@ -2454,59 +2551,61 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			}
 		}
 	}
-#pragma region drag close to circle
-	for (auto i = 0; i < pointXs.size(); i++)
-	{
-		pointX ptx = pointXs[i];
-		for (auto j = 0; j < circle_candidates.size(); j++)
-		{
-			Vec3f c = circle_candidates[j]; 
-			Vec2f center = { c[0], c[1] }; float radius = c[2];
-			if (on_circle(ptx.pxy, c))
-			{
-				// c is thought to be on circle
-				float minDiff = 100;
-				for (auto m = ptx.px - 3; m <= ptx.px + 3; m++)
-				{
-					for (auto n = ptx.py - 3; n <= ptx.py + 3; n++)
-					{
-						Vec2i tmp = { m, n };
-						float tmpDiff = abs(p2pdistance(tmp, center) - radius);
-						if (tmpDiff< minDiff)
-						{
-							minDiff = tmpDiff;
-							ptx.pxy = tmp;
-							int div = ptx.p_idx / 2;
-							int mod = ptx.p_idx % 2; 
-							if (!mod)
-							{
-								//mod == 0
-								lineXs[div].pt1 = tmp;
-							}
-							else
-							{
-								lineXs[div].pt2 = tmp;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-#pragma endregion drag close to circle
+//#pragma region drag close to circle
+//	for (auto i = 0; i < pointXs.size(); i++)
+//	{
+//		pointX ptx = pointXs[i];
+//		for (auto j = 0; j < circle_candidates.size(); j++)
+//		{
+//			Vec3f c = circle_candidates[j]; 
+//			Vec2f center = { c[0], c[1] }; float radius = c[2];
+//			if (on_circle(ptx.pxy, c))
+//			{
+//				 c is thought to be on circle
+//				float minDiff = 100;
+//				for (auto m = ptx.px - 3; m <= ptx.px + 3; m++)
+//				{
+//					for (auto n = ptx.py - 3; n <= ptx.py + 3; n++)
+//					{
+//						Vec2i tmp = { m, n };
+//						float tmpDiff = abs(p2pdistance(tmp, center) - radius);
+//						if (tmpDiff< minDiff)
+//						{
+//							minDiff = tmpDiff;
+//							ptx.pxy = tmp;
+//							int div = ptx.p_idx / 2;
+//							int mod = ptx.p_idx % 2; 
+//							if (!mod)
+//							{
+//								mod == 0
+//								lineXs[div].pt1 = tmp;
+//							}
+//							else
+//							{
+//								lineXs[div].pt2 = tmp;
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
+//#pragma endregion drag close to circle
 	
 #pragma endregion cross point combination
 	
-	/*for (auto i = 0; i < plainLines.size(); i++)
-	{
-		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-		cout << "*********************" << pt1 << " " << pt2 << endl;
-		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
-		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
-		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
-	}*/
+	//for (auto i = 0; i < lineXs.size(); i++)
+	//{
+	//	Vec4i l = lineXs[i].lxy;
+	//	Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+	//	//cout << "*********************" << pt1 << " " << pt2 << endl;
+	//	line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+	//	Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+	//	circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	//}
 	//namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
+
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
 		Vec4i l = lineXs[i].lxy;
@@ -2641,7 +2740,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-8.jpg", 0);
+	Mat image = imread("Sg-90.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2669,7 +2768,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest11";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest13";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
