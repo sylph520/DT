@@ -370,7 +370,7 @@ void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwit
 			// update mask: remove the detected circle!
 			cv::circle(diagram_segwithoutcircle, { circle[0], circle[1] }, circle[2], 0, width); // here the radius is fixed which isnt so nice.
 			//edgePointsWithoutCircle = getPointPositions(diagram_segwithoutcircle);
-			//cv::circle(color_img, { circle[0], circle[1] }, circle[2], Scalar(255, 0, 255), width);
+			cv::circle(color_img, { circle[0], circle[1] }, circle[2], Scalar(255, 0, 255), width);
 			cv::circle(withoutCirBw, { circle[0], circle[1] }, circle[2], 0, width);
 		}
 	}
@@ -579,31 +579,39 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 }
 void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle_candidates, vector<Vec4i> &plainLines)
 {
-	Vec2f tmp;
-	/*Vec2i pt1, pt2, pt3, pt4;
+	Vec2f tmp, tmp2;
+	Vec2i pt1, pt2, pt3, pt4;
 	line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
+	bool flag = false;
 	if (same_pt(pt1, pt3))
 	{
-		cross = (pt1 + pt3) / 2;
-		return;
+		 tmp2 = (pt1 + pt3) / 2.0;
+		 flag = true;
 	}
 	else if (same_pt(pt1, pt4))
 	{
-		cross = (pt1 + pt4) / 2;
-		return;
+		tmp2 = (pt1 + pt4) / 2.0;
+		flag = true;
 	}
 	else if (same_pt(pt2, pt3))
 	{
-		cross = (pt2 + pt3);
-		return;
+		tmp2 = (pt2 + pt3) / 2.0;
+		flag = true;
 	}
 	else if (same_pt(pt2, pt4))
 	{
-		cross = (pt2 + pt4) / 2;
-		return;
-	}*/
-
+		tmp2 = (pt2 + pt4) / 2.0;
+		flag = true;
+	}
+	else
+	{
+		getCrossPt(line1, line2, tmp2);
+	}
 	getCrossPt(line1, line2, tmp);
+	if (!same_pt(tmp, tmp2))
+		tmp = tmp2;
+		
+
 	if (circle_candidates.size() != 0)
 	{
 		for (int j = 0; j < circle_candidates.size(); j++)
@@ -616,9 +624,9 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle
 				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
 				int offset = int(p2pdistance(tmp, center) - radius);
 				offset = (offset < 1) ? 1 : offset;
-				for (auto m = cenx ; m <= cenx + offset; m++)
+				for (auto m = cenx - offset ; m <= cenx + offset; m++)
 				{
-					for (auto n = ceny; n <= ceny + offset; n++)
+					for (auto n = ceny - offset ; n <= ceny + offset; n++)
 					{
 						Vec2i tmp2 = { m, n };
 						float tmpDiff = abs(p2pdistance(tmp2, center) - radius);
@@ -634,7 +642,7 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle
 		}
 		cross = { int(tmp[0]), int(tmp[1]) };
 	}
-	else
+	else if (!flag)
 	{
 		if (on_line(line1, tmp) || on_line(line2, tmp))
 		{
@@ -1252,11 +1260,11 @@ bool isParallel(Vec4i line1, Vec4i line2)
 		return false;
 	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] }; Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
 	double theta1, theta2;
-	if (abs(line1V[0]) <= 3)
+	if (abs(line1V[0]) < 3)
 	{
 		theta1 = CV_PI / 2.0;
 	}
-	else if (abs(line1V[1]) <= 3)
+	else if (abs(line1V[1]) < 3)
 	{
 		theta1 = 0;
 	}
@@ -1264,11 +1272,11 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	{
 		theta1 = (atan2(line1V[1], line1V[0]));
 	}
-	if (abs(line2V[0]) <= 3)
+	if (abs(line2V[0]) < 3)
 	{
 		theta2 = CV_PI / 2.0;
 	}
-	else if (abs(line2V[1]) <= 3)
+	else if (abs(line2V[1]) < 3)
 	{
 		theta2 = 0;
 	}
@@ -1279,8 +1287,8 @@ bool isParallel(Vec4i line1, Vec4i line2)
 
 	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
 	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
-	double angle = abs(theta1 - theta2) / CV_PI * 180;
-	return (angle < 3)||(angle>177);
+	double angle = int(abs(theta1 - theta2) / CV_PI * 180);
+	return (angle <= 3)||(angle>=177);
 }
 bool ptSortPred(Vec2i pt1, Vec2i pt2)
 {
@@ -1656,8 +1664,9 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	{
 		//eliminate the false detected lines with few points on it
 		Vec4i rawLine = rawLines[i];
+
 		float lineEV = evaluateLine(diagram_segwithoutcircle, rawLine);
-		if (lineEV > 10)//this threshold should be set a litter lower to generate enough line candidates
+		if (lineEV > 10 )//this threshold should be set a litter lower to generate enough line candidates
 		{
 			plainLines.push_back(rawLine);
 			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(255, 0, 0), 2, 8);
@@ -1948,7 +1957,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		
 			Vec4i line2 = *iter2; Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[2], line2[3] };
 			cout << pt3 << "pt" << pt4 << endl;
-
+			
 			if (isParallel(line1, line2))
 			{
 				//if it's parallel
@@ -2191,7 +2200,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}*/
-	//namedWindow("6.lines first opt version now", 0); imshow("6.lines first opt version now", color_img);
+	//namedWindow("rm parallel", 0); imshow("rm parallel", color_img);
 
 	bool testflag = false;
 	ofstream test; test.open("test/test.txt");
@@ -2634,16 +2643,16 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	
 #pragma endregion cross point combination
 	
-	//for (auto i = 0; i < lineXs.size(); i++)
-	//{
-	//	Vec4i l = lineXs[i].lxy;
-	//	Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-	//	//cout << "*********************" << pt1 << " " << pt2 << endl;
-	//	line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
-	//	Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-	//	circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
-	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
-	//}
+	for (auto i = 0; i < lineXs.size(); i++)
+	{
+		Vec4i l = lineXs[i].lxy;
+		Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		//cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	}
 	//namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
 
 	for (auto i = 0; i < lineXs.size(); i++)
@@ -2657,7 +2666,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	Mat withoutCLBw = withoutCirBw;
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
-		line(withoutCLBw, lineXs[i].pt1, lineXs[i].pt2, 0, 2);
+		line(withoutCLBw, lineXs[i].pt1, lineXs[i].pt2, 0, 3);
 	}
 	vector<Point2i> ept2 = getPointPositions(withoutCLBw);
 	for (auto i = 0; i < pointXs.size(); i++)
@@ -2683,6 +2692,32 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				continue;
 			}
 		}
+	}
+
+	//rm isolated short lines within two circle line
+	for (auto iter = lineXs.begin(); iter != lineXs.end();)
+	{
+		lineX l = *iter; bool flag0 = true;
+		for (auto i = 0; i < circle_candidates.size(); i++)
+		{
+			Vec3f c = circle_candidates[i];
+			auto it= find_if(lineXs.begin(), lineXs.end(), [&](lineX a)
+			{
+				if ((a.lxy!=iter->lxy)&&(a.pt1 == l.pt1 || a.pt1 == l.pt2 || a.pt2 == l.pt1 || a.pt2 == l.pt2))
+					return true;
+				else
+					return false;
+			});
+			bool flag = (it != lineXs.end()) ? true : false;
+			if (on_circle(l.pt1, c) && on_circle(l.pt2, c)&&!flag)
+			{
+				iter = lineXs.erase(iter);
+				flag0 = false;
+			}
+			
+		}
+		if (flag0)
+			iter++;
 	}
 #pragma endregion recover line-based dash line and point refinement
 	
@@ -2780,7 +2815,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-121.jpg", 0);
+	Mat image = imread("Sg-80.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2808,7 +2843,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest14";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest15";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
