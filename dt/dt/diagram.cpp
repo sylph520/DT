@@ -370,7 +370,7 @@ void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwit
 			// update mask: remove the detected circle!
 			cv::circle(diagram_segwithoutcircle, { circle[0], circle[1] }, circle[2], 0, width); // here the radius is fixed which isnt so nice.
 			//edgePointsWithoutCircle = getPointPositions(diagram_segwithoutcircle);
-			cv::circle(color_img, { circle[0], circle[1] }, circle[2], Scalar(255, 0, 255), width);
+			//cv::circle(color_img, { circle[0], circle[1] }, circle[2], Scalar(255, 0, 255), width);
 			cv::circle(withoutCirBw, { circle[0], circle[1] }, circle[2], 0, width);
 		}
 	}
@@ -566,7 +566,10 @@ bool crossPtWithinLines(Vec4i line1, Vec4i line2, Vec2i cross)
 		return false;
 	}
 }
-
+inline void line2pt(Vec4i line, Vec2i &pt1, Vec2i &pt2)
+{
+	pt1 = { line[0], line[1] }; pt2 = { line[2], line[3] };
+}
 void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 {
 	int x1 = line1[0]; int x2 = line1[2]; int x3 = line2[0]; int x4 = line2[2];
@@ -577,6 +580,29 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle_candidates, vector<Vec4i> &plainLines)
 {
 	Vec2f tmp;
+	/*Vec2i pt1, pt2, pt3, pt4;
+	line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
+	if (same_pt(pt1, pt3))
+	{
+		cross = (pt1 + pt3) / 2;
+		return;
+	}
+	else if (same_pt(pt1, pt4))
+	{
+		cross = (pt1 + pt4) / 2;
+		return;
+	}
+	else if (same_pt(pt2, pt3))
+	{
+		cross = (pt2 + pt3);
+		return;
+	}
+	else if (same_pt(pt2, pt4))
+	{
+		cross = (pt2 + pt4) / 2;
+		return;
+	}*/
+
 	getCrossPt(line1, line2, tmp);
 	if (circle_candidates.size() != 0)
 	{
@@ -589,9 +615,10 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle
 				float minDiff = 100;
 				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
 				int offset = int(p2pdistance(tmp, center) - radius);
-				for (auto m = cenx - offset; m <= cenx + offset; m++)
+				offset = (offset < 1) ? 1 : offset;
+				for (auto m = cenx ; m <= cenx + offset; m++)
 				{
-					for (auto n = ceny - offset; n <= ceny + offset; n++)
+					for (auto n = ceny; n <= ceny + offset; n++)
 					{
 						Vec2i tmp2 = { m, n };
 						float tmpDiff = abs(p2pdistance(tmp2, center) - radius);
@@ -1253,7 +1280,7 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
 	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
 	double angle = abs(theta1 - theta2) / CV_PI * 180;
-	return (angle < 8);
+	return (angle < 3)||(angle>177);
 }
 bool ptSortPred(Vec2i pt1, Vec2i pt2)
 {
@@ -1592,6 +1619,16 @@ bool existRealLineWithinPtxs(vector<lineX> &lineXs, pointX ptx1, pointX ptx2)
 		return false;
 }
 
+bool sameLine(Vec4i line1, Vec4i line2)
+{
+	Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
+	Vec2i pt3 = { line2[0], line2[1] }; Vec2i pt4 = { line2[0], line2[1] };
+	bool flag1 = (same_pt(pt1, pt3) && same_pt(pt2, pt4)); bool flag2 = (same_pt(pt1, pt4) && same_pt(pt2, pt3));
+	if (flag1 || flag2)
+		return true;
+	else
+		return false;
+}
 
 void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<Vec3f> &circle_candidates, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
 {
@@ -1671,7 +1708,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}*/
 	//namedWindow("5.lines first opt version now", 0); imshow("5.lines first opt version now", color_img);
-
+	cout << "stop and test point" << endl;
 	//for (auto iter1 = plainLines.begin(); iter1 != plainLines.end(); iter1++)
 	//{
 	//	Vec4i line1 = *iter1; Vec2i pt1 = { line1[0], line1[1] }; Vec2i pt2 = { line1[2], line1[3] };
@@ -1936,7 +1973,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				Vec2i secondPt = tmpPtVec[1]; Vec2i thirdPt = tmpPtVec[2];
 				//check;
 
-				if (ptLine(line1, pt3))// pt3 of line2 is on line 1
+				if (ptLine(line1, pt3)||sameLine(line1,line2)) //pt3 of line2 is on line 1
 				{
 					// if it's collinear
 					cout << "two line is collinear" << endl;
@@ -2145,18 +2182,18 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 
 #pragma endregion rmParallel
 	
-	//for (auto i = 0; i < plainLines.size(); i++)
-	//{
-	//	Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-	//	cout << "*********************" << pt1 << " " << pt2 << endl;
-	//	line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
-	//	Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-	//	circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
-	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
-	//}
+	/*for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	}*/
 	//namedWindow("6.lines first opt version now", 0); imshow("6.lines first opt version now", color_img);
 
-	bool testflag = true;
+	bool testflag = false;
 	ofstream test; test.open("test/test.txt");
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
@@ -2500,15 +2537,18 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		
 		lineXs.push_back(lineX1);
 	}
-	/*for (auto i = 0; i < plainLines.size(); i++)
-	{
-		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-		cout << "*********************" << pt1 << " " << pt2 << endl;
-		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
-		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
-		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
-	}*/
+
+	//for (auto i = 0; i < lineXs.size(); i++)
+	//{
+	//	Vec4i l = lineXs[i].lxy;
+	//	Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+	//	//cout << "*********************" << pt1 << " " << pt2 << endl;
+	//	line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+	//	Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+	//	circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	//}
+
 	int pxsize = pointXs.size();
 	int erasenum = 0;
 	for (auto i = 0; i < pointXs.size(); i++)
@@ -2740,7 +2780,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-90.jpg", 0);
+	Mat image = imread("Sg-121.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2768,7 +2808,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest13";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest14";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
