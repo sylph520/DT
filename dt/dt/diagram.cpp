@@ -1265,11 +1265,11 @@ bool isParallel(Vec4i line1, Vec4i line2)
 		return false;
 	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] }; Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
 	double theta1, theta2;
-	if (abs(line1V[0]) <= 3)
+	if (abs(line1V[0]) < 3)
 	{
 		theta1 = CV_PI / 2.0;
 	}
-	else if (abs(line1V[1]) <= 3)
+	else if (abs(line1V[1]) < 3)
 	{
 		theta1 = 0;
 	}
@@ -1277,11 +1277,11 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	{
 		theta1 = (atan2(line1V[1], line1V[0]));
 	}
-	if (abs(line2V[0]) <= 3)
+	if (abs(line2V[0]) < 3)
 	{
 		theta2 = CV_PI / 2.0;
 	}
-	else if (abs(line2V[1]) <= 3)
+	else if (abs(line2V[1]) < 3)
 	{
 		theta2 = 0;
 	}
@@ -2196,16 +2196,16 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 
 #pragma endregion rmParallel
 	
-	//for (auto i = 0; i < plainLines.size(); i++)
-	//{
-	//	Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-	//	cout << "*********************" << pt1 << " " << pt2 << endl;
-	//	line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
-	//	Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-	//	circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
-	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
-	//}
-	////namedWindow("rm parallel", 0); imshow("rm parallel", color_img);
+	/*for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	}*/
+	//namedWindow("rm parallel", 0); imshow("rm parallel", color_img);
 
 	bool testflag = false;
 	ofstream test; test.open("test/test.txt");
@@ -2829,7 +2829,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-104.jpg", 0);
+	Mat image = imread("Sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2857,7 +2857,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest16";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest15";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
