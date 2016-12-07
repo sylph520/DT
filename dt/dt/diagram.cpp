@@ -2643,16 +2643,16 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	
 #pragma endregion cross point combination
 	
-	for (auto i = 0; i < lineXs.size(); i++)
-	{
-		Vec4i l = lineXs[i].lxy;
-		Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-		//cout << "*********************" << pt1 << " " << pt2 << endl;
-		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
-		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
-		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
-	}
+	//for (auto i = 0; i < lineXs.size(); i++)
+	//{
+	//	Vec4i l = lineXs[i].lxy;
+	//	Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+	//	//cout << "*********************" << pt1 << " " << pt2 << endl;
+	//	line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+	//	Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+	//	circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+	//	circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	//}
 	//namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
 
 	for (auto i = 0; i < lineXs.size(); i++)
@@ -2701,14 +2701,21 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		for (auto i = 0; i < circle_candidates.size(); i++)
 		{
 			Vec3f c = circle_candidates[i];
-			auto it= find_if(lineXs.begin(), lineXs.end(), [&](lineX a)
+			auto it1= find_if(lineXs.begin(), lineXs.end(), [&](lineX a)
 			{
-				if ((a.lxy!=iter->lxy)&&(a.pt1 == l.pt1 || a.pt1 == l.pt2 || a.pt2 == l.pt1 || a.pt2 == l.pt2))
+				if ((a.lxy!=iter->lxy)&&(l.pt1 == a.pt1 ||l.pt1 == a.pt2))
 					return true;
 				else
 					return false;
 			});
-			bool flag = (it != lineXs.end()) ? true : false;
+			auto it2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a)
+			{
+				if ((a.lxy != iter->lxy) && (l.pt2 == a.pt1 || l.pt2 == a.pt2))
+					return true;
+				else
+					return false;
+			});
+			bool flag = (it1 != lineXs.end() && it2 != lineXs.end()) ? true : false;
 			if (on_circle(l.pt1, c) && on_circle(l.pt2, c)&&!flag)
 			{
 				iter = lineXs.erase(iter);
