@@ -610,6 +610,7 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle
 	getCrossPt(line1, line2, tmp);
 	if (!same_pt(tmp, tmp2))
 		tmp = tmp2;
+	
 		
 
 	if (circle_candidates.size() != 0)
@@ -618,7 +619,11 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle
 		{
 			Vec3f c = circle_candidates[j];
 			Vec2f center = { c[0], c[1] }; float radius = c[2];
-			if (on_circle(tmp, c))
+			if (on_circle(pt1, c) || on_circle(pt2, c) || on_circle(pt3, c) || on_circle(pt4, c))
+			{
+				continue;
+			}
+			else if (on_circle(tmp, c))
 			{
 				float minDiff = 100;
 				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
@@ -2695,9 +2700,10 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	}
 
 	//rm isolated short lines within two circle line
-	for (auto iter = lineXs.begin(); iter != lineXs.end();)
+	/*for (auto iter = lineXs.begin(); iter != lineXs.end();)
 	{
 		lineX l = *iter; bool flag0 = true;
+		float len = l.length;
 		for (auto i = 0; i < circle_candidates.size(); i++)
 		{
 			Vec3f c = circle_candidates[i];
@@ -2715,7 +2721,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				else
 					return false;
 			});
-			bool flag = (it1 != lineXs.end() && it2 != lineXs.end()) ? true : false;
+			bool flag;
+			bool flag = (it1 != lineXs.end() && it2 != lineXs.end() && len < 30) ? true : false;
 			if (on_circle(l.pt1, c) && on_circle(l.pt2, c)&&!flag)
 			{
 				iter = lineXs.erase(iter);
@@ -2725,7 +2732,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		}
 		if (flag0)
 			iter++;
-	}
+	}*/
 #pragma endregion recover line-based dash line and point refinement
 	
 	//for (auto i = 0; i < plainLines.size(); i++)
@@ -2822,7 +2829,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-80.jpg", 0);
+	Mat image = imread("Sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
