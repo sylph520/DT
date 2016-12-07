@@ -1265,7 +1265,7 @@ bool isParallel(Vec4i line1, Vec4i line2)
 		return false;
 	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] }; Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
 	double theta1, theta2;
-	if (abs(line1V[0]) < 3)
+	/*if (abs(line1V[0]) < 3)
 	{
 		theta1 = CV_PI / 2.0;
 	}
@@ -1288,8 +1288,16 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	else
 	{
 		theta2 = (atan2(line2V[1], line2V[0]));
+	}*/
+	if ((abs(line1V[0]) < 3 && abs(line2V[0])<3) | (abs(line1V[1]) < 3 && abs(line2V[1])<3) )
+	{
+		return true;
 	}
-
+	else
+	{
+		theta1 = (atan2(line1V[1], line1V[0]));
+		theta2 = (atan2(line2V[1], line2V[0]));
+	}
 	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
 	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
 	double angle = int(abs(theta1 - theta2) / CV_PI * 180);
@@ -2829,7 +2837,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-1.jpg", 0);
+	Mat image = imread("Sg-14.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
