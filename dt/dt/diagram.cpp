@@ -2713,41 +2713,51 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			}
 		}
 	}
-
+	for (auto i = 0; i < lineXs.size(); i++)
+	{
+		lineX l = lineXs[i];
+		lineXs[i].length = p2pdistance(l.pt1, l.pt2);
+	}
 	//rm isolated short lines within two circle line
-	/*for (auto iter = lineXs.begin(); iter != lineXs.end();)
+	for (auto iter = lineXs.begin(); iter != lineXs.end();)
 	{
 		lineX l = *iter; bool flag0 = true;
 		float len = l.length;
 		for (auto i = 0; i < circle_candidates.size(); i++)
 		{
 			Vec3f c = circle_candidates[i];
+			Vec2f center = { c[0], c[1] }; float radius = c[2];
 			auto it1= find_if(lineXs.begin(), lineXs.end(), [&](lineX a)
 			{
-				if ((a.lxy!=iter->lxy)&&(l.pt1 == a.pt1 ||l.pt1 == a.pt2))
+				if ((a.lxy != iter->lxy) && (l.pt1 == a.pt1 || l.pt1 == a.pt2 || in_line(a.lxy, l.pt1)))
 					return true;
 				else
 					return false;
 			});
-			auto it2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a)
+			auto it2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX b)
 			{
-				if ((a.lxy != iter->lxy) && (l.pt2 == a.pt1 || l.pt2 == a.pt2))
+				if ((b.lxy != iter->lxy) && (l.pt2 == b.pt1 || l.pt2 == b.pt2 || in_line(b.lxy, l.pt2)))
 					return true;
 				else
 					return false;
 			});
-			bool flag;
-			bool flag = (it1 != lineXs.end() && it2 != lineXs.end() && len < 30) ? true : false;
-			if (on_circle(l.pt1, c) && on_circle(l.pt2, c)&&!flag)
+			//bool flag;
+			float p2r = point2Line(l.lxy, center);
+			bool disFlag = (abs(p2r - radius) < 5);
+			bool flag1 = len < 20 ?  true : (it1 == lineXs.end());//sole
+			bool flag2 = len < 20 ? true : (it2 == lineXs.end());//sole
+			bool rm_flag = (disFlag&&(flag1||flag2))  ? true : false;
+			if (on_circle(l.pt1, c) && on_circle(l.pt2, c)&&rm_flag)
 			{
 				iter = lineXs.erase(iter);
 				flag0 = false;
+				break;
 			}
 			
 		}
 		if (flag0)
 			iter++;
-	}*/
+	}
 #pragma endregion recover line-based dash line and point refinement
 	
 	//for (auto i = 0; i < plainLines.size(); i++)
@@ -2844,7 +2854,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-49.jpg", 0);
+	Mat image = imread("Sg-81.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2872,7 +2882,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest18";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest20";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
