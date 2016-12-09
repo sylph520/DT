@@ -1164,7 +1164,7 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vect
 		Vec3f c = circle_candidates[i];
 		Vec2i center = { int(c[0]), int(c[1]) };
 		float radius = c[2];
-		if (on_circle(pt1, c) && on_circle(pt2, c) && len < 25 && !ppflag)
+		if (on_circle(pt1, c) && on_circle(pt2, c) && len < 35 && !ppflag)
 			return true;
 		if (on_circle(mid, c) && len < 20)
 		{
@@ -2777,7 +2777,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		Vec4i l = lineXs[i].lxy;
 		Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		//cout << "*********************" << pt1 << " " << pt2 << endl;
-		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
 		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
@@ -2854,7 +2854,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-81.jpg", 0);
+	Mat image = imread("Sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2882,7 +2882,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest20";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest22";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
