@@ -313,7 +313,7 @@ Vec3i radiusThicknessRev(Vec3f circle, Mat bw, int &width)
 	int test = (getPointPositions(bw)).size();
 	return ret;
 }
-void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle,Mat &withoutCirBw, vector<Vec3i> &circle_candidates,  bool showFlag)
+void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle,Mat &withoutCirBw, vector<Vec3f> &circle_candidates,  bool showFlag)
 {
 	unsigned int circleN_todetect = 2;
 	diagram_segwithoutcircle = diagram_segment;
@@ -577,7 +577,7 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 	tmpCross[0] = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 	tmpCross[1] = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 }
-void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3i> &circle_candidates, vector<Vec4i> &plainLines)
+void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3f> &circle_candidates, vector<Vec4i> &plainLines)
 {
 	Vec2f tmp, tmp2;
 	Vec2i pt1, pt2, pt3, pt4;
@@ -606,27 +606,10 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3i> &circle
 	else
 	{
 		getCrossPt(line1, line2, tmp2);
-		if (same_pt(tmp2, pt1))
-		{
-			tmp2 = pt1;
-		}
-		else if (same_pt(tmp2, pt2))
-		{
-			tmp2 = pt2;
-		}
-		else if (same_pt(tmp2, pt3))
-		{
-			tmp2 = pt3;
-		}
-		else if (same_pt(tmp2, pt4))
-		{
-			tmp2 = pt4;
-		}
 	}
-	//getCrossPt(line1, line2, tmp);
-	//if (!same_pt(tmp, tmp2))
-	//	tmp = tmp2;
-	tmp = tmp2;
+	getCrossPt(line1, line2, tmp);
+	if (!same_pt(tmp, tmp2))
+		tmp = tmp2;
 	
 		
 
@@ -636,12 +619,11 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<Vec3i> &circle
 		{
 			Vec3f c = circle_candidates[j];
 			Vec2f center = { c[0], c[1] }; float radius = c[2];
-	/*		if (on_circle(pt1, c) || on_circle(pt2, c) || on_circle(pt3, c) || on_circle(pt4, c))
+			if (on_circle(pt1, c) || on_circle(pt2, c) || on_circle(pt3, c) || on_circle(pt4, c))
 			{
 				continue;
 			}
-			else */
-			if (on_circle(tmp, c))
+			else if (on_circle(tmp, c))
 			{
 				float minDiff = 100;
 				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
@@ -1172,7 +1154,7 @@ bool in_rect(Vec2i pt,int leftx, int rightx, int lowy, int highy)
 	else
 		return false;
 }
-bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vector<Vec3i> &circle_candidates, bool plflag = false, bool pcflag = false, bool ppflag = false)
+bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vector<Vec3f> &circle_candidates, bool plflag = false, bool pcflag = false, bool ppflag = false)
 {
 	Vec4i line = { pt1[0], pt1[1], pt2[0], pt2[1] }; int c = 0;
 	float len = p2pdistance(pt1, pt2); int x1, x2,y1,y2;
@@ -1676,7 +1658,7 @@ bool sameLine(Vec4i line1, Vec4i line2)
 		return false;
 }
 
-void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<Vec3i> &circle_candidates, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
+void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<Vec3f> &circle_candidates, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
 {
 	vector<Point2i> ept = getPointPositions(withoutCirBw);
 #pragma region region1
@@ -2006,7 +1988,6 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				bool flag0 = false;
 				if ( flag0 =(abs(pt1[0] - pt2[0]) < 3))
 				{
-					//line1 is vertical line
 					sort(tmpPtVec.begin(), tmpPtVec.end(), [](Vec2i a, Vec2i b){return a[1] < b[1]; });
 					cout << "line1 is vertical" << endl;
 
@@ -2035,7 +2016,6 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					}
 					else
 					{
-						// line1 is vertical
 						flag3 = ((pt3[1] - pt1[1])*(pt3[1] - pt2[1]) > 0); //appoximate if pt3 is in line1
 						flag4 = ((pt4[1] - pt1[1])*(pt4[1] - pt2[1]) > 0);//approximate if pt4 is in  line1					
 					}
@@ -2185,8 +2165,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					//}
 
 
-					// four points are all different(xxxxxxx)
-					// collinear four points
+					// four points are all different
 					if (flag3&&flag4&&!same_pt(pt1,pt3)&&!same_pt(pt1,pt4)&&!same_pt(pt2,pt3)&&!same_pt(pt2,pt4))
 					{
 						// two disjoint collinear line
@@ -2842,7 +2821,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	/* primitive about points, lines, and circles
 	first detect the circle, we can get the matrix of diagram segments without circle for the next
 	 processing step*/
-	vector<Vec3i> circle_candidates = {}; 
+	vector<Vec3f> circle_candidates = {}; 
 	Mat color_img = Mat::zeros(diagram_segment.size(),CV_8UC3); cvtColor(diagram_segment, color_img, CV_GRAY2RGB);
 	Mat diagram_segwithoutcircle = Mat::zeros(diagram_segment.size(), CV_8UC1);
 	
@@ -2851,13 +2830,6 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	/*ransac go*/
 	Mat withoutCirBw = binarized_image;
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circle_candidates, showFlag);
-	for (auto i = 0; i < circle_candidates.size(); i++)
-	{
-		circleX tmpCX; Vec3i tmpC = circle_candidates[i];
-		tmpCX.c_idx = i;
-		tmpCX.cx = tmpC[0]; tmpCX.cy = tmpC[1]; tmpCX.center = { tmpC[0], tmpC[1] }; tmpCX.radius = tmpC[2];
-		circles.push_back(tmpCX);
-	}
 	// then the line detection
 	vector<Vec4i> line_candidates = {}; vector<Vec2i> basicEndpoints = {};
 	detect_line3(diagram_segwithoutcircle, withoutCirBw, edgePoints, circle_candidates, color_img, line_candidates, basicEndpoints, drawedImages, showFlag, fileName);
@@ -2866,7 +2838,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	//cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
 	
 	// for points check if they are in circles
-	//point_on_circle_line_check(basicEndpoints, circle_candidates, circles, line_candidates, lines, points);
+	point_on_circle_line_check(basicEndpoints, circle_candidates, circles, line_candidates, lines, points);
 	
 	/*display point text info*/
 	//for (int i = 0; i < points.size(); ++i)
@@ -2890,7 +2862,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-1.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2918,7 +2890,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest23";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest22";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)

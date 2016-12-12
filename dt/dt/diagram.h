@@ -22,9 +22,8 @@ struct lineX
 struct circleX
 {
 	int c_idx; 
-	Vec2i center;
-	int cx, cy;
-	int radius;
+	float cx, cy;
+	float radius;
 	string label = "";
 };
 struct distance_info
