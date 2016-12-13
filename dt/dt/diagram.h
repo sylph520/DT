@@ -3,19 +3,18 @@ struct pointX
 {
 	bool cflag;// wheather it's  circle center or not
 	int p_idx; // the sequence, if -1 , it's a circle center.
-	Vec2i pxy; int px, py;
-	
-	vector<int> l_idxs;
-	vector<int> c_idxs;
+	int px, py; Vec2i pxy;
+	vector<int> l_idx;
+	vector<int> c_idx;
 	string label = "";
 };
 struct lineX
 {
 	int l_idx;
-	int pidx1, pidx2;
-
-	Vec4i lxy;Vec2i pt1, pt2; 
+	
 	int px1, py1, px2, py2;
+	Vec2i pt1, pt2; Vec4i lxy;
+	int pidx1, pidx2;
 	
 	double length;
 	string label = "";
@@ -23,11 +22,8 @@ struct lineX
 struct circleX
 {
 	int c_idx; 
-	Vec3i cir;
-	Vec2i center; int cx, cy; 
-	int radius;
-	
-	vector<int> p_idxs;
+	float cx, cy;
+	float radius;
 	string label = "";
 };
 struct distance_info
