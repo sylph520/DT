@@ -428,29 +428,6 @@ float point2Line(Vec4i line, Vec2i pt)
 	float p2l= abs(cross_product(bottom, slope) / norm(bottom));
 	return p2l;
 }
-inline void line2pt(Vec4i line, Vec2i &pt1, Vec2i &pt2)
-{
-	pt1 = { line[0], line[1] }; pt2 = { line[2], line[3] };
-}
-
-double lSlope(Vec4i line)
-{
-	Vec2i pt1, pt2;	line2pt(line, pt1, pt2); 
-	Vec2i lineV = { line[2] - line[0], line[3] - line[1] };
-	double theta = atan2(lineV[1], lineV[0]);
-	return theta;
-}
-double llAngle(Vec4i line1, Vec4i line2)
-{
-	if (line1 == line2)
-		return 0;
-	double theta1, theta2;
-	theta1 = lSlope(line1);
-	theta2 = lSlope(line2);
-	double angle = int(abs(theta1 - theta2) / CV_PI * 180);
-	return angle;
-}
-
 bool on_line(Vec4i line, Vec2i pt)
 {
 	double linedis_eps = 3; double pointdis_eps = 5;
@@ -592,9 +569,10 @@ bool crossPtWithinLines(Vec4i line1, Vec4i line2, Vec2i cross)
 		return false;
 	}
 }
-
-
-
+inline void line2pt(Vec4i line, Vec2i &pt1, Vec2i &pt2)
+{
+	pt1 = { line[0], line[1] }; pt2 = { line[2], line[3] };
+}
 void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 {
 	int x1 = line1[0]; int x2 = line1[2]; int x3 = line2[0]; int x4 = line2[2];
@@ -608,12 +586,10 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circleX> &circ
 	Vec2i pt1, pt2, pt3, pt4;
 	line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
 	bool flag = false;
-	Vec2i xPoffset = { 1, 0 }; Vec2i xNoffset = { -1, 0 };
-	Vec2i yPoffset = { 0, 1 }; Vec2i yNoffset = { 0, -1 };
-	/*if (same_pt(pt1, pt3))
+	if (same_pt(pt1, pt3))
 	{
-		tmp2 = (pt1 + pt3) / 2.0;
-		flag = true;
+		 tmp2 = (pt1 + pt3) / 2.0;
+		 flag = true;
 	}
 	else if (same_pt(pt1, pt4))
 	{
@@ -629,40 +605,14 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circleX> &circ
 	{
 		tmp2 = (pt2 + pt4) / 2.0;
 		flag = true;
-	}*/
-	double angle = llAngle(line1, line2);
-	cout << "angle " << angle << endl;
-	getCrossPt(line1, line2, tmp);
-	if (angle < 12)
-	{
-		bool flag1 = (tmp[0] - pt1[0])*(tmp[0] - pt2[0]);
-		bool flag2 = (tmp[0] - pt3[0])*(tmp[0] - pt4[0]);
-		Vec2i _4pt[4] = { pt1, pt2, pt3, pt4 };
-		double d[4]; double minD = 100; int minIdx = 100;
-		d[0] = p2pdistance(tmp, pt1); d[1] = p2pdistance(tmp, pt2);
-		d[2] = p2pdistance(tmp, pt3); d[3] = p2pdistance(tmp, pt4); 
-		for (int i = 0; i < 4; i++)
-		{
-			if (d[i] < minD)
-			{
-				minD = d[i];
-				minIdx = i;
-			}
-		}
-		Vec2i nearestP = _4pt[minIdx];
-		tmp = nearestP;
-		
-		
 	}
-	
-	//if (flag)
-	//{
-
-	//}
-	//else
-	//{
-
-	//}
+	else
+	{
+		getCrossPt(line1, line2, tmp2);
+	}
+	getCrossPt(line1, line2, tmp);
+	if (!same_pt(tmp, tmp2))
+		tmp = tmp2;
 	
 		
 
@@ -2275,11 +2225,6 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	}*/
 	//namedWindow("rm parallel", 0); imshow("rm parallel", color_img);
 	Mat withoutCLOriBw = withoutCirBw.clone();
-	/*sort(plainLines.begin(), plainLines.end(), [](Vec4i line1, Vec4i line2)
-	{
-		double diff1, diff2;
-		if 
-	});*/
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i pl = plainLines[i];
