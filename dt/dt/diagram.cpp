@@ -1261,11 +1261,26 @@ bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vect
 }
 
 
-
-bool isParallel(Vec4i line1, Vec4i line2)
+double lSlope(Vec4i line)
+{
+	Vec2i pt1, pt2;	line2pt(line, pt1, pt2);
+	Vec2i lineV = { line[2] - line[0], line[3] - line[1] };
+	double theta = atan2(lineV[1], lineV[0]);
+	return theta;
+}
+double llAngle(Vec4i line1, Vec4i line2)
 {
 	if (line1 == line2)
-		return false;
+		return 0;
+	double theta1, theta2;
+	theta1 = lSlope(line1);
+	theta2 = lSlope(line2);
+	double angle = int(abs(theta1 - theta2) / CV_PI * 180);
+	return angle;
+}
+bool isParallel(Vec4i line1, Vec4i line2)
+{
+	
 	Vec2i pt1, pt2, pt3, pt4;
 	line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
 	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] }; Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
@@ -1310,7 +1325,7 @@ bool isParallel(Vec4i line1, Vec4i line2)
 
 	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
 	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
-	double angle = int(abs(theta1 - theta2) / CV_PI * 180);
+	double angle = llAngle(line1, line2);
 	return (angle <= 5)||(angle>=175);
 }
 bool ptSortPred(Vec2i pt1, Vec2i pt2)
@@ -1661,6 +1676,35 @@ bool sameLine(Vec4i line1, Vec4i line2)
 		return false;
 }
 
+
+double slopeEval(Vec4i line)
+{
+	double diff1, diff2, diff;
+	diff1 = lSlope(line) - 0; diff2 = lSlope(line) - 90;
+	diff = (diff1 < diff2) ? diff1 : diff2;
+	return diff;
+}
+void vecSwapValue(vector<Vec4i>::iterator iter1, vector<Vec4i>::iterator iter2)
+{
+	auto tmp = *iter1;
+	*iter1 = *iter2;
+	*iter2 = tmp;
+}
+
+bool nearToAcross(Vec2i pt, vector<Vec2i> &crossPts)
+{
+	auto iter = find_if(crossPts.begin(), crossPts.end(), [&](Vec2i a)
+	{
+		if (same_pt(pt, a))
+			return true;
+		else
+			return false;
+	});
+	if (iter != crossPts.end())
+		return true;
+	else
+		return false;
+}
 void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<circleX> &circles, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
 {
 	vector<Point2i> ept = getPointPositions(withoutCirBw);
@@ -2225,6 +2269,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	}*/
 	//namedWindow("rm parallel", 0); imshow("rm parallel", color_img);
 	Mat withoutCLOriBw = withoutCirBw.clone();
+	
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i pl = plainLines[i];
@@ -2248,6 +2293,29 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	
 #pragma region cross point combination
 	vector<Vec4i> tmpLines; vector<lineX> lineXs; vector<pointX> pointXs;
+	auto ordered_iter = plainLines.begin();
+	for (auto iter = plainLines.begin() + 1; iter != plainLines.end(); iter++)
+	{
+		Vec4i line = *iter; Vec2i pt1, pt2; line2pt(line, pt1, pt2);
+		if (abs(pt1[0] - pt2[0]) < 3)
+		{
+			//the line is vertical
+			(*iter)[0] = (*iter)[2];
+			vecSwapValue(iter, ordered_iter);
+			ordered_iter++;
+
+
+		}
+		else if (abs(pt1[1] - pt2[1]) < 3)
+		{
+			//the line is horizonal
+			(*iter)[1] = (*iter)[3];
+			vecSwapValue(iter, ordered_iter);
+			ordered_iter++;
+		}
+
+	}
+	vector<Vec2i> crossPts = {};
 	for (int i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i line1; lineX lineX1; Vec2i pt1, pt2;
@@ -2288,6 +2356,29 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			{
 				// not parallel
 				cout << "line1 and line2 is not parallel" << endl;
+				//if (abs(pt1[0] - pt2[0]) < 3)
+				//{
+				//	// line1 is vertical
+				//	//plainLines[i][0] = plainLines[i][2];
+				//	line1[0] = line1[2];
+				//}
+				//else if (abs(pt1[1] - pt2[1]) < 3)
+				//{
+				//	//line1 is horizonal
+				//	//plainLines[i][1] = plainLines[i][3];
+				//	line1[1] = line1[3];
+				//}
+				//else if (abs(pt3[0] - pt4[0]) < 3)
+				//{
+				//	//line2 is vertical
+				//	//plainLines[i][2] = plainLines[i][4];
+				//	line2[0] = line2[2];
+				//}
+				//else if (abs(pt3[1] - pt4[0]) < 3)
+				//{
+				//	//line2 is horionzal
+				//	line2[1] = line2[3];
+				//}
 				Vec2i cross; getCrossPtRev(line1, line2, cross,circles, plainLines);
 				//Vec2f cross; getCrossPt(line1, line2, cross);
 				cout << "cross point is now " << cross << endl;
@@ -2301,6 +2392,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				{
 					//cross point in image
 					//first check if the cross is same with 
+					crossPts.push_back(cross);
 					int flag1, flag2; flag1 = flag2 = -1;
 					if (!flag00)
 					{
@@ -2313,7 +2405,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt1 is closer to cross
 							cout << "pt1 is closer to the cross" << endl;
 							flag1 = 0;
-							if ( (tmpFlag = withinPtCRegion(cross, pt1)) || dashLineRecovery(ept0, cross, pt1, circles,false,true,false))
+							if ((tmpFlag = withinPtCRegion(cross, pt1)) || dashLineRecovery(ept0, cross, pt1, circles, false, true, false))
 							{
 								if (tmpFlag||abs(cross[0] - pt2[0]) >= maxD1)
 								{
@@ -2891,7 +2983,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest24";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest26";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
