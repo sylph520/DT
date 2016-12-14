@@ -320,7 +320,7 @@ void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwit
 	for (unsigned int i = 0; i < circleN_todetect; ++i)
 	{
 		vector<Point2i> edgePositions = getPointPositions(diagram_segwithoutcircle);
-		Mat dt; distanceTransform(255 - diagram_segment, dt, CV_DIST_L1, 3);
+		Mat dt; distanceTransform(255 - diagram_segwithoutcircle , dt, CV_DIST_L1, 3);
 		unsigned int nIter = 0;
 		Point2f bestCircleCenter = {}; float bestCircleRadius = -1.0f;
 		float bestCVal = -1;
@@ -2867,7 +2867,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-1.jpg", 0);
+	Mat image = imread("Sg-124.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2891,7 +2891,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest22";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest24";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
