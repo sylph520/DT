@@ -2277,7 +2277,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		cv::line(withoutCLOriBw, pt1, pt2, 0, 3, 8, 0);
 
 	}
-	vector<Point2i> ept0 = getPointPositions(withoutCLOriBw);
+	vector<Point2i> ept0 = ept;
 	bool testflag = false;
 	ofstream test; test.open("test/test.txt");
 	for (auto i = 0; i < plainLines.size(); i++)
@@ -2405,7 +2405,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt1 is closer to cross
 							cout << "pt1 is closer to the cross" << endl;
 							flag1 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, pt1)) || dashLineRecovery(ept0, cross, pt1, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt1)) || dashLineRecovery(ept0, cross, pt1, circles, false, true, false)
+								||on_line(line2, pt1))
 							{
 								if (tmpFlag||abs(cross[0] - pt2[0]) >= maxD1)
 								{
@@ -2427,7 +2428,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt2 is closer to the cross
 							cout << "pt2 is closer to the cross" << endl;
 							flag1 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, pt2)) || dashLineRecovery(ept0, cross, pt2, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt2)) || dashLineRecovery(ept0, cross, pt2, circles, false, true, false)
+								|| on_line(line2, pt2))
 							{
 								if (tmpFlag || abs(cross[0] - pt1[0]) >= maxD1)
 								{
@@ -2455,7 +2457,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt1 is closer to cross
 							cout << "pt1 is closer to the cross" << endl;
 							flag1 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, pt1)) || dashLineRecovery(ept0, cross, pt1, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt1)) || dashLineRecovery(ept0, cross, pt1, circles, false, true, false)
+								|| on_line(line2, pt1))
 							{
 								if (tmpFlag || abs(cross[1] - pt2[1]) >= maxD1)
 								{
@@ -2477,7 +2480,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt2 is closer to the cross
 							cout << "pt2 is closer to the cross" << endl;
 							flag1 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, pt2)) || dashLineRecovery(ept0, cross, pt2, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt2)) || dashLineRecovery(ept0, cross, pt2, circles, false, true, false)
+								|| on_line(line2, pt2))
 							{
 								if (tmpFlag || abs(cross[1] - pt1[1]) >= maxD1)
 								{
@@ -2503,7 +2507,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							//pt3 is closer to the cross
 							cout << "pt3 is closer to the cross" << endl;
 							flag2 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, pt3)) || dashLineRecovery(ept0, cross, pt3, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt3)) || dashLineRecovery(ept0, cross, pt3, circles, false, true, false)
+								||on_line(line1, pt3))
 							{
 								if (tmpFlag || abs(cross[0] - pt4[0]) >= maxD2)
 								{
@@ -2524,7 +2529,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							//pt4 is closer to the cross
 							cout << "pt4 is closer to the cross" << endl;
 							flag2 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, pt4)) || dashLineRecovery(ept0, cross, pt4, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt4)) || dashLineRecovery(ept0, cross, pt4, circles, false, true, false)
+								|| on_line(line1, pt4))
 							{
 								if (tmpFlag || abs(cross[0] - pt3[0]) >= maxD2)
 								{
@@ -2550,7 +2556,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							//pt3 is closer to the cross
 							cout << "pt3 is closer to the cross" << endl;
 							flag2 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, pt3)) || dashLineRecovery(ept0, cross, pt3, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt3)) || dashLineRecovery(ept0, cross, pt3, circles, false, true, false)
+								||on_line(line1, pt3))
 							{
 								if (tmpFlag || abs(cross[1] - pt4[1]) >= maxD2)
 								{
@@ -2571,7 +2578,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							//pt4 is closer to the cross
 							cout << "pt4 is closer to the cross" << endl;
 							flag2 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, pt4)) || dashLineRecovery(ept0, cross, pt4, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, pt4)) || dashLineRecovery(ept0, cross, pt4, circles, false, true, false)
+								|| on_line(line1, pt4))
 							{
 								if (tmpFlag||abs(cross[1] - pt3[1]) >= maxD2)
 								{
@@ -2983,7 +2991,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest26";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest27";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
