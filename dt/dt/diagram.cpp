@@ -586,6 +586,7 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circleX> &circ
 	Vec2i pt1, pt2, pt3, pt4;
 	line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
 	bool flag = false;
+	getCrossPt(line1, line2, tmp2);
 	if (same_pt(pt1, pt3))
 	{
 		 tmp2 = (pt1 + pt3) / 2.0;
@@ -606,9 +607,21 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circleX> &circ
 		tmp2 = (pt2 + pt4) / 2.0;
 		flag = true;
 	}
-	else
+	else if (same_pt(tmp2, pt1))
 	{
-		getCrossPt(line1, line2, tmp2);
+		tmp2 = pt1;
+	}
+	else if (same_pt(tmp2, pt2))
+	{
+		tmp2 = pt2;
+	}
+	else if (same_pt(tmp2, pt3))
+	{
+		tmp2 = pt3;
+	}
+	else if (same_pt(tmp2, pt4))
+	{
+		tmp2 = pt4;
 	}
 	getCrossPt(line1, line2, tmp);
 	if (!same_pt(tmp, tmp2))
@@ -1705,9 +1718,11 @@ bool nearToAcross(Vec2i pt, vector<Vec2i> &crossPts)
 	else
 		return false;
 }
-void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<circleX> &circles, Mat &color_img, vector<Vec4i> &plainLines, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
+void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<pointX> pointXs, vector<circleX> &circles, Mat &color_img, vector<lineX> lineXs, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
 {
+	
 	vector<Point2i> ept = getPointPositions(withoutCirBw);
+	vector<Vec4i> plainLines = {};
 #pragma region region1
 	
 	/*detect line candidates by probabilistic hough transform */
@@ -2268,6 +2283,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}*/
 	//namedWindow("rm parallel", 0); imshow("rm parallel", color_img);
+	// remove the line detected and store it as withoutCLOriBw
 	Mat withoutCLOriBw = withoutCirBw.clone();
 	
 	for (auto i = 0; i < plainLines.size(); i++)
@@ -2275,10 +2291,10 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		Vec4i pl = plainLines[i];
 		Vec2i pt1 = { pl[0], pl[1] }; Vec2i pt2 = { pl[2], pl[3] };
 		cv::line(withoutCLOriBw, pt1, pt2, 0, 3, 8, 0);
-
 	}
 	vector<Point2i> ept0 = getPointPositions(withoutCLOriBw);
 	bool testflag = false;
+	
 	ofstream test; test.open("test/test.txt");
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
@@ -2290,9 +2306,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	test.close();
 	cout << endl << "***********block stop" << endl << endl;
 #pragma region recover line-based dash line and point refinement
-	
-#pragma region cross point combination
-	vector<Vec4i> tmpLines; vector<lineX> lineXs; vector<pointX> pointXs;
+	//sort the line and mod the horionzal and vertical line
+	vector<Vec4i> tmpLines;
 	auto ordered_iter = plainLines.begin();
 	for (auto iter = plainLines.begin() + 1; iter != plainLines.end(); iter++)
 	{
@@ -2313,8 +2328,18 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			vecSwapValue(iter, ordered_iter);
 			ordered_iter++;
 		}
+	}
+	int px_count = 0;
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec2i pt1, pt2; line2pt(plainLines[i], pt1, pt2);
+		pointX ptx1, ptx2;
+		ptx1.p_idx = px_count++; ptx2.p_idx = px_count++;
+		ptx1.pxy = pt1; ptx2 = pt2;
 
 	}
+#pragma region cross point combination
+	
 	vector<Vec2i> crossPts = {};
 	for (int i = 0; i < plainLines.size(); i++)
 	{
@@ -2927,9 +2952,10 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	// detect the circle and get the img without circle and bw img without cirlce and circle candidates
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
 	// then the line detection
-	vector<Vec4i> line_candidates = {}; vector<Vec2i> basicEndpoints = {};
+	vector<Vec2i> basicEndpoints = {};
 	
-	detect_line3(diagram_segwithoutcircle, withoutCirBw, edgePoints, circles, color_img, line_candidates, basicEndpoints, drawedImages, showFlag, fileName);
+	
+	detect_line3(diagram_segwithoutcircle, withoutCirBw, edgePoints, points, circles, color_img, lines, basicEndpoints, drawedImages, showFlag, fileName);
 	
 	//detect_line2(diagram_segwithoutcircle, color_img, line_candidates, basicEndpoints);
 	//cout << "basic endpoints num: "<<basicEndpoints.size() << endl;
@@ -2959,7 +2985,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("Sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
