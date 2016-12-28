@@ -12,7 +12,32 @@ int Sgn(double d)
 	else
 		return 1;
 }
-
+pointX pt2x(Vec2i pt, int point_idx = -1, vector<int> circle_idxs = {}, vector<int> line_idxs = {}, string label = "")
+{
+	pointX ptx;
+	ptx.p_idx = point_idx; ptx.pxy = pt; ptx.px = pt[0]; ptx.py = pt[1];
+	ptx.c_idxs = circle_idxs; ptx.l_idxs = line_idxs;
+	ptx.label = label;
+	return ptx;
+}
+lineX line2x(Vec4i l, int l_idx = -1, int p_idx1 = -1, int p_idx2 = -1, string label = "")
+{
+	lineX lx;
+	lx.lxy = l; lx.l_idx = l_idx;
+	lx.pt1 = { l[0], l[1] }; lx.pt2 = { l[2], l[3] };
+	lx.length = p2pdistance(lx.pt1, lx.pt2);
+	lx.px1 = l[0]; lx.py1 = l[1]; lx.px2 = l[2]; lx.py2 = l[3];
+	lx.label = label;
+	return lx;
+}
+circleX circle2x(Vec3i c, int c_idx = -1, int center_pid = -1, string label = "", int contour_width = 0, vector<int> p_idxs = {})
+{
+	circleX crx; crx.Circle = c;
+	crx.center = { c[0], c[1] }; crx.radius = c[2];
+	crx.center_pid = center_pid; crx.label = label; crx.contour_width = contour_width;
+	crx.cx = c[0]; crx.cy = c[1];
+	return crx;
+}
 /*******************************load and segment phase***********************/
 Mat image_binarizing(Mat input_image, bool showFlag=false)
 {
@@ -2330,21 +2355,21 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		}
 	}
 	int px_count = 0;
-	for (auto i = 0; i < plainLines.size(); i++)
-	{
-		Vec2i pt1, pt2; line2pt(plainLines[i], pt1, pt2);
-		pointX ptx1, ptx2;
-		ptx1.p_idx = px_count++; ptx2.p_idx = px_count++;
-		ptx1.pxy = pt1; ptx2 = pt2;
+	//for (auto i = 0; i < plainLines.size(); i++)
+	//{
+	//	Vec2i pt1, pt2; line2pt(plainLines[i], pt1, pt2);
+	//	pointX ptx1, ptx2;
+	//	ptx1.p_idx = px_count++; ptx2.p_idx = px_count++;
+	//	ptx1.pxy = pt1; ptx2.pxy = pt2;
 
-	}
+	//}
 #pragma region cross point combination
 	
 	vector<Vec2i> crossPts = {};
 	for (int i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i line1; lineX lineX1; Vec2i pt1, pt2;
-		pointX p1, p2; p1.l_idx.push_back(i); p2.l_idx.push_back(i); 
+		pointX p1, p2; p1.l_idxs.push_back(i); p2.l_idxs.push_back(i); 
 		for (int j = i + 1; j < plainLines.size(); j++)
 		{
 			line1 = plainLines[i];
