@@ -1,36 +1,36 @@
 // class and data structure definition
 double p2pdistance(Vec2i pt1, Vec2i pt2);
-struct pointX
-{
-	//bool cflag;// wheather it's  circle center or not
-	int p_idx; // the sequence, if -1 , it's a circle center.
-	int px, py; Vec2i pxy;
-	vector<int> l_idxs;
-	vector<int> c_idxs;
-	string label = "";
-};
-struct lineX
-{
-	int l_idx;
-	
-//	int px1, py1, px2, py2;
-//	Vec2i pt1, pt2; 
-	//Vec4i lxy;
-	//int p_idx1, p_idx2;
-	pointX *p1, *p2;
-	
-	//double length;
-	string label = "";
-};
-struct circleX
-{
-	int c_idx; int center_pid;
-	Vec3i Circle; Vec2i center; int radius; int contour_width;
-	int cx, cy;
-
-	vector<int> p_idxs;
-	string label = "";
-};
+//struct pointX
+//{
+//	//bool cflag;// wheather it's  circle center or not
+//	int p_idx; // the sequence, if -1 , it's a circle center.
+//	int px, py; Vec2i pxy;
+//	vector<int> l_idxs;
+//	vector<int> c_idxs;
+//	string label = "";
+//};
+//struct lineX
+//{
+//	int l_idx;
+//	
+////	int px1, py1, px2, py2;
+////	Vec2i pt1, pt2; 
+//	//Vec4i lxy;
+//	//int p_idx1, p_idx2;
+//	point_class *p1, *p2;
+//	
+//	//double length;
+//	string label = "";
+//};
+//struct circleX
+//{
+//	int c_idx; int center_pid;
+//	Vec3i Circle; Vec2i center; int radius; int contour_width;
+//	int cx, cy;
+//
+//	vector<int> p_idxs;
+//	string label = "";
+//};
 
 struct distance_info
 {
@@ -82,32 +82,92 @@ public:
 	{
 		return label;
 	}
+	void pushLid(int a)
+	{
+		l_idxs.push_back(a);
+	}
+	void pushCid(int a)
+	{
+		c_idxs.push_back(a);
+	}
 };
-
 
 class line_class
 {
 private:
 	int l_id; string label;
 	point_class *p1, *p2;
+	vector<point_class> *ptcs;
 public:
-	line_class(point_class *_p1, point_class *_p2, int _l_id = -1, string _label = "")
+	line_class(point_class *_p1, point_class *_p2, int _l_id = -1, string _label = "", vector<point_class> *_ptcs=nullptr)
 	{
 		l_id = _l_id; label = _label;
 		p1 = _p1; p2 = _p2;
+		ptcs = _ptcs;
 	}
 	line_class(const line_class &b)
 	{
 		l_id = b.l_id; label = b.label;
 		p1 = b.p1; p2 = b.p2;
+		ptcs = b.ptcs;
 	}
-	Vec4i getPlainLineVec() const
+	Vec4i getLineVec() const
 	{
-		Vec4i plainLineVec = { (*p1).getX(), (*p1).getY(), (*p2).getX(), (*p2).getY() };
-		return plainLineVec;
+		Vec4i lineVec = { (*p1).getX(), (*p1).getY(), (*p2).getX(), (*p2).getY() };
+		return lineVec;
+	}
+	point_class *getPt1() const
+	{
+		return p1;
+	}
+	point_class *getPt2() const
+	{
+		return p2;
 	}
 };
 
+class circle_class
+{
+private:
+	int c_idx; Vec2i center; int radius; 
+	int contour_width;
+	vector<point_class> *p_idxs;
+public:
+	circle_class(Vec2i _center, int _radius, int _c_idx = -1, int _contour_width = 0, vector<point_class> *_p_idxs = nullptr)
+	{
+		c_idx = _c_idx; center = _center; radius = _radius;
+		contour_width = _contour_width; 
+		p_idxs = _p_idxs;
+	}
+
+	explicit circle_class(Vec3i c, int _c_idx = -1, int _contour_width = 0, vector<point_class> *_p_idxs = nullptr)
+	{
+		c_idx = _c_idx; center = { c[0], c[1] }; radius = c[2];
+		contour_width = _contour_width;
+		p_idxs = _p_idxs;
+		
+	}
+
+	circle_class(const circle_class &b)
+	{
+		c_idx = b.c_idx; center = b.center; radius = b.radius;
+		contour_width = b.contour_width;
+		p_idxs = b.p_idxs;
+	}
+	Vec3i getCircleVec()
+	{
+		Vec3i circleVec = { center[0], center[1], radius };
+		return circleVec;
+	}
+	Vec2i getCenter() const
+	{
+		return center;
+	}
+	int getRadius() const
+	{
+		return radius;
+	}
+};
 int image_parse(Mat image);
 int test_diagram();
 int diagram();

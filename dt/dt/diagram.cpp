@@ -12,46 +12,33 @@ int Sgn(double d)
 	else
 		return 1;
 }
-pointX pt2x(Vec2i pt, int point_idx = -1, vector<int> circle_idxs = {}, vector<int> line_idxs = {}, string label = "")
-{
-	pointX ptx;
-	ptx.p_idx = point_idx; ptx.pxy = pt; ptx.px = pt[0]; ptx.py = pt[1];
-	ptx.c_idxs = circle_idxs; ptx.l_idxs = line_idxs;
-	ptx.label = label;
-	return ptx;
-}
-lineX line2x(pointX* p1, pointX* p2, int _l_idx = -1, string _label = "")
-{
-	lineX lx;
-	lx.l_idx = _l_idx; 
-	lx.p1 = p1; lx.p2 = p2;
-	lx.px1 = l[0]; lx.py1 = l[1]; lx.px2 = l[2]; lx.py2 = l[3];
-	lx.label = _label;
-	return lx;
-}
-circleX circle2x(Vec3i c, int c_idx = -1, int center_pid = -1, string label = "", int contour_width = 0, vector<int> p_idxs = {})
-{
-	circleX crx; crx.Circle = c;
-	crx.center = { c[0], c[1] }; crx.radius = c[2];
-	crx.center_pid = center_pid; crx.label = label; crx.contour_width = contour_width;
-	crx.cx = c[0]; crx.cy = c[1];
-	return crx;
-}
+//point_class pt2x(Vec2i pt, int point_idx = -1, vector<int> circle_idxs = {}, vector<int> line_idxs = {}, string label = "")
+//{
+//	point_class ptx;
+//	ptx.p_idx = point_idx; ptx.pxy = pt; ptx.px = pt[0]; ptx.py = pt[1];
+//	ptx.c_idxs = circle_idxs; ptx.l_idxs = line_idxs;
+//	ptx.label = label;
+//	return ptx;
+//}
+//line_class line2x(point_class* p1, point_class* p2, int _l_idx = -1, string _label = "")
+//{
+//	line_class lx;
+//	lx.l_idx = _l_idx; 
+//	lx.p1 = p1; lx.p2 = p2;
+//	lx.label = _label;
+//	return lx;
+//}
+//circleX circle2x(Vec3i c, int c_idx = -1, int center_pid = -1, string label = "", int contour_width = 0, vector<int> p_idxs = {})
+//{
+//	circleX crx; crx.Circle = c;
+//	crx.center = { c[0], c[1] }; crx.radius = c[2];
+//	crx.center_pid = center_pid; crx.label = label; crx.contour_width = contour_width;
+//	crx.cx = c[0]; crx.cy = c[1];
+//	return crx;
+//}
 
-Vec2i ptx2pt(pointX ptx)
-{
-	return (ptx.pxy);
-}
-Vec4i linex2line(lineX lx)
-{
-	return lx.lxy;
-}
 
-void p_change2line_change(Vec2i pt, pointX &px, lineX &lx)
-{
-	px.pxy = pt;
-	
-}
+
 
 /*******************************load and segment phase***********************/
 Mat image_binarizing(Mat input_image, bool showFlag=false)
@@ -167,13 +154,13 @@ bool same_pt(Vec2i pt1, Vec2i pt2)
 		return false;
 }
 
-bool same_pt(pointX pt1, pointX pt2)
+bool same_pt(point_class pt1, point_class pt2)
 {
 	double eps = 8;//to be set parameter
 	double high_eps = 15;
-	if (abs(pt1.px - pt2.px) < 3 && p2pdistance(pt1.pxy,pt2.pxy) < high_eps)
+	if (abs(pt1.getX() - pt2.getX()) < 3 && p2pdistance(pt1.getXY(),pt2.getXY()) < high_eps)
 		return true;
-	if (p2pdistance(pt1.pxy, pt2.pxy) <= eps)
+	if (p2pdistance(pt1.getXY(), pt2.getXY()) <= eps)
 		return true;
 	else
 		return false;
@@ -353,10 +340,11 @@ Vec3i radiusThicknessRev(Vec3f circle, Mat bw, int &width)
 	int test = (getPointPositions(bw)).size();
 	return ret;
 }
-void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle,Mat &withoutCirBw, vector<circleX> &circles,  bool showFlag)
+void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwithoutcircle,Mat &withoutCirBw, vector<circle_class> &circles,  bool showFlag)
 {
 	unsigned int circleN_todetect = 2;
 	diagram_segwithoutcircle = diagram_segment.clone();
+	int c_count = 0;
 	for (unsigned int i = 0; i < circleN_todetect; ++i)
 	{
 		vector<Point2i> edgePositions = getPointPositions(diagram_segwithoutcircle);
@@ -399,10 +387,9 @@ void detect_circle(const Mat diagram_segment, Mat &color_img,Mat &diagram_segwit
 			Vec3f circlef = { bestCircleCenter.x, bestCircleCenter.y, bestCircleRadius };
 			int width = 0;
 			Vec3i circle = radiusThicknessRev(circlef, diagram_segment,width);
-			circleX cx; cx.Circle = circle; cx.c_idx = i; cx.center = { circle[0], circle[1] }; cx.radius = circle[2]; cx.contour_width = width;
-			cx.cx = circle[0]; cx.cy = circle[1]; 
-//			circles.push_back(circle);
-			circles.push_back(cx);
+			int c_id = c_count++;
+			circle_class class_circle(circle,i , width);
+			circles.push_back(class_circle);
 			//draw the cicle detected in red within the colorgeo blob image
 			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(0, 0, 255));
 			//TODO: hold and save the detected circle.
@@ -620,7 +607,7 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 	tmpCross[0] = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 	tmpCross[1] = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 }
-void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circleX> &circles, vector<lineX> &linexs)
+void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circle_class> &circles, vector<line_class> &linexs)
 {
 	Vec2f tmp, tmp2;
 	Vec2i pt1, pt2, pt3, pt4;
@@ -673,8 +660,8 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circleX> &circ
 	{
 		for (int j = 0; j < circles.size(); j++)
 		{
-			Vec3f c = circles[j].Circle;
-			Vec2f center = { c[0], c[1] }; float radius = c[2];
+			Vec3i c = circles[j].getCircleVec();
+			Vec2f center = circles[j].getCenter(); float radius = circles[j].getRadius();
 			if (on_circle(pt1, c) || on_circle(pt2, c) || on_circle(pt3, c) || on_circle(pt4, c))
 			{
 				continue;
@@ -689,11 +676,11 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circleX> &circ
 				{
 					for (auto n = ceny - offset ; n <= ceny + offset; n++)
 					{
-						Vec2i tmp2 = { m, n };
-						float tmpDiff = abs(p2pdistance(tmp2, center) - radius);
+						Vec2i temp2 = { m, n };
+						float tmpDiff = abs(p2pdistance(temp2, center) - radius);
 						if (tmpDiff < minDiff)
 						{
-							tmp = tmp2;
+							tmp = temp2;
 							minDiff = tmpDiff;
 						}
 
@@ -713,13 +700,13 @@ void getCrossPtRev(Vec4i line1, Vec4i line2, Vec2i &cross, vector<circleX> &circ
 		{
 			for (int i = 0; i < linexs.size(); i++)
 			{
-				Vec4i line = linexs[i].lxy;
+				Vec4i line = linexs[i].getLineVec();
 				if (in_line(line, tmp))
 				{
-					Vec2f tmp1, tmp2;
-					getCrossPt(line, line1, tmp1); getCrossPt(line, line2, tmp2);
-					Vec2f tmp3 = (tmp1 + tmp2) / 2.0;
-					tmp = { tmp3[0], tmp3[1] };
+					Vec2f temp1, temp2;
+					getCrossPt(line, line1, temp1); getCrossPt(line, line2, temp2);
+					Vec2f temp3 = (temp1 + temp2) / 2.0;
+					tmp = { temp3[0], temp3[1] };
 					break;
 				}
 
@@ -1067,14 +1054,14 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 /************concrete function*********/
 
 //void point_on_circle_line_check(vector<Vec2i> basicEndpoints, vector<Vec3f> circle_candidates, vector<circleX> &circles,
-//	vector<Vec4i> line_candidates, vector<lineX> &lines, vector<pointX> &points)
+//	vector<Vec4i> line_candidates, vector<line_class> &lines, vector<point_class> &points)
 //{
 //	bool flag = true;
 //	//cout << basicEndpoints.size() << endl;
 //	for (int i = 0; i < basicEndpoints.size(); ++i)
 //	{
 //		Vec2i bpoint = basicEndpoints[i];
-//		pointX point;
+//		point_class point;
 //		point.p_idx = i; point.px = bpoint[0]; point.py = bpoint[1];
 //		for (int j = 0; j < circle_candidates.size(); ++j)
 //		{
@@ -1085,7 +1072,7 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 //			if (flag)
 //			{
 //				circles.push_back(circle);
-//				pointX centerPoint; centerPoint.cflag = true; centerPoint.p_idx = -1; centerPoint.px = cvRound(bcircle[0]); centerPoint.py = cvRound(bcircle[1]);
+//				point_class centerPoint; centerPoint.cflag = true; centerPoint.p_idx = -1; centerPoint.px = cvRound(bcircle[0]); centerPoint.py = cvRound(bcircle[1]);
 //				points.push_back(centerPoint);
 //			}
 //			if (on_circle(basicEndpoints[i], bcircle))
@@ -1098,7 +1085,7 @@ Vec2i to_be_removed_similar_endpoint(Vec2i pt1, Vec2i pt2)
 //		for (size_t k = 0; k < line_candidates.size(); ++k)
 //		{
 //			Vec4i bline = line_candidates[k];
-//			lineX line; Vec2i bpoint1, bpoint2; bpoint1 = { bline[0], bline[1] }; bpoint2 = { bline[2], bline[3] };
+//			line_class line; Vec2i bpoint1, bpoint2; bpoint1 = { bline[0], bline[1] }; bpoint2 = { bline[2], bline[3] };
 //			line.l_idx = k; line.px1 = bline[0]; line.py1 = bline[1]; line.px2 = bline[2]; line.py2 = bline[3];
 //			line.length = p2pdistance(bpoint1, bpoint2);
 //			lines.push_back(line);
@@ -1210,14 +1197,14 @@ bool in_rect(Vec2i pt,int leftx, int rightx, int lowy, int highy)
 	else
 		return false;
 }
-bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vector<circleX> &circles, bool plflag = false, bool pcflag = false, bool ppflag = false)
+bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vector<circle_class> &circles, bool plflag = false, bool pcflag = false, bool ppflag = false)
 {
 	Vec4i line = { pt1[0], pt1[1], pt2[0], pt2[1] }; int c = 0;
 	float len = p2pdistance(pt1, pt2); int x1, x2,y1,y2;
 	Vec2i mid = (pt1 + pt2) / 2;
 	for (auto i = 0; i < circles.size(); i++)
 	{
-		Vec3f c = circles[i].Circle;
+		Vec3f c = circles[i].getCircleVec();
 		Vec2i center = { int(c[0]), int(c[1]) };
 		float radius = c[2];
 		if (on_circle(pt1, c) && on_circle(pt2, c) && len < 35 && !ppflag)
@@ -1685,16 +1672,16 @@ bool isPartOfLongerLine(Vec4i line1, Vec4i line2)
 	else
 		return false;
 }
-bool existRealLineWithinPtxs(vector<lineX> &lineXs, pointX ptx1, pointX ptx2)
+bool existRealLineWithinPtxs(vector<line_class> &lineXs, point_class ptx1, point_class ptx2)
 {
 	//Vec4i tmpLxy = { ptx1.px, ptx1.py, ptx2.px, ptx2.py };
-	//auto iter = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return a.lxy == tmpLxy; });
+	//auto iter = find_if(lineXs.begin(), lineXs.end(), [&](line_class a){return a.lxy == tmpLxy; });
 	//if (iter != lineXs.end())
 	//	return true;
 	//else
 	//{
 	//	//not find exact line
-	//	auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return isPartOfLongerLine(tmpLxy, a.lxy); });
+	//	auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](line_class a){return isPartOfLongerLine(tmpLxy, a.lxy); });
 	//	if (iter2 != lineXs.end())
 	//		return true;
 	//	else
@@ -1703,11 +1690,11 @@ bool existRealLineWithinPtxs(vector<lineX> &lineXs, pointX ptx1, pointX ptx2)
 	//	}
 	//}
 	Vec4i line1, line2;
-	line1 = { ptx1.px, ptx1.py, ptx2.px, ptx2.py }; line2 = { ptx2.px, ptx2.py, ptx1.px, ptx1.py };
-	//auto iter1 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return in_line(a.lxy, ptx1.pxy); });
-	//auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){return in_line(a.lxy, ptx2.pxy); });
-	auto iter = find_if(lineXs.begin(), lineXs.end(), [&](lineX a){
-		if (a.lxy == line1 || a.lxy == line2 || (on_line(a.lxy, ptx1.pxy) && on_line(a.lxy, ptx2.pxy)))
+	line1 = { ptx1.getX(), ptx1.getY(), ptx2.getX(), ptx2.getY() }; line2 = { ptx2.getX(), ptx2.getY(), ptx1.getX(), ptx1.getY() };
+	//auto iter1 = find_if(lineXs.begin(), lineXs.end(), [&](line_class a){return in_line(a.lxy, ptx1.pxy); });
+	//auto iter2 = find_if(lineXs.begin(), lineXs.end(), [&](line_class a){return in_line(a.lxy, ptx2.pxy); });
+	auto iter = find_if(lineXs.begin(), lineXs.end(), [&](line_class a){
+		if (a.getLineVec() == line1 || a.getLineVec() == line2 || (on_line(a.getLineVec(), ptx1.getXY()) && on_line(a.getLineVec(), ptx2.getXY())))
 			return true;
 		else
 			return false;
@@ -1758,7 +1745,7 @@ bool nearToAcross(Vec2i pt, vector<Vec2i> &crossPts)
 	else
 		return false;
 }
-void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<pointX> pointXs, vector<circleX> &circles, Mat &color_img, vector<lineX> lineXs, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
+void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<point_class> pointXs, vector<circle_class> &circles, Mat &color_img, vector<line_class> lineXs, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
 {
 	
 	vector<Point2i> ept = getPointPositions(withoutCirBw);
@@ -2368,17 +2355,17 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	}
 	int px_count = 0;
 	auto lx_count = 0;
-	vector<lineX> linexs; vector<pointX> pointxs;
+	vector<line_class> linexs; vector<point_class> pointxs;
 	// to be added
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		auto p_l = plainLines[i];
 		Vec2i pt1, pt2; line2pt(p_l, pt1, pt2);
 		auto _pidx1 = px_count++; int _pidx2 = px_count++; int lidx = lx_count++;
-		pointX ptx1 = pt2x(pt1, _pidx1); pointX ptx2 = pt2x(pt2, _pidx2);
+		point_class ptx1(pt1, _pidx1); point_class ptx2(pt2, _pidx2);
 		pointxs.push_back(ptx1); pointXs.push_back(ptx2);
 		
-		lineX lx = line2x(p_l, &pointxs[_pidx1], &pointxs[_pidx2],lidx);
+		line_class lx(&ptx1, &ptx2, lx_count);
 		//lx.p1 = &pointxs[_pidx1]; lx.p2 = &pointxs[_pidx2];
 		linexs.push_back(lx);
 	}
@@ -2400,25 +2387,25 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	vector<Vec2i> crossPts = {};
 	for (auto i = 0; i < linexs.size(); i++)
 	{
-		lineX lineX1 = linexs[i];
-		pointX* p1 = linexs[i].p1; pointX* p2 = linexs[i].p2;
-		(*p1).l_idxs.push_back(i); (*p2).l_idxs.push_back(i);//push the line id to point's on_line property
+		line_class lineX1 = linexs[i];
+		point_class* p1 = linexs[i].getPt1(); point_class* p2 = linexs[i].getPt2();
+		(*p1).pushLid(i); (*p2).pushLid(i);//push the line id to point's on_line property
 		
 		for (auto j = i + 1; j < linexs.size(); j++)
 		{
-			lineX lineX2 = linexs[j];
-			pointX* p3 = linexs[j].p1; pointX* p4 = linexs[j].p2;
-			(*p3).l_idxs.push_back(j); (*p3).l_idxs.push_back(j);//push the line id to point's on_line property
+			line_class lineX2 = linexs[j];
+			point_class* p3 = linexs[j].getPt1(); point_class* p4 = linexs[j].getPt2();
+			(*p3).pushLid(j); (*p3).pushLid(j);//push the line id to point's on_line property
 
-			bool isLine1Vertical = (abs((*p1).px - (*p2).px) < 3); bool isLine2Vertical = (abs((*p3).px - (*p4).px) < 3);// check if two line is vertical or not
+			bool isLine1Vertical = (abs((*p1).getX() - (*p2).getX()) < 3); bool isLine2Vertical = (abs((*p3).getX() - (*p4).getX()) < 3);// check if two line is vertical or not
 			int maxD1, maxD2;// defined to log the max diff on x or y axis
-			maxD1 = (abs((*p1).px - (*p2).px) < 3) ? abs((*p2).py - (*p1).py) : abs((*p2).px - (*p1).px);
-			maxD2 = (abs((*p4).px - (*p3).px) < 3) ? abs((*p4).py - (*p3).py) : abs((*p4).px - (*p3).px);
+			maxD1 = (abs((*p1).getX() - (*p2).getX()) < 3) ? abs((*p2).getY() - (*p1).getY()) : abs((*p2).getX() - (*p1).getX());
+			maxD2 = (abs((*p4).getX() - (*p3).getX()) < 3) ? abs((*p4).getY() - (*p3).getY()) : abs((*p4).getX() - (*p3).getX());
 	
-			cout << endl << "line1 is " << linexs[i].lxy << endl << "line2 is " << linexs[j].lxy << endl;
+			cout << endl << "line1 is " << linexs[i].getLineVec() << endl << "line2 is " << linexs[j].getLineVec() << endl;
 			
 			//begin processing 
-			if (isParallel(linexs[i].lxy, linexs[j].lxy))
+			if (isParallel(linexs[i].getLineVec(), linexs[j].getLineVec()))
 			{
 				//two lines are parallel
 				cout << "line1 and line2 is parallel and should be two different line" << endl;
@@ -2430,7 +2417,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				cout << "line1 and line2 is not parallel" << endl;
 				
 				Vec2i cross; // not parallel lines cross point
-				getCrossPtRev(linexs[i].lxy, linexs[j].lxy, cross, circles, linexs);// input the two line and circles info and return the mod cross 
+				getCrossPtRev(linexs[i].getLineVec(), linexs[j].getLineVec(), cross, circles, linexs);// input the two line and circles info and return the mod cross 
 				cout << "cross point is now " << cross << endl;
 				
 				if (!isInImage(color_img.cols, color_img.rows, cross))
@@ -2451,21 +2438,21 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 						// use x; line1 is not vertical
 						cout << "line1 is not vertical, use x" << endl;
 						bool tmpFlag;
-						if (abs(cross[0] - (*p1).px) < abs(cross[0] - (*p2).px))
+						if (abs(cross[0] - (*p1).getX()) < abs(cross[0] - (*p2).getX()))
 						{
 
 							// pt1 is closer to cross
 							cout << "pt1 is closer to the cross" << endl;
 							//flag1 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, (*p1).pxy)) || dashLineRecovery(ept0, cross, (*p1).pxy, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, (*p1).getXY())) || dashLineRecovery(ept0, cross, (*p1).getXY(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[0] - (*p2).px) >= maxD1)
+								if (tmpFlag || abs(cross[0] - (*p2).getX()) >= maxD1)
 								{
 									//linexs[i].px1 = cross[0]; linexs[i].py1 = cross[1];
-									(*(linexs[i].p1)).pxy = cross;
-									linexs[i].lxy = plainLines[i];
-									cout << "the line1 is now " << linexs[i].lxy << endl;
-									maxD1 = abs(cross[0] - (*p2).px);
+									(*(linexs[i].getPt1())).getXY() = cross;
+									linexs[i].getLineVec() = plainLines[i];
+									cout << "the line1 is now " << linexs[i].getLineVec() << endl;
+									maxD1 = abs(cross[0] - (*p2).getX());
 								}
 								else
 								{
@@ -2480,14 +2467,14 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt2 is closer to the cross
 							cout << "pt2 is closer to the cross" << endl;
 							//flag1 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, (*p2).px)) || dashLineRecovery(ept0, cross, (*p2).px, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, (*p2).getX())) || dashLineRecovery(ept0, cross, (*p2).getX(), circles, false, true, false))
 							{
 								if (tmpFlag || abs(cross[0] - (*p1)[0]) >= maxD1)
 								{
 									//chooseNearCircle(circles, cross, pt2);
 									plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
-									linexs[i].lxy = plainLines[i];
-									cout << "the line1 is now " << linexs[i].lxy << endl;
+									linexs[i].getLineVec() = plainLines[i];
+									cout << "the line1 is now " << linexs[i].getLineVec() << endl;
 									maxD1 = abs(cross[0] - (*p1)[0]);
 								}
 								else
@@ -2502,7 +2489,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 						//use y
 						cout << "line1 is vertical, use y" << endl;
 						bool tmpFlag;
-						if (abs(cross[1] - (*p1)[1]) < abs(cross[1] - (*p2).px[1]))
+						if (abs(cross[1] - (*p1)[1]) < abs(cross[1] - (*p2).getX()[1]))
 						{
 
 							// pt1 is closer to cross
@@ -2510,12 +2497,12 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							flag1 = 0;
 							if ((tmpFlag = withinPtCRegion(cross, (*p1))) || dashLineRecovery(ept0, cross, (*p1), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[1] - (*p2).px[1]) >= maxD1)
+								if (tmpFlag || abs(cross[1] - (*p2).getX()[1]) >= maxD1)
 								{
 									plainLines[i][0] = cross[0]; plainLines[i][1] = cross[1];
-									linexs[i].lxy = plainLines[i];
-									cout << "the line1 is now " << linexs[i].lxy << endl;
-									maxD1 = abs(cross[1] - (*p2).px[1]);
+									linexs[i].getLineVec() = plainLines[i];
+									cout << "the line1 is now " << linexs[i].getLineVec() << endl;
+									maxD1 = abs(cross[1] - (*p2).getX()[1]);
 								}
 								else
 								{
@@ -2530,14 +2517,14 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt2 is closer to the cross
 							cout << "pt2 is closer to the cross" << endl;
 							flag1 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, (*p2).px)) || dashLineRecovery(ept0, cross, (*p2).px, circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross, (*p2).getX())) || dashLineRecovery(ept0, cross, (*p2).getX(), circles, false, true, false))
 							{
 								if (tmpFlag || abs(cross[1] - (*p1)[1]) >= maxD1)
 								{
 									//chooseNearCircle(circles, cross, pt2);
 									plainLines[i][2] = cross[0]; plainLines[i][3] = cross[1];
-									linexs[i].lxy = plainLines[i];
-									cout << "the line1 is now " << linexs[i].lxy << endl;
+									linexs[i].getLineVec() = plainLines[i];
+									cout << "the line1 is now " << linexs[i].getLineVec() << endl;
 									maxD1 = abs(cross[1] - (*p1)[1]);
 								}
 								else
@@ -2562,8 +2549,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 								{
 									//chooseNearCircle(circles, cross, pt3);
 									plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
-									linexs[j].lxy = plainLines[j];
-									cout << "the line2 is now " << linexs[j].lxy << endl;
+									linexs[j].getLineVec() = plainLines[j];
+									cout << "the line2 is now " << linexs[j].getLineVec() << endl;
 									maxD2 = abs(cross[0] - (*p3)[0]);
 								}
 								else
@@ -2583,8 +2570,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 								{
 									//chooseNearCircle(circles, cross, pt4);
 									plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
-									linexs[j].lxy = plainLines[j];
-									cout << "the line2 is now " << linexs[j].lxy << endl;
+									linexs[j].getLineVec() = plainLines[j];
+									cout << "the line2 is now " << linexs[j].getLineVec() << endl;
 									maxD2 = abs(cross[0] - (*p3)[0]);
 								}
 								else
@@ -2609,8 +2596,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 								{
 									//chooseNearCircle(circles, cross, pt3);
 									plainLines[j][0] = cross[0]; plainLines[j][1] = cross[1];
-									linexs[j].lxy = plainLines[j];
-									cout << "the line2 is now " << linexs[j].lxy << endl;
+									linexs[j].getLineVec() = plainLines[j];
+									cout << "the line2 is now " << linexs[j].getLineVec() << endl;
 									maxD2 = abs(cross[1] - (*p3)[1]);
 								}
 								else
@@ -2630,8 +2617,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 								{
 									//chooseNearCircle(circles, cross, pt4);
 									plainLines[j][2] = cross[0]; plainLines[j][3] = cross[1];
-									linexs[j].lxy = plainLines[j];
-									cout << "the line2 is now " << linexs[j].lxy << endl;
+									linexs[j].getLineVec() = plainLines[j];
+									cout << "the line2 is now " << linexs[j].getLineVec() << endl;
 									maxD2 = abs(cross[1] - (*p3)[1]);
 								}
 								else
@@ -2646,18 +2633,18 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 
 			}
 		}
-		linexs[i].lxy = plainLines[i]; (*p1) = { linexs[i].lxy[0], linexs[i].lxy[1] }; (*p2).px = { linexs[i].lxy[2], linexs[i].lxy[3] };
+		linexs[i].getLineVec() = plainLines[i]; (*p1) = { linexs[i].getLineVec()[0], linexs[i].getLineVec()[1] }; (*p2).getX() = { linexs[i].getLineVec()[2], linexs[i].getLineVec()[3] };
 
-		(*p1).px = (*p1)[0]; (*p1).py = (*p1)[1]; (*p1).pxy = (*p1); (*p1).p_idx = 2 * i; pointXs.push_back(*p1);
-		(*p2).px = (*p2).px[0]; (*p2).py = (*p2).px[1]; (*p2).pxy = (*p2).px; (*p2).p_idx = 2 * i + 1; pointXs.push_back(*p2);
+		(*p1).getX() = (*p1)[0]; (*p1).getY() = (*p1)[1]; (*p1).pxy = (*p1); (*p1).p_idx = 2 * i; pointXs.push_back(*p1);
+		(*p2).getX() = (*p2).getX()[0]; (*p2).getY() = (*p2).getX()[1]; (*p2).pxy = (*p2).getX(); (*p2).p_idx = 2 * i + 1; pointXs.push_back(*p2);
 
 
 
-		lineX1.l_idx = i; lineX1.lxy = linexs[i].lxy;
+		lineX1.l_idx = i; lineX1.getLineVec() = linexs[i].getLineVec();
 
-		lineX1.pt1 = (*p1); lineX1.pt2 = (*p2).px; lineX1.p_idx1 = (*p1).p_idx; lineX1.p_idx2 = (*p2).p_idx;
+		lineX1.pt1 = (*p1); lineX1.pt2 = (*p2).getX(); lineX1.p_idx1 = (*p1).p_idx; lineX1.p_idx2 = (*p2).p_idx;
 
-		lineX1.px1 = linexs[i].lxy[0]; lineX1.py1 = linexs[i].lxy[1]; lineX1.px2 = linexs[i].lxy[2]; lineX1.py2 = linexs[i].lxy[3];
+		lineX1.px1 = linexs[i].getLineVec()[0]; lineX1.py1 = linexs[i].getLineVec()[1]; lineX1.px2 = linexs[i].getLineVec()[2]; lineX1.py2 = linexs[i].getLineVec()[3];
 
 
 
@@ -2679,12 +2666,12 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	int erasenum = 0;
 	for (auto i = 0; i < pointXs.size(); i++)
 	{
-		pointX p1 = pointXs[i];
+		point_class p1 = pointXs[i];
 		int erasenum1 = 0;
 		//int div1 = i / 2; int mod1 = i % 2;
 		for (int j = i + 1; j < pointXs.size(); j++)
 		{
-			pointX p2 = pointXs[j];
+			point_class p2 = pointXs[j];
 			if (same_pt(p1, p2))
 			{
 				//erase point2
@@ -2695,7 +2682,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					//second point in line to be changed
 					lineXs[div2].pt2 = p1.pxy;
 					lineXs[div2].px2 = p1.pxy[0]; lineXs[div2].py2 = p1.pxy[1];
-					lineXs[div2].lxy[2] = p1.pxy[0];  lineXs[div2].lxy[3] = p1.pxy[1];
+					lineXs[div2].getLineVec()[2] = p1.pxy[0];  lineXs[div2].getLineVec()[3] = p1.pxy[1];
 					lineXs[div2].p_idx2 = p1.p_idx;
 					//pointXs[j - erasenum].pxy = p1.pxy;
 					pointXs.erase(pointXs.begin() + j);
@@ -2708,7 +2695,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					//first point in line to be changed
 					lineXs[div2].pt1 = p1.pxy;
 					lineXs[div2].px1 = p1.pxy[0]; lineXs[div2].py1 = p1.pxy[1];
-					lineXs[div2].lxy[0] = p1.pxy[0];  lineXs[div2].lxy[1] = p1.pxy[1];
+					lineXs[div2].getLineVec()[0] = p1.pxy[0];  lineXs[div2].getLineVec()[1] = p1.pxy[1];
 					lineXs[div2].p_idx1 = p1.p_idx;
 					pointXs.erase(pointXs.begin() + j);
 					j--;
@@ -2722,7 +2709,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
-		Vec4i l = lineXs[i].lxy;
+		Vec4i l = lineXs[i].getLineVec();
 		Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		cout << pt1 << " " << pt2 << endl;
 	}
@@ -2736,19 +2723,19 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	vector<Point2i> ept2 = getPointPositions(withoutCLBw);
 	for (auto i = 0; i < pointXs.size(); i++)
 	{
-		pointX ptx1 = pointXs[i];
+		point_class ptx1 = pointXs[i];
 		for (auto j = i + 1; j < pointXs.size(); j++)
 		{
-			pointX ptx2 = pointXs[j];
+			point_class ptx2 = pointXs[j];
 			if (!existRealLineWithinPtxs(lineXs, ptx1, ptx2))
 			{
 				if (dashLineRecovery(ept2, ptx1.pxy, ptx2.pxy, circles, false, false, true))
 				{
-					Vec4i tmpLine = { ptx1.px, ptx1.py, ptx2.px, ptx2.py };
-					lineX tmpLx;
-					tmpLx.lxy = tmpLine; tmpLx.p_idx1 = ptx1.p_idx; tmpLx.p_idx2 = ptx2.p_idx;
+					Vec4i tmpLine = { ptx1.getX(), ptx1.getY(), ptx2.getX(), ptx2.getY() };
+					line_class tmpLx;
+					tmpLx.getLineVec() = tmpLine; tmpLx.p_idx1 = ptx1.p_idx; tmpLx.p_idx2 = ptx2.p_idx;
 					tmpLx.l_idx = lineXs.size(); tmpLx.pt1 = ptx1.pxy; tmpLx.pt2 = ptx2.pxy;
-					tmpLx.px1 = ptx1.px; tmpLx.py1 = ptx1.py; tmpLx.px2 = ptx2.px; tmpLx.py2 = ptx2.py;
+					tmpLx.px1 = ptx1.getX(); tmpLx.py1 = ptx1.getY(); tmpLx.px2 = ptx2.getX(); tmpLx.py2 = ptx2.getY();
 					lineXs.push_back(tmpLx);
 				}
 			}
@@ -2760,34 +2747,34 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	}
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
-		lineX l = lineXs[i];
+		line_class l = lineXs[i];
 		lineXs[i].length = p2pdistance(l.pt1, l.pt2);
 	}
 	//rm isolated short lines within two circle line
 	for (auto iter = lineXs.begin(); iter != lineXs.end();)
 	{
-		lineX l = *iter; bool flag0 = true;
+		line_class l = *iter; bool flag0 = true;
 		float len = l.length;
 		for (auto i = 0; i < circles.size(); i++)
 		{
 			Vec3f c = circles[i].Circle;
 			Vec2f center = { c[0], c[1] }; float radius = c[2];
-			auto it1 = find_if(lineXs.begin(), lineXs.end(), [&](lineX a)
+			auto it1 = find_if(lineXs.begin(), lineXs.end(), [&](line_class a)
 			{
-				if ((a.lxy != iter->lxy) && (l.pt1 == a.pt1 || l.pt1 == a.pt2 || in_line(a.lxy, l.pt1)))
+				if ((a.getLineVec() != iter->getLineVec()) && (l.pt1 == a.pt1 || l.pt1 == a.pt2 || in_line(a.getLineVec(), l.pt1)))
 					return true;
 				else
 					return false;
 			});
-			auto it2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX b)
+			auto it2 = find_if(lineXs.begin(), lineXs.end(), [&](line_class b)
 			{
-				if ((b.lxy != iter->lxy) && (l.pt2 == b.pt1 || l.pt2 == b.pt2 || in_line(b.lxy, l.pt2)))
+				if ((b.getLineVec() != iter->getLineVec()) && (l.pt2 == b.pt1 || l.pt2 == b.pt2 || in_line(b.getLineVec(), l.pt2)))
 					return true;
 				else
 					return false;
 			});
 			//bool flag;
-			float p2r = point2Line(l.lxy, center);
+			float p2r = point2Line(l.getLineVec(), center);
 			bool disFlag = (abs(p2r - radius) < 5);
 			bool flag1 = len < 20 ? true : (it1 == lineXs.end());//sole
 			bool flag2 = len < 20 ? true : (it2 == lineXs.end());//sole
@@ -2811,8 +2798,8 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 //	vector<Vec2i> crossPts = {};
 //	for (int i = 0; i < plainLines.size(); i++)
 //	{
-//		Vec4i line1; lineX lineX1; Vec2i pt1, pt2;
-//		pointX p1, p2; p1.l_idxs.push_back(i); p2.l_idxs.push_back(i); 
+//		Vec4i line1; line_class lineX1; Vec2i pt1, pt2;
+//		point_class p1, p2; p1.l_idxs.push_back(i); p2.l_idxs.push_back(i); 
 //		for (int j = i + 1; j < plainLines.size(); j++)
 //		{
 //			line1 = plainLines[i];
@@ -3178,12 +3165,12 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 //	int erasenum = 0;
 //	for (auto i = 0; i < pointXs.size(); i++)
 //	{
-//		pointX p1 = pointXs[i];
+//		point_class p1 = pointXs[i];
 //		int erasenum1 = 0;
 //		//int div1 = i / 2; int mod1 = i % 2;
 //		for (int j = i + 1; j < pointXs.size(); j++)
 //		{
-//			pointX p2 = pointXs[j];
+//			point_class p2 = pointXs[j];
 //			if (same_pt(p1,p2))
 //			{
 //				//erase point2
@@ -3219,7 +3206,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 ////#pragma region drag close to circle
 ////	for (auto i = 0; i < pointXs.size(); i++)
 ////	{
-////		pointX ptx = pointXs[i];
+////		point_class ptx = pointXs[i];
 ////		for (auto j = 0; j < circles.size(); j++)
 ////		{
 ////			Vec3f c = circles[j]; 
@@ -3275,16 +3262,16 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 //	vector<Point2i> ept2 = getPointPositions(withoutCLBw);
 //	for (auto i = 0; i < pointXs.size(); i++)
 //	{
-//		pointX ptx1 = pointXs[i];
+//		point_class ptx1 = pointXs[i];
 //		for (auto j = i + 1; j < pointXs.size(); j++)
 //		{
-//			pointX ptx2 = pointXs[j];
+//			point_class ptx2 = pointXs[j];
 //			if (!existRealLineWithinPtxs(lineXs, ptx1, ptx2))
 //			{
 //				if (dashLineRecovery(ept2, ptx1.pxy, ptx2.pxy, circles, false,false,true))
 //				{
 //					Vec4i tmpLine = { ptx1.px, ptx1.py, ptx2.px, ptx2.py };
-//					lineX tmpLx;
+//					line_class tmpLx;
 //					tmpLx.lxy = tmpLine; tmpLx.p_idx1 = ptx1.p_idx; tmpLx.p_idx2 = ptx2.p_idx;
 //					tmpLx.l_idx = lineXs.size(); tmpLx.pt1 = ptx1.pxy; tmpLx.pt2 = ptx2.pxy;
 //					tmpLx.px1 = ptx1.px; tmpLx.py1 = ptx1.py; tmpLx.px2 = ptx2.px; tmpLx.py2 = ptx2.py;
@@ -3299,26 +3286,26 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 //	}
 //	for (auto i = 0; i < lineXs.size(); i++)
 //	{
-//		lineX l = lineXs[i];
+//		line_class l = lineXs[i];
 //		lineXs[i].length = p2pdistance(l.pt1, l.pt2);
 //	}
 //	//rm isolated short lines within two circle line
 //	for (auto iter = lineXs.begin(); iter != lineXs.end();)
 //	{
-//		lineX l = *iter; bool flag0 = true;
+//		line_class l = *iter; bool flag0 = true;
 //		float len = l.length;
 //		for (auto i = 0; i < circles.size(); i++)
 //		{
 //			Vec3f c = circles[i].Circle;
 //			Vec2f center = { c[0], c[1] }; float radius = c[2];
-//			auto it1= find_if(lineXs.begin(), lineXs.end(), [&](lineX a)
+//			auto it1= find_if(lineXs.begin(), lineXs.end(), [&](line_class a)
 //			{
 //				if ((a.lxy != iter->lxy) && (l.pt1 == a.pt1 || l.pt1 == a.pt2 || in_line(a.lxy, l.pt1)))
 //					return true;
 //				else
 //					return false;
 //			});
-//			auto it2 = find_if(lineXs.begin(), lineXs.end(), [&](lineX b)
+//			auto it2 = find_if(lineXs.begin(), lineXs.end(), [&](line_class b)
 //			{
 //				if ((b.lxy != iter->lxy) && (l.pt2 == b.pt1 || l.pt2 == b.pt2 || in_line(b.lxy, l.pt2)))
 //					return true;
@@ -3358,7 +3345,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
-		Vec4i l = lineXs[i].lxy;
+		Vec4i l = lineXs[i].getLineVec();
 		Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		//cout << "*********************" << pt1 << " " << pt2 << endl;
 		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
@@ -3392,7 +3379,7 @@ Mat preprocessing(Mat diagram_segment)
 }
 
 
-void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vector<Point2i> &edgePoints,vector<pointX> &points, vector<lineX> &lines, vector<circleX> &circles, Mat &drawedImages, bool showFlag=true, string fileName="")
+void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vector<Point2i> &edgePoints,vector<point_class> &points, vector<line_class> &lines, vector<circle_class> &circles, Mat &drawedImages, bool showFlag=true, string fileName="")
 {
 	/* primitive about points, lines, and circles
 	first detect the circle, we can get the matrix of diagram segments without circle for the next
@@ -3422,7 +3409,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	/*display point text info*/
 	//for (int i = 0; i < points.size(); ++i)
 	//{
-	//	pointX point = points[i];
+	//	point_class point = points[i];
 	//	//cout << "point " << point.p_idx << " ("<<point.px<<", "<< point.py<<") " << " on circle ";
 	//	for (int j = 0; j < point.c_idx.size(); ++j)
 	//	{
@@ -3454,7 +3441,7 @@ int test_diagram()
 	vector<Point2i> oriEdgePoints=getPointPositions(binarized_image);
 	
 	image_labelling(binarized_image, diagram_segment,true);
-	vector<pointX> points = {}; vector<lineX> lines = {}; vector<circleX> circles = {};		
+	vector<point_class> points = {}; vector<line_class> lines = {}; vector<circle_class> circles = {};		
 	Mat drawedImages(image.size(), CV_8UC3);
 
 	primitive_parse(binarized_image,diagram_segment, oriEdgePoints, points, lines, circles, drawedImages,false);
@@ -3490,7 +3477,7 @@ int diagram()
 		}
 		namedWindow("points"); imshow("points", pointss);*/
 		image_labelling(binarized_image, diagram_segment);
-		vector<pointX> points = {}; vector<lineX> lines = {}; vector<circleX> circles = {};
+		vector<point_class> points = {}; vector<line_class> lines = {}; vector<circle_class> circles = {};
 		Mat drawedImages = Mat::zeros(diagram_segment.size(), CV_8UC3);
 		primitive_parse(binarized_image,diagram_segment, edgePoints, points, lines, circles, drawedImages, false);
 		imwrite(saveimgName, drawedImages);
