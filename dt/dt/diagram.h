@@ -13,11 +13,13 @@ struct lineX
 {
 	int l_idx;
 	
-	int px1, py1, px2, py2;
-	Vec2i pt1, pt2; Vec4i lxy;
-	int pidx1, pidx2;
+//	int px1, py1, px2, py2;
+//	Vec2i pt1, pt2; 
+	//Vec4i lxy;
+	//int p_idx1, p_idx2;
+	pointX *p1, *p2;
 	
-	double length;
+	//double length;
 	string label = "";
 };
 struct circleX
@@ -36,53 +38,76 @@ struct distance_info
 	double distance;//computed distance results with pt1 and pt2
 };
 /*class definition*/
-//class point_class
-//{
-//public:
-//	point_class(Vec2i _pxy, int _p_idx = -1, string _label = "", vector<int> _l_idxs = {}, vector<int> _c_idxs = {})
-//	{
-//		pxy = _pxy; 
-//		px = _pxy[0]; py = _pxy[1];
-//		p_idx = _p_idx;
-//		label = _label; l_idxs = _l_idxs; c_idxs = _c_idxs;
-//	}
-//private:
-//	int p_idx; Vec2i pxy; string label; vector<int> l_idxs; vector<int> c_idxs;
-//	int px, py;
-//};
-//class line_class
-//{
-//public:
-//	line_class(Vec4i _lxy, int _l_idx = -1, int _p_idx1 = -1, int _p_idx2 = -1, double _length = 0.0, string _label = "")
-//	{
-//		lxy = _lxy; pt1 = { _lxy[0], _lxy[1] }; pt2 = { _lxy[2], _lxy[3] }; px1 = _lxy[0]; py1 = _lxy[1]; px2 = _lxy[2]; py2 = _lxy[3];
-//		l_idx = _l_idx; p_idx1 = _p_idx1; p_idx2 = _p_idx2;
-//		length = _length;
-//		label = _label;
-//	}
-//private:
-//	Vec4i lxy; Vec2i pt1, pt2; int px1, py1, px2, py2;
-//	int l_idx, p_idx1, p_idx2;
-//	double length;
-//	string label;
-//};
-//class circle_class
-//{
-//public:
-//	circle_class(Vec3i _c, int _c_idx = -1, int _center_pidx = -1, int _contour_width = 0, vector<int> _p_idxs = {})
-//	{
-//		Circle = _c; Center = { _c[0], _c[1] }; px = _c[0]; py = _c[1]; radius = _c[2];
-//		c_idx = _c_idx; center_pidx = _center_pidx; contour_width = _contour_width;
-//		p_idxs = _p_idxs;
-//	}
-//private:
-//	Vec3i Circle; Vec2i Center;
-//	int radius, px, py;
-//	int c_idx, center_pidx, contour_width;
-//	vector<int> p_idxs;
-//	
-//};
-//functions
+class point_class
+{
+private:
+	Vec2i pxy; int p_idx; string label;
+	vector<int> l_idxs, c_idxs;
+public:
+	point_class(Vec2i _pxy, int _p_idx = -1, string _label = "", vector<int> _l_idxs = {}, vector<int> _c_idxs = {})
+	{
+		pxy = _pxy; p_idx = _p_idx; label = _label;
+		l_idxs = _l_idxs; c_idxs = _c_idxs;
+	}
+	point_class(const point_class &b)
+	{
+		pxy = b.pxy; p_idx = b.p_idx; label = b.label;
+		l_idxs = b.l_idxs; c_idxs = b.c_idxs;
+	}
+	int getPid() const
+	{
+		return p_idx;
+	}
+	int getX() const
+	{
+		return pxy[0];
+	}
+	int getY() const
+	{
+		return pxy[1];
+	}
+	Vec2i getXY() const
+	{
+		return pxy;
+	}
+	vector<int> getLidxs() const
+	{
+		return l_idxs;
+	}
+	vector<int> getCidxs() const
+	{
+		return c_idxs;
+	}
+	string get_label() const
+	{
+		return label;
+	}
+};
+
+
+class line_class
+{
+private:
+	int l_id; string label;
+	point_class *p1, *p2;
+public:
+	line_class(point_class *_p1, point_class *_p2, int _l_id = -1, string _label = "")
+	{
+		l_id = _l_id; label = _label;
+		p1 = _p1; p2 = _p2;
+	}
+	line_class(const line_class &b)
+	{
+		l_id = b.l_id; label = b.label;
+		p1 = b.p1; p2 = b.p2;
+	}
+	Vec4i getPlainLineVec() const
+	{
+		Vec4i plainLineVec = { (*p1).getX(), (*p1).getY(), (*p2).getX(), (*p2).getY() };
+		return plainLineVec;
+	}
+};
+
 int image_parse(Mat image);
 int test_diagram();
 int diagram();
