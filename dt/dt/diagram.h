@@ -44,7 +44,8 @@ private:
 	Vec2i pxy; int p_idx; string label;
 	vector<int> l_idxs, c_idxs;
 public:
-	point_class(Vec2i _pxy, int _p_idx = -1, string _label = "", vector<int> _l_idxs = {}, vector<int> _c_idxs = {})
+	point_class(){}
+	point_class(Vec2i _pxy, int _p_idx = -1, vector<int> _l_idxs = {}, string _label = "", vector<int> _c_idxs = {})
 	{
 		pxy = _pxy; p_idx = _p_idx; label = _label;
 		l_idxs = _l_idxs; c_idxs = _c_idxs;
@@ -82,6 +83,10 @@ public:
 	{
 		return label;
 	}
+	void setXY(Vec2i x)
+	{
+		pxy = x;
+	}
 	void pushLid(int a)
 	{
 		l_idxs.push_back(a);
@@ -90,16 +95,17 @@ public:
 	{
 		c_idxs.push_back(a);
 	}
+	~point_class(){}
 };
 
 class line_class
 {
 private:
 	int l_id; string label;
-	point_class *p1, *p2;
-	vector<point_class> *ptcs;
+	point_class p1, p2;
+	vector<point_class> ptcs;
 public:
-	line_class(point_class *_p1, point_class *_p2, int _l_id = -1, string _label = "", vector<point_class> *_ptcs=nullptr)
+	line_class(point_class _p1, point_class _p2, int _l_id = -1, string _label = "", vector<point_class> _ptcs={})
 	{
 		l_id = _l_id; label = _label;
 		p1 = _p1; p2 = _p2;
@@ -113,17 +119,47 @@ public:
 	}
 	Vec4i getLineVec() const
 	{
-		Vec4i lineVec = { (*p1).getX(), (*p1).getY(), (*p2).getX(), (*p2).getY() };
+		Vec4i lineVec = { p1.getX(), p1.getY(), p2.getX(), p2.getY() };
 		return lineVec;
 	}
-	point_class *getPt1() const
+	point_class getPt1() const
 	{
 		return p1;
 	}
-	point_class *getPt2() const
+	point_class getPt2() const
 	{
 		return p2;
 	}
+	Vec2i getpt1vec() const
+	{
+		return p1.getXY();
+	}
+	Vec2i getpt2vec() const
+	{
+		return p2.getXY();
+	}
+	double getLen() const
+	{
+		double length = p2pdistance(p1.getXY(), p2.getXY());
+		return length;
+	}
+	void setPt1_vec(Vec2i pv)
+	{
+		p1.setXY(pv);
+	}
+	void setPt2_vec(Vec2i pv)
+	{
+		p2.setXY(pv);
+	}
+	void setPt1(point_class p)
+	{
+		p1 = p;
+	}
+	void setPt2(point_class p)
+	{
+		p2 = p;
+	}
+	~line_class(){}
 };
 
 class circle_class
@@ -131,16 +167,16 @@ class circle_class
 private:
 	int c_idx; Vec2i center; int radius; 
 	int contour_width;
-	vector<point_class> *p_idxs;
+	vector<point_class> p_idxs;
 public:
-	circle_class(Vec2i _center, int _radius, int _c_idx = -1, int _contour_width = 0, vector<point_class> *_p_idxs = nullptr)
+	circle_class(Vec2i _center, int _radius, int _c_idx = -1, int _contour_width = 0, vector<point_class> _p_idxs = {})
 	{
 		c_idx = _c_idx; center = _center; radius = _radius;
 		contour_width = _contour_width; 
 		p_idxs = _p_idxs;
 	}
 
-	explicit circle_class(Vec3i c, int _c_idx = -1, int _contour_width = 0, vector<point_class> *_p_idxs = nullptr)
+	circle_class(Vec3i c, int _c_idx = -1, int _contour_width = 0, vector<point_class> _p_idxs = {})
 	{
 		c_idx = _c_idx; center = { c[0], c[1] }; radius = c[2];
 		contour_width = _contour_width;
@@ -167,6 +203,7 @@ public:
 	{
 		return radius;
 	}
+	~circle_class(){}
 };
 int image_parse(Mat image);
 int test_diagram();
