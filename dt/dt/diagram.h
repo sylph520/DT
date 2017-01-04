@@ -42,18 +42,18 @@ class point_class
 {
 private:
 	Vec2i pxy; int p_idx; string label;
-	vector<int> l_idxs, c_idxs;
+	vector<int> l_idxs, c_idxs; vector<int> con_pidxs;
 public:
 	point_class(){}
-	point_class(Vec2i _pxy, int _p_idx = -1, vector<int> _l_idxs = {}, string _label = "", vector<int> _c_idxs = {})
+	point_class(Vec2i _pxy, int _p_idx = -1, vector<int> _l_idxs = {}, string _label = "", vector<int> _c_idxs = {}, vector<int> _con_pidxs={})
 	{
 		pxy = _pxy; p_idx = _p_idx; label = _label;
-		l_idxs = _l_idxs; c_idxs = _c_idxs;
+		l_idxs = _l_idxs; c_idxs = _c_idxs; con_pidxs = _con_pidxs;
 	}
 	point_class(const point_class &b)
 	{
 		pxy = b.pxy; p_idx = b.p_idx; label = b.label;
-		l_idxs = b.l_idxs; c_idxs = b.c_idxs;
+		l_idxs = b.l_idxs; c_idxs = b.c_idxs; con_pidxs = b.con_pidxs;
 	}
 	int getPid() const
 	{
@@ -79,9 +79,17 @@ public:
 	{
 		return c_idxs;
 	}
+	vector<int> getConidxs() const
+	{
+		return con_pidxs;
+	}
 	string get_label() const
 	{
 		return label;
+	}
+	void setPid(int a)
+	{
+		p_idx = a;
 	}
 	void setXY(Vec2i x)
 	{
@@ -95,6 +103,11 @@ public:
 	{
 		c_idxs.push_back(a);
 	}
+	void pushConid(int a)
+	{
+		con_pidxs.push_back(a);
+	}
+	
 	~point_class(){}
 };
 
@@ -102,62 +115,79 @@ class line_class
 {
 private:
 	int l_id; string label;
-	point_class p1, p2;
+	int p1_id, p2_id;
+	//point_class p1, p2;
 	vector<point_class> ptcs;
 public:
-	line_class(point_class _p1, point_class _p2, int _l_id = -1, string _label = "", vector<point_class> _ptcs={})
+	line_class(int _p1_id, int _p2_id, int _l_id = -1, string _label = "", vector<point_class> _ptcs={})
 	{
 		l_id = _l_id; label = _label;
-		p1 = _p1; p2 = _p2;
+		p1_id = _p1_id; p2_id = _p2_id;
 		ptcs = _ptcs;
 	}
 	line_class(const line_class &b)
 	{
 		l_id = b.l_id; label = b.label;
-		p1 = b.p1; p2 = b.p2;
+		p1_id = b.p1_id; p2_id = b.p2_id;
 		ptcs = b.ptcs;
 	}
-	Vec4i getLineVec() const
+	Vec4i getLineVec(vector<point_class> &pointxs) const
 	{
-		Vec4i lineVec = { p1.getX(), p1.getY(), p2.getX(), p2.getY() };
+		Vec4i lineVec = { pointxs[p1_id].getX(), pointxs[p1_id].getY(), pointxs[p2_id].getX(), pointxs[p2_id].getY() };
 		return lineVec;
 	}
-	point_class getPt1() const
+	int getPt1Id() const
 	{
-		return p1;
+		return p1_id;
 	}
-	point_class getPt2() const
+	int getPt2Id() const
 	{
-		return p2;
+		return p2_id;
 	}
-	Vec2i getpt1vec() const
+	/*point_class getPt1(vector<point_class> &pointxs) const
 	{
-		return p1.getXY();
+		return  pointxs[p1_id];
 	}
-	Vec2i getpt2vec() const
+	point_class getPt2(vector<point_class> &pointxs) const
 	{
-		return p2.getXY();
+		return  pointxs[p2_id];
+	}*/
+	Vec2i getpt1vec(vector<point_class> &pointxs) const
+	{
+		return pointxs[p1_id].getXY();
 	}
-	double getLen() const
+	Vec2i getpt2vec(vector<point_class> &pointxs) const
 	{
-		double length = p2pdistance(p1.getXY(), p2.getXY());
+		return pointxs[p2_id].getXY();
+	}
+	double getLen(vector<point_class> &pointxs) const
+	{
+		double length = p2pdistance(pointxs[p1_id].getXY(), pointxs[p2_id].getXY());
 		return length;
 	}
-	void setPt1_vec(Vec2i pv)
+	void setPt1_vec(vector<point_class> &pointxs,Vec2i pv) const
 	{
-		p1.setXY(pv);
+		pointxs[p1_id].setXY(pv);
 	}
-	void setPt2_vec(Vec2i pv)
+	void setPt2_vec(vector<point_class> &pointxs, Vec2i pv) const
 	{
-		p2.setXY(pv);
+		pointxs[p2_id].setXY(pv);
 	}
-	void setPt1(point_class p)
+	/*void setPt1(vector<point_class> pointxs, int p) 
 	{
-		p1 = p;
+		p1_id = p;
 	}
-	void setPt2(point_class p)
+	void setPt2(vector<point_class> pointxs, int p) 
 	{
-		p2 = p;
+		p2_id = p;
+	}*/
+	void setpt1Id(int p)
+	{
+		p1_id = p;
+	}
+	void setpt2Id(int p)
+	{
+		p2_id = p;
 	}
 	~line_class(){}
 };
