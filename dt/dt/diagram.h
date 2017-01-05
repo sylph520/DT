@@ -44,8 +44,7 @@ private:
 	Vec2i pxy; int p_idx; string label;
 	vector<int> l_idxs, c_idxs; vector<int> con_pidxs;
 public:
-	point_class(){}
-	point_class(Vec2i _pxy, int _p_idx = -1, vector<int> _l_idxs = {}, string _label = "", vector<int> _c_idxs = {}, vector<int> _con_pidxs={})
+	point_class(Vec2i _pxy = { 0, 0}, int _p_idx = -1, vector<int> _l_idxs = {}, string _label = "", vector<int> _c_idxs = {}, vector<int> _con_pidxs = {})
 	{
 		pxy = _pxy; p_idx = _p_idx; label = _label;
 		l_idxs = _l_idxs; c_idxs = _c_idxs; con_pidxs = _con_pidxs;

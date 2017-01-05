@@ -656,7 +656,7 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 	tmpCross[0] = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 	tmpCross[1] = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 }
-void getCrossPtRev(line_class *linec1, line_class *linec2, Vec2i &cross, vector<circle_class> &circles, vector<line_class> &linexs, vector<point_class> &pointxs)
+void getCrossPtRev(line_class *linec1, line_class *linec2, point_class &cross_point, vector<circle_class> &circles, vector<line_class> &linexs, vector<point_class> &pointxs)
 {
 	Vec2f tmp; Vec2i pt1, pt2, pt3, pt4;
 	line2pt(linec1->getLineVec(pointxs), pt1, pt2); line2pt(linec2->getLineVec(pointxs), pt3, pt4);
@@ -719,7 +719,9 @@ void getCrossPtRev(line_class *linec1, line_class *linec2, Vec2i &cross, vector<
 	/*getCrossPt(linec1.getLineVec(pointxs), linec2.getLineVec(pointxs), tmp);
 	if (!same_pt(tmp, tmp1))
 		tmp = tmp1;*/
-	cross = ptAttachToCircle(tmp, circles);
+	Vec2i cross_vec = ptAttachToCircle(tmp, circles);
+	cross_point.setXY(cross_vec);
+	cout << "now the cross point is " << cross_point.getXY() << endl;
 	if (sharePts)
 	{
 		// if two line share a common point, the point's id should be asigned equal.
@@ -732,23 +734,26 @@ void getCrossPtRev(line_class *linec1, line_class *linec2, Vec2i &cross, vector<
 			{
 				cout << "set pt1 to cross" << " and set pt3 to cross" << endl;
 				cout << "change pt3 id " << linec2->getPt1Id() << " to pt1 id " << linec1->getPt1Id() << endl;
-				linec1->setPt1_vec(pointxs, cross); linec2->setPt1_vec(pointxs, cross);
+				cross_point.setPid(linec1->getPt1Id());
+				linec1->setPt1_vec(pointxs, cross_vec); linec2->setPt1_vec(pointxs, cross_vec);
 				linec2->setpt1Id(linec1->getPt1Id());
 				break;
 			}
 		case 2:
 			{
 				cout << "set pt1 to cross" << " and set pt4 to cross" << endl;
-				cout << "change pt4 id " << linec2->getPt1Id() << " to pt1 id" << linec1->getPt1Id() << endl;
-				linec1->setPt1_vec(pointxs, cross); linec2->setPt2_vec(pointxs, cross);
+				cout << "change pt4 id " << linec2->getPt2Id() << " to pt1 id " << linec1->getPt1Id() << endl;
+				cross_point.setPid(linec1->getPt1Id());
+				linec1->setPt1_vec(pointxs, cross_vec); linec2->setPt2_vec(pointxs, cross_vec);
 				linec2->setpt2Id(linec1->getPt1Id());
 				break;
 			}
 		case 3:
 			{
 				cout << "set pt2 to cross" << " and set pt3 to cross" << endl;
-				cout << "change pt3 id " << linec2->getPt1Id() << " to pt2 id" << linec1->getPt2Id() << endl;
-				linec1->setPt2_vec(pointxs, cross); linec2->setPt1_vec(pointxs, cross);
+				cout << "change pt3 id " << linec2->getPt1Id() << " to pt2 id " << linec1->getPt2Id() << endl;
+				cross_point.setPid(linec1->getPt2Id());
+				linec1->setPt2_vec(pointxs, cross_vec); linec2->setPt1_vec(pointxs, cross_vec);
 				linec2->setpt1Id(linec1->getPt2Id());
 				break;
 			}
@@ -756,7 +761,8 @@ void getCrossPtRev(line_class *linec1, line_class *linec2, Vec2i &cross, vector<
 			{
 				cout << "set pt2 to cross" << " and set pt4 to cross" << endl;
 				cout << "change pt4 id " << linec2->getPt2Id() << " to pt2 id" << linec1->getPt2Id() << endl;
-				linec1->setPt2_vec(pointxs, cross); linec2->setPt2_vec(pointxs, cross);
+				cross_point.setPid(linec1->getPt2Id());
+				linec1->setPt2_vec(pointxs, cross_vec); linec2->setPt2_vec(pointxs, cross_vec);
 				linec2->setpt2Id(linec1->getPt2Id());
 				break;
 			}
@@ -772,25 +778,29 @@ void getCrossPtRev(line_class *linec1, line_class *linec2, Vec2i &cross, vector<
 			break;
 		case 1:
 			{
-				linec1->setPt1_vec(pointxs, cross);
+				linec1->setPt1_vec(pointxs, cross_vec);
+				cross_point.setPid(linec1->getPt1Id());
 				cout << "set pt1 to cross" << endl;
 				break;
 			}
 		case 2:
 			{
-				linec1->setPt2_vec(pointxs, cross);
+				linec1->setPt2_vec(pointxs, cross_vec);
+				cross_point.setPid(linec1->getPt2Id());
 				cout << "set pt2 to cross" << endl;
 				break;
 			}
 		case 3:
 			{
-				linec2->setPt1_vec(pointxs, cross);
+				linec2->setPt1_vec(pointxs, cross_vec);
+				cross_point.setPid(linec2->getPt1Id());
 				cout << "set pt3 to cross" << endl;
 				break;
 			}
 		case 4:
 			{
-				linec2->setPt2_vec(pointxs, cross);
+				linec2->setPt2_vec(pointxs, cross_vec);
+				cross_point.setPid(linec2->getPt2Id());
 				cout << "set pt4 to cross" << endl;
 				break;
 			}
@@ -2609,13 +2619,15 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				// two lines are not parallel
 				cout << "line1 and line2 is not parallel" << endl;
 				
-				Vec2i cross; // not-parallel lines cross point
-				getCrossPtRev(lineX1, lineX2, cross, circles, linexs, pointxs);// input the two line and circles info and return the mod cross 
+				point_class cross_point;
+				Vec2i cross_vec; // not-parallel lines cross point
+				getCrossPtRev(lineX1, lineX2, cross_point, circles, linexs, pointxs);// input the two line and circles info and return the mod cross 
 				cout << lineX1->getLineVec(pointxs) << endl << lineX2->getLineVec(pointxs) << endl;
 				cout << lineX1->getPt1Id() << "," << lineX1->getPt2Id() << "," << lineX2->getPt1Id() << "," << lineX2->getPt2Id() << endl;
-				cout << "cross point is now " << cross << endl;
+				cross_vec = cross_point.getXY();
+				cout << "cross point is now " << cross_point.getXY() << endl;
 				
-				if (!isInImage(color_img.cols, color_img.rows, cross))
+				if (!isInImage(color_img.cols, color_img.rows, cross_vec))
 				{
 					// take it as no cross
 					cout << "the cross point is out of scope" << endl;
@@ -2630,19 +2642,19 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 						// use x; line1 is not vertical
 						cout << "line1 is not vertical, use x" << endl;
 						bool tmpFlag;
-						if (abs(cross[0] - p1.getX()) < abs(cross[0] - p2.getX()))
+						if (abs(cross_vec[0] - p1.getX()) < abs(cross_vec[0] - p2.getX()))
 						{
 
 							// pt1 is closer to cross
 							cout << "pt1 is closer to the cross" << endl;
 							//flag1 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, p1.getXY())) || dashLineRecovery(ept0, cross, p1.getXY(), circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross_vec, p1.getXY())) || dashLineRecovery(ept0, cross_vec, p1.getXY(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[0] - p2.getX()) >= maxD1)
+								if (tmpFlag || abs(cross_vec[0] - p2.getX()) >= maxD1)
 								{
-									pointxs[pt1_id].setXY(cross); //lineX1->setPt1_vec(pointxs, cross);
+									pointxs[pt1_id].setXY(cross_vec); lineX1->setpt1Id(cross_point.getPid());
 									cout << "the line1 is now " << lineX1->getLineVec(pointxs) << endl;
-									maxD1 = abs(cross[0] - p2.getX());
+									maxD1 = abs(cross_vec[0] - p2.getX());
 								}
 								else
 								{
@@ -2661,14 +2673,14 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt2 is closer to the cross
 							cout << "pt2 is closer to the cross" << endl;
 							//flag1 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, p2.getX())) || dashLineRecovery(ept0, cross, p2.getXY(), circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross_vec, p2.getX())) || dashLineRecovery(ept0, cross_vec, p2.getXY(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[0] - p1.getX()) >= maxD1)
+								if (tmpFlag || abs(cross_vec[0] - p1.getX()) >= maxD1)
 								{
 									//chooseNearCircle(circles, cross, pt2);
-									pointxs[p2.getPid()].setXY(cross); //lineX1->setPt2_vec(pointxs, cross);
+									pointxs[p2.getPid()].setXY(cross_vec); //lineX1->setPt2_vec(pointxs, cross);
 									cout << "the line1 is now " << lineX1->getLineVec(pointxs) << endl;
-									maxD1 = abs(cross[0] - p1.getX());
+									maxD1 = abs(cross_vec[0] - p1.getX());
 								}
 								else
 								{
@@ -2686,19 +2698,19 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 						//use y
 						cout << "line1 is vertical, use y" << endl;
 						bool tmpFlag;
-						if (abs(cross[1] - p1.getY()) < abs(cross[1] - p2.getY()))
+						if (abs(cross_vec[1] - p1.getY()) < abs(cross_vec[1] - p2.getY()))
 						{
 
 							// pt1 is closer to cross
 							cout << "pt1 is closer to the cross" << endl;
 							//flag1 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, p1.getXY())) || dashLineRecovery(ept0, cross, p1.getXY(), circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross_vec, p1.getXY())) || dashLineRecovery(ept0, cross_vec, p1.getXY(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[1] - p2.getY()) >= maxD1)
+								if (tmpFlag || abs(cross_vec[1] - p2.getY()) >= maxD1)
 								{
-									pointxs[p1.getPid()].setXY(cross); //lineX1->setPt1_vec(pointxs, cross);
+									pointxs[p1.getPid()].setXY(cross_vec); lineX1->setpt1Id(cross_point.getPid());
 									cout << "the line1 is now " << lineX1->getLineVec(pointxs) << endl;
-									maxD1 = abs(cross[1] - p2.getY());
+									maxD1 = abs(cross_vec[1] - p2.getY());
 								}
 								else
 								{
@@ -2717,14 +2729,14 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							// pt2 is closer to the cross
 							cout << "pt2 is closer to the cross" << endl;
 							//flag1 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, p2.getX())) || dashLineRecovery(ept0, cross, p2.getX(), circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross_vec, p2.getX())) || dashLineRecovery(ept0, cross_vec, p2.getX(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[1] - p1.getY()) >= maxD1)
+								if (tmpFlag || abs(cross_vec[1] - p1.getY()) >= maxD1)
 								{
 									//chooseNearCircle(circles, cross, pt2);
-									pointxs[p2.getPid()].setXY(cross); //lineX1->setPt2_vec(pointxs, cross);
+									pointxs[p2.getPid()].setXY(cross_vec); lineX1->setpt2Id(cross_point.getPid());
 									cout << "the line1 is now " << lineX1->getLineVec(pointxs) << endl;
-									maxD1 = abs(cross[1] - p1.getY());
+									maxD1 = abs(cross_vec[1] - p1.getY());
 								}
 								else
 								{
@@ -2741,19 +2753,19 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					{
 						cout << "line2 is not vertical, use x" << endl;
 						bool tmpFlag;
-						if (abs(cross[0] - p3.getX()) < abs(cross[0] - p4.getX()))
+						if (abs(cross_vec[0] - p3.getX()) < abs(cross_vec[0] - p4.getX()))
 						{
 							//pt3 is closer to the cross
 							cout << "pt3 is closer to the cross" << endl;
 							//flag2 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, p3.getXY())) || dashLineRecovery(ept0, cross, p3.getXY(), circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross_vec, p3.getXY())) || dashLineRecovery(ept0, cross_vec, p3.getXY(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[0] - p4.getX()) >= maxD2)
+								if (tmpFlag || abs(cross_vec[0] - p4.getX()) >= maxD2)
 								{
 									//chooseNearCircle(circles, cross, pt3);
-									pointxs[p3.getPid()].setXY(cross); //lineX2->setPt1_vec(pointxs, cross);
+									pointxs[p3.getPid()].setXY(cross_vec); lineX2->setpt1Id(cross_point.getPid());
 									cout << "the line2 is now " << lineX2->getLineVec(pointxs) << endl;
-									maxD2 = abs(cross[0] - p3.getX());
+									maxD2 = abs(cross_vec[0] - p3.getX());
 								}
 								else
 								{
@@ -2770,14 +2782,14 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							//pt4 is closer to the cross
 							cout << "pt4 is closer to the cross" << endl;
 							//flag2 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, p4.getXY())) || dashLineRecovery(ept0, cross, p4.getXY(), circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross_vec, p4.getXY())) || dashLineRecovery(ept0, cross_vec, p4.getXY(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[0] - p3.getX()) >= maxD2)
+								if (tmpFlag || abs(cross_vec[0] - p3.getX()) >= maxD2)
 								{
 									//chooseNearCircle(circles, cross, pt4);
-									pointxs[p4.getPid()].setXY(cross); //lineX2->setPt2_vec(pointxs, cross);
+									pointxs[p4.getPid()].setXY(cross_vec); lineX2->setpt2Id(cross_point.getPid());
 									cout << "the line2 is now " << lineX2->getLineVec(pointxs) << endl;
-									maxD2 = abs(cross[0] - p3.getX());
+									maxD2 = abs(cross_vec[0] - p3.getX());
 								}
 								else
 								{
@@ -2794,19 +2806,19 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 					{
 						cout << "line2 is vertical, use y" << endl;
 						bool tmpFlag;
-						if (abs(cross[1] - p3.getY()) < abs(cross[1] - p4.getY()))
+						if (abs(cross_vec[1] - p3.getY()) < abs(cross_vec[1] - p4.getY()))
 						{
 							//pt3 is closer to the cross
 							cout << "pt3 is closer to the cross" << endl;
 							//flag2 = 0;
-							if ((tmpFlag = withinPtCRegion(cross, p3.getXY())) || dashLineRecovery(ept0, cross, p3.getXY(), circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross_vec, p3.getXY())) || dashLineRecovery(ept0, cross_vec, p3.getXY(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[1] - p4.getY()) >= maxD2)
+								if (tmpFlag || abs(cross_vec[1] - p4.getY()) >= maxD2)
 								{
 									//chooseNearCircle(circles, cross, pt3);
-									pointxs[p3.getPid()].setXY(cross); //lineX2->setPt2_vec(pointxs, cross);
+									pointxs[p3.getPid()].setXY(cross_vec); lineX2->setpt2Id(cross_point.getPid());
 									cout << "the line2 is now " << lineX2->getLineVec(pointxs) << endl;
-									maxD2 = abs(cross[1] - p3.getY());
+									maxD2 = abs(cross_vec[1] - p3.getY());
 								}
 								else
 								{
@@ -2823,14 +2835,14 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 							//pt4 is closer to the cross
 							cout << "pt4 is closer to the cross" << endl;
 							//flag2 = 1;
-							if ((tmpFlag = withinPtCRegion(cross, p4.getXY())) || dashLineRecovery(ept0, cross, p4.getXY(), circles, false, true, false))
+							if ((tmpFlag = withinPtCRegion(cross_vec, p4.getXY())) || dashLineRecovery(ept0, cross_vec, p4.getXY(), circles, false, true, false))
 							{
-								if (tmpFlag || abs(cross[1] - p3.getY()) >= maxD2)
+								if (tmpFlag || abs(cross_vec[1] - p3.getY()) >= maxD2)
 								{
 									//chooseNearCircle(circles, cross, pt4);
-									pointxs[p4.getPid()].setXY(cross); //lineX2->setPt2_vec(pointxs, cross);
+									pointxs[p4.getPid()].setXY(cross_vec); lineX2->setpt2Id(cross_point.getPid());
 									cout << "the line2 is now " << lineX2->getLineVec(pointxs) << endl;
-									maxD2 = abs(cross[1] - p3.getY());
+									maxD2 = abs(cross_vec[1] - p3.getY());
 								}
 								else
 								{
@@ -2928,10 +2940,21 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			}
 			else
 			{
-				pointxs[j].setPid(j);
+				//pointxs[j].setPid(j);
 			}
 
 		}
+	}
+	map<int, int> changeMap;
+	for (auto i = 0; i < pointxs.size(); i++)
+	{
+		cout << "point id " << pointxs[i].getPid() << pointxs[i].getXY() << endl;
+		changeMap[pointxs[i].getPid()] = i;
+	}
+	for (auto j = 0; j < linexs.size(); j++)
+	{
+		linexs[j].setpt1Id(changeMap[linexs[j].getPt1Id()]);
+		linexs[j].setpt2Id(changeMap[linexs[j].getPt2Id()]);
 	}
 	/*print info*/
 	for (auto i = 0; i < linexs.size(); i++)
