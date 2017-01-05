@@ -36,7 +36,7 @@ int Sgn(double d)
 //	return crx;
 //}
 
-
+bool dashLineRecovery(vector<Point2i> &, Vec2i, Vec2i, vector<circle_class> &, bool plflag, bool pcflag, bool ppflag);
 
 
 /*******************************load and segment phase***********************/
@@ -656,7 +656,7 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 	tmpCross[0] = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 	tmpCross[1] = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 }
-void getCrossPtRev(line_class *linec1, line_class *linec2, point_class &cross_point, vector<circle_class> &circles, vector<line_class> &linexs, vector<point_class> &pointxs)
+void getCrossPtRev(vector<Point2i> edgePoints, line_class *linec1, line_class *linec2, point_class &cross_point, vector<circle_class> &circles, vector<line_class> &linexs, vector<point_class> &pointxs)
 {
 	Vec2f tmp; Vec2i pt1, pt2, pt3, pt4;
 	line2pt(linec1->getLineVec(pointxs), pt1, pt2); line2pt(linec2->getLineVec(pointxs), pt3, pt4);
@@ -690,26 +690,38 @@ void getCrossPtRev(line_class *linec1, line_class *linec2, point_class &cross_po
 	}
 	else if (same_pt(tmp, pt1))
 	{
-		tmp = pt1;
+		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
+		{
+			tmp = pt1;
+		}
 		cross_in_one_line = 1;
 		cout << "the cross and pt1 are approximately the same" << endl;
 	}
 	else if (same_pt(tmp, pt2))
 	{
 		cross_in_one_line = 2;
-		tmp = pt2;
+		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
+		{
+			tmp = pt2;
+		}
 		cout << "the cross and pt2 are approximately the same" << endl;
 	}
 	else if (same_pt(tmp, pt3))
 	{
 		cross_in_one_line = 3;
-		tmp = pt3;
+		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
+		{
+			tmp = pt3;
+		}
 		cout << "the cross and pt3 are approximately the same" << endl;
 	}
 	else if (same_pt(tmp, pt4))
 	{
 		cross_in_one_line = 4;
-		tmp = pt4;
+		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false,false,false))
+		{
+			tmp = pt4;
+		}
 		cout << "the cross and pt4 are approximately the same" << endl;
 	}
 	else
@@ -2621,7 +2633,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				
 				point_class cross_point;
 				Vec2i cross_vec; // not-parallel lines cross point
-				getCrossPtRev(lineX1, lineX2, cross_point, circles, linexs, pointxs);// input the two line and circles info and return the mod cross 
+				getCrossPtRev(ept0,lineX1, lineX2, cross_point, circles, linexs, pointxs);// input the two line and circles info and return the mod cross 
 				cout << lineX1->getLineVec(pointxs) << endl << lineX2->getLineVec(pointxs) << endl;
 				cout << lineX1->getPt1Id() << "," << lineX1->getPt2Id() << "," << lineX2->getPt1Id() << "," << lineX2->getPt2Id() << endl;
 				cross_vec = cross_point.getXY();
@@ -3669,7 +3681,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("Sg-121.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
