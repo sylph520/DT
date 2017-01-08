@@ -36,6 +36,7 @@ int Sgn(double d)
 //	return crx;
 //}
 
+bool dashLineRecovery(vector<Point2i> &, Vec2i, Vec2i, Vec2i ,vector<circle_class> &, bool plflag, bool pcflag, bool ppflag);
 bool dashLineRecovery(vector<Point2i> &, Vec2i, Vec2i, vector<circle_class> &, bool plflag, bool pcflag, bool ppflag);
 
 
@@ -451,7 +452,7 @@ double cross_product(Vec2i a, Vec2i b){
 	return a[0] * b[1] - a[1] * b[0];
 }
 
-float point2Line(Vec4i line, Vec2i pt)
+float pt2lineDis(Vec4i line, Vec2i pt)
 {
 	Vec2i bottom = { line[2] - line[0], line[3] - line[1] };
 	Vec2i slope = { pt[0] - line[0], pt[1] - line[1] };
@@ -659,250 +660,250 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f &tmpCross)
 	tmpCross[0] = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 	tmpCross[1] = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) * 1.0 / ((x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4));
 }
-void getCrossPtRev(vector<Point2i> edgePoints, line_class *linec1, line_class *linec2, point_class &cross_point, vector<circle_class> &circles, vector<line_class> &linexs, vector<point_class> &pointxs)
-{
-	Vec2f tmp; Vec2i pt1, pt2, pt3, pt4;
-	line2pt(linec1->getLineVec(pointxs), pt1, pt2); line2pt(linec2->getLineVec(pointxs), pt3, pt4);
-	int sharePts = 0; int cross_in_one_line = 0;
-	
-	getCrossPt(linec1->getLineVec(pointxs), linec2->getLineVec(pointxs), tmp);
-	cout << "initial cross point is " << tmp << endl;
-	if (same_pt(pt1, pt3))
-	{
-		tmp = (pt1 + pt3) / 2.0;
-		sharePts = 1;
-		cout << "the pt1 and pt3 are approximately the same" << endl;
-	}
-	else if (same_pt(pt1, pt4))
-	{
-		tmp = (pt1 + pt4) / 2.0;
-		sharePts = 2;
-		cout << "the pt1 and pt4 are approximately the same" << endl;
-	}
-	else if (same_pt(pt2, pt3))
-	{
-		tmp = (pt2 + pt3) / 2.0;
-		sharePts = 3;
-		cout << "the pt2 and pt3 are approximately the same" << endl;
-	}
-	else if (same_pt(pt2, pt4))
-	{
-		tmp = (pt2 + pt4) / 2.0;
-		sharePts = 4;
-		cout << "the pt2 and pt4 are approximately the same" << endl;
-	}
-	else if (same_pt(tmp, pt1))
-	{
-		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
-		{
-			tmp = pt1;
-		}
-		cross_in_one_line = 1;
-		cout << "the cross and pt1 are approximately the same" << endl;
-	}
-	else if (same_pt(tmp, pt2))
-	{
-		cross_in_one_line = 2;
-		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
-		{
-			tmp = pt2;
-		}
-		cout << "the cross and pt2 are approximately the same" << endl;
-	}
-	else if (same_pt(tmp, pt3))
-	{
-		cross_in_one_line = 3;
-		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
-		{
-			tmp = pt3;
-		}
-		cout << "the cross and pt3 are approximately the same" << endl;
-	}
-	else if (same_pt(tmp, pt4))
-	{
-		cross_in_one_line = 4;
-		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false,false,false))
-		{
-			tmp = pt4;
-		}
-		cout << "the cross and pt4 are approximately the same" << endl;
-	}
-	else
-	{
-		cout << "no special relationships" << endl;
-	}
-	/*getCrossPt(linec1.getLineVec(pointxs), linec2.getLineVec(pointxs), tmp);
-	if (!same_pt(tmp, tmp1))
-		tmp = tmp1;*/
-	Vec2i cross_vec = ptAttachToCircle(tmp, circles);
-	cross_point.setXY(cross_vec);
-	cout << "now the cross point is " << cross_point.getXY() << endl;
-	if (sharePts)
-	{
-		// if two line share a common point, the point's id should be asigned equal.
-		switch (sharePts)
-		{
-		default: break;
-		case 0:
-			break;
-		case 1:
-			{
-				cout << "set pt1 to cross" << " and set pt3 to cross" << endl;
-				cout << "change pt3 id " << linec2->getPt1Id() << " to pt1 id " << linec1->getPt1Id() << endl;
-				cross_point.setPid(linec1->getPt1Id());
-				linec1->setPt1_vec(pointxs, cross_vec); linec2->setPt1_vec(pointxs, cross_vec);
-				linec2->setpt1Id(linec1->getPt1Id());
-				break;
-			}
-		case 2:
-			{
-				cout << "set pt1 to cross" << " and set pt4 to cross" << endl;
-				cout << "change pt4 id " << linec2->getPt2Id() << " to pt1 id " << linec1->getPt1Id() << endl;
-				cross_point.setPid(linec1->getPt1Id());
-				linec1->setPt1_vec(pointxs, cross_vec); linec2->setPt2_vec(pointxs, cross_vec);
-				linec2->setpt2Id(linec1->getPt1Id());
-				break;
-			}
-		case 3:
-			{
-				cout << "set pt2 to cross" << " and set pt3 to cross" << endl;
-				cout << "change pt3 id " << linec2->getPt1Id() << " to pt2 id " << linec1->getPt2Id() << endl;
-				cross_point.setPid(linec1->getPt2Id());
-				linec1->setPt2_vec(pointxs, cross_vec); linec2->setPt1_vec(pointxs, cross_vec);
-				linec2->setpt1Id(linec1->getPt2Id());
-				break;
-			}
-		case 4:
-			{
-				cout << "set pt2 to cross" << " and set pt4 to cross" << endl;
-				cout << "change pt4 id " << linec2->getPt2Id() << " to pt2 id" << linec1->getPt2Id() << endl;
-				cross_point.setPid(linec1->getPt2Id());
-				linec1->setPt2_vec(pointxs, cross_vec); linec2->setPt2_vec(pointxs, cross_vec);
-				linec2->setpt2Id(linec1->getPt2Id());
-				break;
-			}
-		}
-	}
-	else if (cross_in_one_line)
-	{
-		// the cross points is only in one line, we'll only change the coordinate infos here, no id change issues here.
-		switch (cross_in_one_line)
-		{
-		default:break;
-		case 0:
-			break;
-		case 1:
-			{
-				linec1->setPt1_vec(pointxs, cross_vec);
-				cross_point.setPid(linec1->getPt1Id());
-				cout << "set pt1 to cross" << endl;
-				break;
-			}
-		case 2:
-			{
-				linec1->setPt2_vec(pointxs, cross_vec);
-				cross_point.setPid(linec1->getPt2Id());
-				cout << "set pt2 to cross" << endl;
-				break;
-			}
-		case 3:
-			{
-				linec2->setPt1_vec(pointxs, cross_vec);
-				cross_point.setPid(linec2->getPt1Id());
-				cout << "set pt3 to cross" << endl;
-				break;
-			}
-		case 4:
-			{
-				linec2->setPt2_vec(pointxs, cross_vec);
-				cross_point.setPid(linec2->getPt2Id());
-				cout << "set pt4 to cross" << endl;
-				break;
-			}
-		}
-	}
-	
-
-//	if (circles.size() != 0)
+//void getCrossPtRev(vector<Point2i> edgePoints, line_class *linec1, line_class *linec2, point_class &cross_point, vector<circle_class> &circles, vector<line_class> &linexs, vector<point_class> &pointxs)
+//{
+//	Vec2f tmp; Vec2i pt1, pt2, pt3, pt4;
+//	line2pt(linec1->getLineVec(pointxs), pt1, pt2); line2pt(linec2->getLineVec(pointxs), pt3, pt4);
+//	int sharePts = 0; int cross_in_one_line = 0;
+//	
+//	getCrossPt(linec1->getLineVec(pointxs), linec2->getLineVec(pointxs), tmp);
+//	cout << "initial cross point is " << tmp << endl;
+//	if (same_pt(pt1, pt3))
 //	{
-//		for (int j = 0; j < circles.size(); j++)
+//		tmp = (pt1 + pt3) / 2.0;
+//		sharePts = 1;
+//		cout << "the pt1 and pt3 are approximately the same" << endl;
+//	}
+//	else if (same_pt(pt1, pt4))
+//	{
+//		tmp = (pt1 + pt4) / 2.0;
+//		sharePts = 2;
+//		cout << "the pt1 and pt4 are approximately the same" << endl;
+//	}
+//	else if (same_pt(pt2, pt3))
+//	{
+//		tmp = (pt2 + pt3) / 2.0;
+//		sharePts = 3;
+//		cout << "the pt2 and pt3 are approximately the same" << endl;
+//	}
+//	else if (same_pt(pt2, pt4))
+//	{
+//		tmp = (pt2 + pt4) / 2.0;
+//		sharePts = 4;
+//		cout << "the pt2 and pt4 are approximately the same" << endl;
+//	}
+//	else if (same_pt(tmp, pt1))
+//	{
+//		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
 //		{
-//			Vec3i c = circles[j].getCircleVec();
-//			Vec2f center = circles[j].getCenter(); float radius = circles[j].getRadius();
-///*			if (on_circle(pt1, c) || on_circle(pt2, c) || on_circle(pt3, c) || on_circle(pt4, c))
+//			tmp = pt1;
+//		}
+//		cross_in_one_line = 1;
+//		cout << "the cross and pt1 are approximately the same" << endl;
+//	}
+//	else if (same_pt(tmp, pt2))
+//	{
+//		cross_in_one_line = 2;
+//		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
+//		{
+//			tmp = pt2;
+//		}
+//		cout << "the cross and pt2 are approximately the same" << endl;
+//	}
+//	else if (same_pt(tmp, pt3))
+//	{
+//		cross_in_one_line = 3;
+//		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false, false, false))
+//		{
+//			tmp = pt3;
+//		}
+//		cout << "the cross and pt3 are approximately the same" << endl;
+//	}
+//	else if (same_pt(tmp, pt4))
+//	{
+//		cross_in_one_line = 4;
+//		if (dashLineRecovery(edgePoints, tmp, pt1, circles, false,false,false))
+//		{
+//			tmp = pt4;
+//		}
+//		cout << "the cross and pt4 are approximately the same" << endl;
+//	}
+//	else
+//	{
+//		cout << "no special relationships" << endl;
+//	}
+//	/*getCrossPt(linec1.getLineVec(pointxs), linec2.getLineVec(pointxs), tmp);
+//	if (!same_pt(tmp, tmp1))
+//		tmp = tmp1;*/
+//	Vec2i cross_vec = ptAttachToCircle(tmp, circles);
+//	cross_point.setXY(cross_vec);
+//	cout << "now the cross point is " << cross_point.getXY() << endl;
+//	if (sharePts)
+//	{
+//		// if two line share a common point, the point's id should be asigned equal.
+//		switch (sharePts)
+//		{
+//		default: break;
+//		case 0:
+//			break;
+//		case 1:
 //			{
-//				continue;
+//				cout << "set pt1 to cross" << " and set pt3 to cross" << endl;
+//				cout << "change pt3 id " << linec2->getPt1Id() << " to pt1 id " << linec1->getPt1Id() << endl;
+//				cross_point.setPid(linec1->getPt1Id());
+//				linec1->setPt1_vec(pointxs, cross_vec); linec2->setPt1_vec(pointxs, cross_vec);
+//				linec2->setpt1Id(linec1->getPt1Id());
+//				break;
 //			}
-//			else */
-//			//To Note: there're changes here
-//			if (on_circle(tmp, c))
+//		case 2:
 //			{
-//				float minDiff = 100;
-//				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
-//				int offset = int(p2pdistance(tmp, center) - radius);
-//				offset = (offset < 1) ? 1 : offset;
-//				for (auto m = cenx - offset ; m <= cenx + offset; m++)
-//				{
-//					for (auto n = ceny - offset ; n <= ceny + offset; n++)
-//					{
-//						Vec2i temp2 = { m, n };
-//						float tmpDiff = abs(p2pdistance(temp2, center) - radius);
-//						if (tmpDiff < minDiff)
-//						{
-//							tmp = temp2;
-//							minDiff = tmpDiff;
-//						}
-//
-//					}
-//				}
+//				cout << "set pt1 to cross" << " and set pt4 to cross" << endl;
+//				cout << "change pt4 id " << linec2->getPt2Id() << " to pt1 id " << linec1->getPt1Id() << endl;
+//				cross_point.setPid(linec1->getPt1Id());
+//				linec1->setPt1_vec(pointxs, cross_vec); linec2->setPt2_vec(pointxs, cross_vec);
+//				linec2->setpt2Id(linec1->getPt1Id());
+//				break;
+//			}
+//		case 3:
+//			{
+//				cout << "set pt2 to cross" << " and set pt3 to cross" << endl;
+//				cout << "change pt3 id " << linec2->getPt1Id() << " to pt2 id " << linec1->getPt2Id() << endl;
+//				cross_point.setPid(linec1->getPt2Id());
+//				linec1->setPt2_vec(pointxs, cross_vec); linec2->setPt1_vec(pointxs, cross_vec);
+//				linec2->setpt1Id(linec1->getPt2Id());
+//				break;
+//			}
+//		case 4:
+//			{
+//				cout << "set pt2 to cross" << " and set pt4 to cross" << endl;
+//				cout << "change pt4 id " << linec2->getPt2Id() << " to pt2 id" << linec1->getPt2Id() << endl;
+//				cross_point.setPid(linec1->getPt2Id());
+//				linec1->setPt2_vec(pointxs, cross_vec); linec2->setPt2_vec(pointxs, cross_vec);
+//				linec2->setpt2Id(linec1->getPt2Id());
+//				break;
 //			}
 //		}
-//		cross = { int(tmp[0]), int(tmp[1]) };
-//		linec1->setPt1_vec(cross); linec2->setPt2_vec(cross);
 //	}
-//	else if (!sharePts)
+//	else if (cross_in_one_line)
 //	{
-//		//if cross in one line
-//		if (cross_in_line1)
+//		// the cross points is only in one line, we'll only change the coordinate infos here, no id change issues here.
+//		switch (cross_in_one_line)
 //		{
-//			cross = { int(tmp[0]), int(tmp[1]) };
-//			linec1->setPt1_vec(cross);
-//		}
-//		else if (cross_in_line)
-//		{
-//			cross = { int(tmp[0]), int(tmp[1]) };
-//			linec1->setPt2_vec(cross);
-//		}
-//		else if (cross_in_line)
-//		{
-//			cross = { int(tmp[0]), int(tmp[1]) };
-//			linec2->setPt1_vec(cross);
-//		}
-//		else if (cross_in_line2_2)
-//		{
-//			cross = { int(tmp[0]), int(tmp[1]) };
-//			linec2->setPt2_vec(cross);
-//		}
-//		else
-//		{
-//			/*for (int i = 0; i < linexs.size(); i++)
+//		default:break;
+//		case 0:
+//			break;
+//		case 1:
 //			{
-//				Vec4i line = linexs[i].getLineVec(pointxs);
-//				if (in_line(line, tmp))
-//				{
-//					Vec2f temp1, temp2;
-//					getCrossPt(line, linec1->getLineVec(pointxs), temp1); getCrossPt(line, linec2->getLineVec(pointxs), temp2);
-//					Vec2f temp3 = (temp1 + temp2) / 2.0;
-//					tmp = { temp3[0], temp3[1] };
-//					break;
-//				}
-//
-//			}*/
-//			cross = { int(tmp[0]), int(tmp[1]) };
+//				linec1->setPt1_vec(pointxs, cross_vec);
+//				cross_point.setPid(linec1->getPt1Id());
+//				cout << "set pt1 to cross" << endl;
+//				break;
+//			}
+//		case 2:
+//			{
+//				linec1->setPt2_vec(pointxs, cross_vec);
+//				cross_point.setPid(linec1->getPt2Id());
+//				cout << "set pt2 to cross" << endl;
+//				break;
+//			}
+//		case 3:
+//			{
+//				linec2->setPt1_vec(pointxs, cross_vec);
+//				cross_point.setPid(linec2->getPt1Id());
+//				cout << "set pt3 to cross" << endl;
+//				break;
+//			}
+//		case 4:
+//			{
+//				linec2->setPt2_vec(pointxs, cross_vec);
+//				cross_point.setPid(linec2->getPt2Id());
+//				cout << "set pt4 to cross" << endl;
+//				break;
+//			}
 //		}
 //	}
-
-}
+//	
+//
+////	if (circles.size() != 0)
+////	{
+////		for (int j = 0; j < circles.size(); j++)
+////		{
+////			Vec3i c = circles[j].getCircleVec();
+////			Vec2f center = circles[j].getCenter(); float radius = circles[j].getRadius();
+/////*			if (on_circle(pt1, c) || on_circle(pt2, c) || on_circle(pt3, c) || on_circle(pt4, c))
+////			{
+////				continue;
+////			}
+////			else */
+////			//To Note: there're changes here
+////			if (on_circle(tmp, c))
+////			{
+////				float minDiff = 100;
+////				int cenx = int(tmp[0]); int ceny = int(tmp[1]);
+////				int offset = int(p2pdistance(tmp, center) - radius);
+////				offset = (offset < 1) ? 1 : offset;
+////				for (auto m = cenx - offset ; m <= cenx + offset; m++)
+////				{
+////					for (auto n = ceny - offset ; n <= ceny + offset; n++)
+////					{
+////						Vec2i temp2 = { m, n };
+////						float tmpDiff = abs(p2pdistance(temp2, center) - radius);
+////						if (tmpDiff < minDiff)
+////						{
+////							tmp = temp2;
+////							minDiff = tmpDiff;
+////						}
+////
+////					}
+////				}
+////			}
+////		}
+////		cross = { int(tmp[0]), int(tmp[1]) };
+////		linec1->setPt1_vec(cross); linec2->setPt2_vec(cross);
+////	}
+////	else if (!sharePts)
+////	{
+////		//if cross in one line
+////		if (cross_in_line1)
+////		{
+////			cross = { int(tmp[0]), int(tmp[1]) };
+////			linec1->setPt1_vec(cross);
+////		}
+////		else if (cross_in_line)
+////		{
+////			cross = { int(tmp[0]), int(tmp[1]) };
+////			linec1->setPt2_vec(cross);
+////		}
+////		else if (cross_in_line)
+////		{
+////			cross = { int(tmp[0]), int(tmp[1]) };
+////			linec2->setPt1_vec(cross);
+////		}
+////		else if (cross_in_line2_2)
+////		{
+////			cross = { int(tmp[0]), int(tmp[1]) };
+////			linec2->setPt2_vec(cross);
+////		}
+////		else
+////		{
+////			/*for (int i = 0; i < linexs.size(); i++)
+////			{
+////				Vec4i line = linexs[i].getLineVec(pointxs);
+////				if (in_line(line, tmp))
+////				{
+////					Vec2f temp1, temp2;
+////					getCrossPt(line, linec1->getLineVec(pointxs), temp1); getCrossPt(line, linec2->getLineVec(pointxs), temp2);
+////					Vec2f temp3 = (temp1 + temp2) / 2.0;
+////					tmp = { temp3[0], temp3[1] };
+////					break;
+////				}
+////
+////			}*/
+////			cross = { int(tmp[0]), int(tmp[1]) };
+////		}
+////	}
+//
+//}
 
 
 
@@ -1386,10 +1387,199 @@ bool in_rect(Vec2i pt,int leftx, int rightx, int lowy, int highy)
 		return false;
 }
 
+Vec4i pt2line(Vec2i pt1, Vec2i pt2)
+{
+	Vec4i ret = { pt1[0], pt1[1], pt2[0], pt2[1] };
+	return ret;
+}
+bool in_circle(Vec2i center, int radius, Vec2i pt)
+{
+	if (radius - p2pdistance(center, pt) >= 3)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+int ptWithCircle(Vec2i center, int radius ,Vec2i pt)
+{
+	double pt2center = p2pdistance(center, pt);
+	if (radius - pt2center > 3)
+		return 0;//inside circle
+	else if (abs(radius - pt2center) <= 3)
+		return 1; // on cirlce
+	else if (pt2center - radius < 8)
+		return 2;//outside circle
+}
+bool basicRev(vector<Point2i> &edgePt, Vec2i p1, Vec2i p2, vector<circle_class> &circles)
+{
+	Vec4i line = pt2line(p1, p2);
+	int flag[1000] = { 0 };
+	bool vertical_flag = (abs(p1[0] - p2[0]) < abs(p1[1] - p2[1])) ? true : false;
+	int ranges = vertical_flag ? abs(p2[1] - p1[1]) : abs(p2[0] - p1[0]);
+	for (auto i = 0; i < edgePt.size(); ++i)
+	{
+		Vec2i pt = edgePt[i];
+		if (in_line(line, pt))
+		{
+			if (vertical_flag)
+				flag[pt[1]] = 1;
+			else
+				flag[pt[0]] = 1;
+		}
+	}
+	double ratio; int nums = count(flag, flag + 1000, 1);
+	ratio = nums / ranges; cout << ratio * 100 << "%" << endl;
+	int threshold_ratio = 0.8;
+	if (ratio < threshold_ratio)
+		return false;
+	else
+		return true;
+}
+bool dashLineRecovery(vector<Point2i> &edgePt, Vec2i p_closer,  Vec2i p_cross, vector<circle_class> &circles, bool plflag = false, bool pcflag = false, bool ppflag = false)
+{//check if there's dash line between
+	Vec4i line = pt2line(p_closer, p_cross);
+	int flag[1000] = { 0 };
+	bool vertical_flag = (abs(p_closer[0] - p_cross[0]) < abs(p_closer[1] - p_cross[1])) ? true : false;
+	int ranges = vertical_flag ? abs(p_cross[1] - p_closer[1]) : abs(p_cross[0] - p_closer[0]);
+	cout << "line check between " << p_closer << " and " << p_cross << endl;
+	if (circles.size() == 0)
+	{
+		cout << "non-circle" << endl;
+		for (auto i = 0; i < edgePt.size(); ++i)
+		{
+			Vec2i pt = edgePt[i];
+			if (in_line(line, pt))
+			{
+				if (vertical_flag)
+					flag[pt[1]] = 1;
+				else
+					flag[pt[0]] = 1;
+			}
+		}
+		double ratio; int nums = count(flag, flag + 1000, 1);
+		ratio = nums / ranges; cout << ratio * 100 << "%" << endl;
+		int threshold_ratio = 0.8;
+		if (ratio < threshold_ratio)
+			return false;
+		else
+			return true;
+	}
+	else
+	{
+		for (auto i = 0; i < circles.size(); ++i)
+		{
+			circle_class *c = &(circles[i]);
+			Vec2i center = c->getCenter(); int radius = c->getRadius();
+			double center2lineDis = pt2lineDis(line, center);
+			int flag1 = ptWithCircle(center, radius, p_closer); int flag2 = ptWithCircle(center, radius, p_cross);
+			if (abs(center2lineDis - radius) <= 3)
+			{
+				// the line is almost tangent to the circle				
+				if (flag1 == 1 && flag2 == 1)
+				{
+					// both are on the circle
+					cout << "both points are on the circle" << endl;
+					return true;
+				}
+				else if (flag1 == 1 && flag2 == 2)
+				{
+					// point1 is on the circle
+					return true;
 
-bool dashLineRecovery(vector<Point2i> &edgePositions, Vec2i pt1, Vec2i pt2, vector<circle_class> &circles, bool plflag = false, bool ptcrossflag = false, bool ppflag = false)
+				}
+				else if (flag2 == 1 && flag1 == 2)
+				{
+					cout << "point 2 is on the circle" << endl;
+					return  true;
+				}
+				else
+				{
+					cout << "neither points are on the circle" << endl;
+					return true;
+				}
+			}
+			else
+			{
+				return true;
+			}
+		}
+	}
+}
+bool dashLineRecovery(vector<Point2i> &edgePt, Vec2i p_closer, Vec2i p_farther, Vec2i p_cross, vector<circle_class> &circles, bool plflag=false, bool pcflag=false, bool ppflag=false)
 {		
-	return true;
+	//check if there's dash line between
+	Vec4i line = pt2line(p_closer, p_cross);
+	int flag[1000] = { 0 };
+	bool vertical_flag = (abs(p_closer[0] - p_cross[0]) < abs(p_closer[1] - p_cross[1])) ? true : false;
+	int ranges = vertical_flag ? abs(p_cross[1] - p_closer[1]) : abs(p_cross[0] - p_closer[0]);
+	cout << "line check between " << p_closer << " and " << p_cross << endl;
+	if (circles.size()==0)
+	{
+		for (auto i = 0; i < edgePt.size(); ++i)
+		{
+			Vec2i pt = edgePt[i];
+			if (in_line(line, pt))
+			{
+				if (vertical_flag)
+					flag[pt[1]] = 1;
+				else
+					flag[pt[0]] = 1;
+			}
+		}
+		double ratio; int nums =  count(flag, flag + 1000, 1);
+		ratio = nums / ranges; cout << ratio * 100 << "%" << endl;
+		int threshold_ratio = 0.8;
+		if (ratio < threshold_ratio)
+			return false;
+		else
+			return true;
+	}
+	else
+	{
+		for (auto i = 0; i < circles.size(); ++i)
+		{
+			circle_class *c = &(circles[i]);
+			Vec2i center = c->getCenter(); int radius = c->getRadius();
+			double center2lineDis = pt2lineDis(line, center);
+			int flag1 = ptWithCircle(center, radius, p_closer); int flag2 = ptWithCircle(center, radius, p_cross);
+			if (abs(center2lineDis - radius) <= 3)
+			{
+				// the line is almost tangent to the circle				
+				if (flag1==1 && flag2 == 1)
+				{
+					// both are on the circle
+					cout << "both points are on the circle" << endl;
+					return true;
+				}
+				else if (flag1 == 1 && flag2 == 2)
+				{
+					// point1 is on the circle
+					cout << "point 1 is on the circle" << endl;
+					return false;
+					
+				
+				}
+				else if (flag2 == 1 && flag1 == 2)
+				{
+					cout << "point 2 is on the circle" << endl;
+					return  false;
+				}
+				else
+				{
+					cout << "neither points are on the circle" << endl;
+					return false;
+				}
+			}
+			else
+			{
+				cout << "not tangent to the cirlce" << endl;
+				return false;
+			}
+		}
+	}
 }
 
 
@@ -1838,10 +2028,192 @@ bool nearToAcross(Vec2i pt, vector<Vec2i> &crossPts)
 		return false;
 }
 
-void cross_refinement(Vec2f &raw_cross, line_class &lx1, line_class &lx2, vector<circle_class> &circlexs, vector<point_class> &pointxs)
+void line_recovery_process(line_class *linex, Vec2i point, vector<Point2i> &edgePt,vector<point_class> &pointxs,vector<circle_class> &circlexs, bool id_change = false)
 {
-	Vec4i linex1_vec = lx1.getLineVec(pointxs); Vec4i linex2_vec = lx2.getLineVec(pointxs);
+	Vec2i pt1 = linex->getpt1vec(pointxs); Vec2i pt2 = linex->getpt2vec(pointxs);
+	double dis1 = p2pdistance(pt1, point); double dis2 = p2pdistance(pt2, point);
+	int ret_pos = -1;
+	if ( dis1 < dis2)
+	{
+		if (dis1 < 5)
+		{
+			linex->setPt1_vec(pointxs, point);
+			cout << linex->getpt1vec(pointxs) << "  ->  " << point << endl;
+		}
+		else if(dashLineRecovery(edgePt, pt1, pt2, point, circlexs))
+		{
+			linex->setPt1_vec(pointxs, point);
+			cout << linex->getpt1vec(pointxs) << "  ->  " << point << endl;
+		}
+	}
+	else
+	{
+		if (dis2 < 5 )
+		{
+			linex->setPt2_vec(pointxs, point); 
+			cout << linex->getpt2vec(pointxs) << "  ->  " << point << endl;
+		}
+		else if(dashLineRecovery(edgePt, pt2, pt1, point, circlexs))
+		{
+			linex->setPt2_vec(pointxs, point);
+			cout << linex->getpt2vec(pointxs) << "  ->  " << point << endl;
+		}
+	}
+
+}
+void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector<circle_class> &circlexs, vector<point_class> &pointxs, vector<Point2i> &edgePt)
+{
+	Vec4i linex1_vec = lx1->getLineVec(pointxs); Vec4i linex2_vec = lx2->getLineVec(pointxs);
 	Vec2i pt1, pt2, pt3, pt4;  line2pt(linex1_vec, pt1, pt2); line2pt(linex2_vec, pt3, pt4);
+	// check according to the relationship between cross and the two lines
+	
+	bool in_line1, in_line2; 
+	in_line1 = in_line(linex1_vec, raw_cross);
+	in_line2 = in_line(linex2_vec, raw_cross);
+//	if (!in_line1 && !in_line2)
+//	{
+//		//if the cross points is not in either lines
+//		cout << "the cross points " << raw_cross << "  is not in either lines" << endl;
+//		int pos1 = line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
+//		int pos2 = line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+//		if (pos1 != -1 && pos2 != -1)
+//		{
+//			if (pos2 == 1 && pos1 == 1)
+//			{
+//				lx2->setpt1Id(lx1->getPt1Id());
+//			}
+//			else if (pos2 == 1 && pos1 == 2)
+//			{
+//				lx2->setpt1Id(lx1->getPt2Id());
+//			}
+//			else if (pos2 == 2 && pos1 == 1)
+//			{
+//				lx2->setpt2Id(lx1->getPt1Id());
+//			}
+//			else if (pos2 == 2 && pos1 == 2)
+//			{
+//				lx2->setpt2Id(lx1->getPt2Id());
+//			}
+//		}
+//	}
+//	else if (in_line1 && in_line2)
+//	{
+//		cout << "the cross of two line" << endl;
+//	}
+//	else if (in_line1 && !in_line2)
+//	{
+//		cout << "the cross " << raw_cross << " is in line1 but not line2" << endl;
+//		line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs ,true);
+//		if (same_pt(raw_cross, pt1))
+//		{
+//			
+//		}
+//	}
+//	else if (!in_line1 && in_line2)
+//	{
+//		cout << "the cross "<< raw_cross<< " is in line2 but not line1" << endl;
+//		line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs ,true);
+//	}
+
+	if (same_pt(raw_cross, pt1))
+	{
+		cout << "raw_cross =  pt1" << endl;
+		if (same_pt(raw_cross, pt3))
+		{
+			cout << "also, raw_cross = pt3" << endl;
+			lx2->setPt1_vec(pointxs, lx1->getpt1vec(pointxs));
+		}
+		else if (same_pt(raw_cross, pt4))
+		{
+			cout << "also, raw_cross = pt4" << endl;
+			lx2->setPt2_vec(pointxs, lx1->getpt1vec(pointxs));
+		}
+		else
+		{
+			if (in_line2)
+			{
+				cout << "sp" << endl;
+			}
+			else
+			{
+				line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+			}
+		}
+	}
+	else if (same_pt(raw_cross, pt2))
+	{
+		cout << "raw_cross =  pt1" << endl;
+		if (same_pt(raw_cross, pt3))
+		{
+			cout << "also, raw_cross = pt3" << endl;
+			lx2->setPt1_vec(pointxs, lx1->getpt2vec(pointxs));
+		}
+		else if (same_pt(raw_cross, pt4))
+		{
+			cout << "also, raw_cross = pt3" << endl;
+			lx2->setPt2_vec(pointxs, lx1->getpt2vec(pointxs));
+		}
+		else
+		{
+			if (in_line2)
+			{
+				cout << "sp" << endl;
+			}
+			else
+			{
+				line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+			}
+		}
+	}
+	else if (same_pt(raw_cross, pt3))
+	{
+		cout << "raw_cross =  pt1" << endl;
+		if (in_line1)
+		{
+			cout << "sp" << endl;
+		}
+		else
+		{
+			line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
+		}
+		
+	}
+	else if (same_pt(raw_cross, pt4))
+	{
+		cout << "raw_cross =  pt4" << endl;
+		if (in_line1)
+		{
+			cout << "sp" << endl;
+		}
+		else
+		{
+			line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
+		}
+	}
+	else
+	{
+		cout << "two disjoint line" << endl;
+		if (in_line1 && !in_line2)
+		{
+			line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+		}
+		else if (in_line2 && !in_line1)
+		{
+			line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
+		}
+		else if (in_line1 && in_line2)
+		{
+			cout << "inner cross" << endl;
+		}
+		else
+		{
+			cout << "outer cross" << endl;
+			line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
+			line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+		}
+	
+	}
+	
 
 }
 
@@ -1917,15 +2289,15 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	/* then we handle the lines specifically*/
 	/* for lines should be combined 1. colinear 2. */
 	
-	/*for (auto i = 0; i < plainLines.size(); i++)
-	{
-		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-		cout << "*********************" << pt1 << " " << pt2 << endl;
-		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
-		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
-		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
-	}*/
+//	for (auto i = 0; i < plainLines.size(); i++)
+//	{
+//		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+//		cout << "*********************" << pt1 << " " << pt2 << endl;
+//		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+//		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+//		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+//		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+//	}
 	//namedWindow("5.lines first opt version now", 0); imshow("5.lines first opt version now", color_img);
 	cout << "stop and test point" << endl;
 	//for (auto iter1 = plainLines.begin(); iter1 != plainLines.end(); iter1++)
@@ -2215,157 +2587,13 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 						flag3 = ((pt3[1] - pt1[1])*(pt3[1] - pt2[1]) > 0); //appoximate if pt3 is in line1
 						flag4 = ((pt4[1] - pt1[1])*(pt4[1] - pt2[1]) > 0);//approximate if pt4 is in  line1					
 					}
-
-					//if (same_pt(pt1, pt3))
-					//{
-					//	cout << "pt1 and pt3 seems the same" << endl;
-					//	if (!flag0)
-					//	{
-					//		if (abs(pt4[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
-					//			cout << "pt4 is farther to pt1 than pt2, and the line1 changed to " << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//		else
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
-					//			cout << "pt2 is farther to pt1 than pt4, and the line1 changed to " << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//	}
-					//	else
-					//	{
-					//		if (abs(pt4[1] - pt1[1]) > abs(pt2[1] - pt1[1]))
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt4[0], pt4[1] };
-					//			cout << "pt4 is farther to pt1 than pt2, and the line1 changed to " << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//		else
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
-					//			cout << "pt2 is farther to pt1 than pt4, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//	}
-					//	cout << "erase line2" << endl << endl;
-					//	iter2 = plainLines.erase(iter2);
-					//}
-					//else if (same_pt(pt1, pt4))
-					//{
-					//	if (!flag0)
-					//	{
-					//		if (abs(pt3[0] - pt1[0]) > abs(pt2[0] - pt1[0]))
-					//		{
-					//			cout << "pt3 is farther to pt1 than pt2, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//			*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
-					//		}
-					//		else
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
-					//			cout << "pt2 is farther to pt1 than pt2, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//	}
-					//	else
-					//	{
-					//		if (abs(pt3[1] - pt1[1]) > abs(pt2[1] - pt1[1]))
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt3[0], pt3[1] };
-					//			cout << "pt3 is farther to pt1 than pt2, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//		else
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
-					//			cout << "pt2 is farther to pt1 than pt2, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//	}
-					//	cout << "erase line2" << endl << endl;
-					//	iter2 = plainLines.erase(iter2);
-					//}
-					//else if (same_pt(pt2, pt3))
-					//{
-					//	if (!flag0)
-					//	{
-					//		if (abs(pt4[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
-					//		{
-					//			*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
-					//			cout << "pt4 is farther to pt2 than pt1, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//		else
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
-					//			cout << "pt1 is farther to pt2 than pt4, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//	}
-					//	else
-					//	{
-					//		if (abs(pt4[1] - pt2[1]) > abs(pt1[1] - pt2[1]))
-					//		{
-					//			*iter1 = { pt4[0], pt4[1], pt2[0], pt2[1] };
-					//			cout << "pt1 is farther to pt2 than pt4, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;=
-					//		}
-					//		else
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
-					//			cout << "pt1 is farther to pt2 than pt4, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//	}
-					//	cout << "erase line2" << endl << endl;
-					//	iter2 = plainLines.erase(iter2);
-					//}
-					//else if (same_pt(pt2, pt4))
-					//{
-					//	if (!flag0)
-					//	{
-					//		if (abs(pt3[0] - pt2[0]) > abs(pt1[0] - pt2[0]))
-					//		{
-					//			*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
-					//			cout << "pt3 is farther to pt2 than pt1, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//		else
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
-					//			cout << "pt1 is farther to pt2 than pt3, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//	}
-					//	else
-					//	{
-					//		if (abs(pt3[1] - pt2[1]) > abs(pt1[1] - pt2[1]))
-					//		{
-					//			*iter1 = { pt3[0], pt3[1], pt2[0], pt2[1] };
-					//			cout << "pt3 is farther to pt2 than pt1, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//		else
-					//		{
-					//			*iter1 = { pt1[0], pt1[1], pt2[0], pt2[1] };
-					//			cout << "pt1 is farther to pt2 than pt3, and the line1 changed to" << (*iter1)[0] << "," << (*iter1)[1]
-					//				<< "," << (*iter1)[2] << "," << (*iter1)[3] << endl;
-					//		}
-					//	}
-					//	cout << "erase line2" << endl << endl;
-					//	iter2 = plainLines.erase(iter2);
-					//}
-
-
 					// four points are all different
 					if (flag3&&flag4&&!same_pt(pt1,pt3)&&!same_pt(pt1,pt4)&&!same_pt(pt2,pt3)&&!same_pt(pt2,pt4))
 					{
 						// two disjoint collinear line
 						cout << "four point are all different,";
 						cout << firstPt << "range" << fourthPt << endl;
-						if (dashLineRecovery(ept, secondPt, thirdPt, circles, true,false,false))
+						if (dashLineRecovery(ept, secondPt, thirdPt,  circles, true,false,false))
 						{
 							*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
 							cout << "collinear line recovery, now the line1 is " << *iter1 << "and erase line2" << endl << endl;
@@ -2520,6 +2748,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			//check whether the two line are parallel, if so, jump ahead
 			if (isParallel(linex1_vec, linex2_vec))
 			{
+				cout << linex1_vec << endl << linex2_vec << endl;
 				cout << "the two line is parallel but not collinear" << endl;
 				continue;
 			}
@@ -2530,14 +2759,17 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				line2pt(linex1_vec, pt1, pt2); line2pt(linex2_vec, pt3, pt4);
 				getCrossPt(linex1_vec, linex2_vec, raw_cross);
 
-				if (isInImage(diagram_segwithoutcircle.rows, diagram_segwithoutcircle.cols,raw_cross))
+				if (!isInImage(diagram_segwithoutcircle.rows, diagram_segwithoutcircle.cols,raw_cross))
 				{
+					cout << raw_cross << endl;
 					cout << "cross out of scope, then take it as no cross" << endl;
 					continue;
 				}
 				else
 				{
 					//cross in scope
+					cout << linex1_vec << endl << linex2_vec << endl;
+					cross_refinement(raw_cross, linex1, linex2, circles, pointxs,ept0);
 					
 				}
 
@@ -2640,7 +2872,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-47.jpg", 0);
+	Mat image = imread("Sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2696,3 +2928,4 @@ int diagram()
 	}
 	return 0;
 }
+

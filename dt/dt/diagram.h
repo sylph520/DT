@@ -143,6 +143,13 @@ public:
 	{
 		return p2_id;
 	}
+	int getPtId(int pos) const
+	{
+		if (pos == 1)
+			return p1_id;
+		else
+			return p2_id;
+	}
 	/*point_class getPt1(vector<point_class> &pointxs) const
 	{
 		return  pointxs[p1_id];
@@ -172,6 +179,14 @@ public:
 	{
 		pointxs[p2_id].setXY(pv);
 	}
+	void setPt_vec(vector<point_class> &pointxs, Vec2i pv, int ind) const
+	{
+		if (ind==1)
+			pointxs[p1_id].setXY(pv);
+		else
+			pointxs[p2_id].setXY(pv);
+
+	}
 	/*void setPt1(vector<point_class> pointxs, int p) 
 	{
 		p1_id = p;
@@ -187,6 +202,13 @@ public:
 	void setpt2Id(int p)
 	{
 		p2_id = p;
+	}
+	void setptId(int p, int ind)
+	{
+		if (ind == 1)
+			p1_id = p;
+		else
+			p2_id = p;
 	}
 	~line_class(){}
 };
