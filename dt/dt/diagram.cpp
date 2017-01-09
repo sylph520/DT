@@ -2015,40 +2015,43 @@ bool nearToAcross(Vec2i pt, vector<Vec2i> &crossPts)
 		return false;
 }
 
-void line_recovery_process(line_class *linex, Vec2i point, vector<Point2i> &edgePt,vector<point_class> &pointxs,vector<circle_class> &circlexs, bool id_change = false)
+int line_recovery_process(line_class *linex, Vec2i p_cross, vector<Point2i> &edgePt,vector<point_class> &pointxs,vector<circle_class> &circlexs, bool id_change = false)
 {
 	Vec2i pt1 = linex->getpt1vec(pointxs); Vec2i pt2 = linex->getpt2vec(pointxs);
-	double dis1 = p2pdistance(pt1, point); double dis2 = p2pdistance(pt2, point);
-	int ret_pos = -1;
+	double dis1 = p2pdistance(pt1, p_cross); double dis2 = p2pdistance(pt2, p_cross);
+	int pos = 0;
 	if ( dis1 < dis2)
 	{
 		if (dis1 < 5)
 		{
-			cout << linex->getpt1vec(pointxs) << "  ->  " << point << endl;
-			linex->setPt1_vec(pointxs, point);
+			cout << linex->getpt1vec(pointxs) << "  ->  " << p_cross << endl;
+			linex->setPt1_vec(pointxs, p_cross);
+			pos = 1;
 		}
-		else if(dashLineRecovery(edgePt, pt1, pt2, point, circlexs))
+		else if(dashLineRecovery(edgePt, pt1, pt2, p_cross, circlexs))
 		{
-			cout << linex->getpt1vec(pointxs) << "  ->  " << point << endl;
-			linex->setPt1_vec(pointxs, point);
+			cout << linex->getpt1vec(pointxs) << "  ->  " << p_cross << endl;
+			linex->setPt1_vec(pointxs, p_cross);
+			pos = 1;
 		}
 	}
 	else
 	{
 		if (dis2 < 5 )
 		{
-			cout << linex->getpt2vec(pointxs) << "  ->  " << point << endl;
-			linex->setPt2_vec(pointxs, point); 
+			cout << linex->getpt2vec(pointxs) << "  ->  " << p_cross << endl;
+			linex->setPt2_vec(pointxs, p_cross); 
+			pos = 2;
 			
 		}
-		else if(dashLineRecovery(edgePt, pt2, pt1, point, circlexs))
+		else if(dashLineRecovery(edgePt, pt2, pt1, p_cross, circlexs))
 		{
-			cout << linex->getpt2vec(pointxs) << "  ->  " << point << endl;
-			linex->setPt2_vec(pointxs, point);
-			
+			cout << linex->getpt2vec(pointxs) << "  ->  " << p_cross << endl;
+			linex->setPt2_vec(pointxs, p_cross);
+			pos = 2;
 		}
 	}
-
+	return pos;
 }
 
 void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector<circle_class> &circlexs, vector<point_class> &pointxs, vector<Point2i> &edgePt)
@@ -2108,20 +2111,23 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 	if (same_pt(raw_cross, pt1))
 	{
 		cout << "raw_cross =  pt1" << endl;
-		cout << lx1->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
-		lx1->setPt1_vec(pointxs, raw_cross);
+		//cout << lx1->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
+		//lx1->setPt1_vec(pointxs, raw_cross);
 		if (same_pt(raw_cross, pt3))
 		{
 			cout << "also, raw_cross = pt3" << endl;
-			cout << lx2->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
+			cout << lx2->getpt2vec(pointxs) << "  ->   " << lx1->getpt1vec(pointxs) << endl;
 			lx2->setPt1_vec(pointxs, lx1->getpt1vec(pointxs));
-			
+			lx2->setpt1Id(lx1->getPt1Id()); 
+			cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;;
 		}
 		else if (same_pt(raw_cross, pt4))
 		{
 			cout << "also, raw_cross = pt4" << endl;
-			cout << lx2->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
+			cout << lx2->getpt2vec(pointxs) << "  ->   " << lx1->getpt1vec(pointxs) << endl;
 			lx2->setPt2_vec(pointxs, lx1->getpt1vec(pointxs));
+			lx2->setpt2Id(lx1->getPt1Id());
+			cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
 		}
 		else
 		{
@@ -2131,26 +2137,44 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 			}
 			else
 			{
-				line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+				int pos = line_recovery_process(lx2, lx1->getpt1vec(pointxs), edgePt, pointxs, circlexs);
+				if (pos == 0)
+				{
+					cout << "no recovery" << endl;
+				}
+				else if (pos == 1)
+				{
+					lx2->setpt1Id(lx1->getPt1Id());
+					cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;;
+				}
+				else if (pos == 2)
+				{
+					lx2->setpt2Id(lx1->getPt1Id());
+					cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
+				}
 			}
 		}
 	}
 	else if (same_pt(raw_cross, pt2))
 	{
 		cout << "raw_cross =  pt2" << endl;
-		cout << lx1->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
-		lx1->setPt2_vec(pointxs, raw_cross);
+		//cout << lx1->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
+		//lx1->setPt2_vec(pointxs, raw_cross);
 		if (same_pt(raw_cross, pt3))
 		{
 			cout << "also, raw_cross = pt3" << endl;
-			cout << lx2->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
+			cout << lx2->getpt2vec(pointxs) << "  ->   " << lx1->getpt1vec(pointxs) << endl;
 			lx2->setPt1_vec(pointxs, lx1->getpt2vec(pointxs));
+			lx2->setpt1Id(lx1->getPt2Id());
+			cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;
 		}
 		else if (same_pt(raw_cross, pt4))
 		{
 			cout << "also, raw_cross = pt4" << endl;
-			cout << lx2->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
+			cout << lx2->getpt2vec(pointxs) << "  ->   " << lx1->getpt1vec(pointxs) << endl;
 			lx2->setPt2_vec(pointxs, lx1->getpt2vec(pointxs));
+			lx2->setpt2Id(lx1->getPt2Id());
+			cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
 		}
 		else
 		{
@@ -2160,37 +2184,79 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 			}
 			else
 			{
-				line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+				int pos = line_recovery_process(lx2, lx1->getpt2vec(pointxs), edgePt, pointxs, circlexs);
+				if (pos == 0)
+				{
+					cout << "no recovery" << endl;
+				}
+				else if (pos == 1)
+				{
+					lx2->setpt1Id(lx1->getPt2Id());
+					cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;;
+				}
+				else if (pos == 2)
+				{
+					lx2->setpt2Id(lx1->getPt2Id());
+					cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
+				}
 			}
 		}
 	}
 	else if (same_pt(raw_cross, pt3))
 	{
 		cout << "raw_cross =  pt3" << endl;
-		cout << lx2->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
-		lx2->setPt1_vec(pointxs, raw_cross);
+		//cout << lx2->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
+		//lx2->setPt1_vec(pointxs, raw_cross);
 		if (in_line1)
 		{
 			cout << "half inner cross" << endl;
 		}
 		else
 		{
-			line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
+			int pos = line_recovery_process(lx1, lx2->getpt1vec(pointxs), edgePt, pointxs, circlexs);
+			if (pos == 0)
+			{
+				cout << "no recovery" << endl;
+			}
+			else if (pos == 1)
+			{
+				lx1->setpt1Id(lx2->getPt1Id());
+				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;;
+			}
+			else if (pos == 2)
+			{
+				lx1->setpt2Id(lx2->getPt1Id());
+				cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;;
+			}
 		}
 		
 	}
 	else if (same_pt(raw_cross, pt4))
 	{
 		cout << "raw_cross =  pt4" << endl;
-		cout << lx2->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
-		lx2->setPt2_vec(pointxs, raw_cross);
+//		cout << lx2->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
+//		lx2->setPt2_vec(pointxs, raw_cross);
 		if (in_line1)
 		{
 			cout << "half inner cross" << endl;
 		}
 		else
 		{
-			line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
+			int pos = line_recovery_process(lx1, lx2->getpt2vec(pointxs), edgePt, pointxs, circlexs);
+			if (pos == 0)
+			{
+				cout << "no recovery" << endl;
+			}
+			else if (pos == 1)
+			{
+				lx1->setpt1Id(lx2->getPt2Id());
+				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
+			}
+			else if (pos == 2)
+			{
+				lx1->setpt2Id(lx2->getPt2Id());
+				cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
+			}
 		}
 	}
 	else
@@ -2211,13 +2277,39 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 		else
 		{
 			cout << "outer cross" << endl;
-			line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
-			line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+			int pos1 = line_recovery_process(lx1, raw_cross, edgePt, pointxs, circlexs);
+			int pos2 = line_recovery_process(lx2, raw_cross, edgePt, pointxs, circlexs);
+			if (pos1==0 || pos2 == 0)
+			{
+				cout << "no id set" << endl;
+			}
+			else if (pos1 == 1 && pos2 == 1)
+			{
+				lx2->setpt1Id(lx1->getPt1Id());
+				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;;
+			}
+			else if (pos1 == 1 && pos2 == 2)
+			{
+				lx2->setpt2Id(lx1->getPt1Id());
+				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
+			}
+			else if (pos1 == 2 && pos2 == 1)
+			{
+				lx2->setpt1Id(lx1->getPt1Id());
+				cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;;
+			}
+			else if (pos1 == 2 && pos2 == 2)
+			{
+				lx2->setpt2Id(lx1->getPt2Id());
+				cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
+			}
+			else
+			{
+				cout << "pos error" << endl;
+			}
 		}
-	
 	}
-	
-
+	cout << "test stop" << endl;
 }
 
 void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2i> &edgePoints,vector<point_class> pointXs, vector<circle_class> &circles, Mat &color_img, vector<line_class> lineXs, vector<Vec2i>& plainPoints, Mat &drawedImages, bool showFlag = true, string fileName = "")
@@ -2744,6 +2836,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	for (auto i = 0; i < linexs.size(); i++)
 	{
 		line_class *linex1 = &linexs[i];
+		cout << linex1->getLineVec(pointxs) << endl;
 		for (auto j = i + 1; j < linexs.size(); j++)
 		{
 			line_class *linex2 = &linexs[j];
@@ -2763,7 +2856,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 				getCrossPt(linex1_vec, linex2_vec, raw_cross);
 				cout << endl<<"raw cross" << raw_cross<< endl;
 
-				if (!isInImage(diagram_segwithoutcircle.rows, diagram_segwithoutcircle.cols,raw_cross))
+				if (!isInImage(diagram_segwithoutcircle.cols, diagram_segwithoutcircle.rows,raw_cross))
 				{
 					cout << raw_cross << endl;
 					cout << "cross out of scope, then take it as no cross" << endl;
@@ -2780,9 +2873,54 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			}
 		}
 	}
+	cout << endl;
+	/*set similar points identical*/
 
-	
-	
+
+	/*remove indentical vec points and reorder the indices*/
+	// point index indicate the line id in which it locate
+	for (auto i = 0; i < pointxs.size(); ++i)
+	{
+		//the location of the first pointx in the loop
+		Vec2i px1 = pointxs[i].getXY();
+		int erase_offset = 0; // the var log the erased points num and offset the indexing digit when indexing
+		for (auto j = i + 1; j  < pointxs.size(); ++j)
+		{
+			Vec2i px2 = pointxs[j].getXY();
+			if (px1 == px2)
+			{
+				//the two points vector is the same, then erase the second point from the pointxs set
+				// and ajust the respective line with previous erased point
+				cout << "find the identical vec points " << px1 << " <- "<<pointxs[i].getPid() <<", "<< pointxs[j].getPid()<< endl;
+				int line_id = pointxs[j].getPid() / 2;
+				int pos = pointxs[j].getPid()  % 2;// if 0, means the first point in the line, otherwise 1, means the second point in the line
+				pointxs.erase(pointxs.begin() + j);
+				if (pos)
+				{
+					linexs[line_id].setpt2Id(pointxs[i].getPid());
+				}
+				else
+				{
+					linexs[line_id].setpt1Id(pointxs[i].getPid());
+				}
+				j--;
+			}
+		}
+	}
+
+	//reordering index
+	map<int, int> changeMap;
+	for (auto i = 0; i < pointxs.size(); i++)
+	{
+		cout << "point id " << pointxs[i].getPid() << pointxs[i].getXY() << endl;
+		changeMap[pointxs[i].getPid()] = i;
+		pointxs[i].setPid(i);
+	}
+	for (auto j = 0; j < linexs.size(); j++)
+	{
+		linexs[j].setpt1Id(changeMap[linexs[j].getPt1Id()]);
+		linexs[j].setpt2Id(changeMap[linexs[j].getPt2Id()]);
+	}
 
 	/*display*/
 	for (auto i = 0; i < linexs.size(); i++)
