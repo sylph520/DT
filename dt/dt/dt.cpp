@@ -8,7 +8,7 @@
 int _tmain(int argc, _TCHAR* argv[])
 {	
 	test_diagram();
-	//diagram();
+//	diagram();
 	cvWaitKey(0);
 	return 0;
 }

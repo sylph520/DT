@@ -2925,19 +2925,26 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 			}
 		}
 	}
+	for (auto i = 0; i<2*linexs.size();++i)
+	{
+		if (changeMap[i]==0)
+		{
+			changeMap[i] = i;
+		}
+	}
 
 	//reordering index
-	
+	map<int, int> changeMap2;
 	for (auto i = 0; i < pointxs.size(); i++)
 	{
 		cout << "point id " << pointxs[i].getPid() << pointxs[i].getXY() << endl;
-		changeMap[pointxs[i].getPid()] = i;
+		changeMap2[pointxs[i].getPid()] = i;
 		pointxs[i].setPid(i);
 	}
 	for (auto j = 0; j < linexs.size(); j++)
 	{
-		linexs[j].setpt1Id(changeMap[linexs[j].getPt1Id()]);
-		linexs[j].setpt2Id(changeMap[linexs[j].getPt2Id()]);
+		linexs[j].setpt1Id(changeMap2[changeMap[linexs[j].getPt1Id()]]);
+		linexs[j].setpt2Id(changeMap2[changeMap[linexs[j].getPt2Id()]]);
 	}
 
 	/*display*/
@@ -3031,7 +3038,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-84.jpg", 0);
+	Mat image = imread("Sg-67.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -3055,7 +3062,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest27";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest28";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
