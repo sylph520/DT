@@ -149,8 +149,11 @@ bool same_pt(Vec2i pt1, Vec2i pt2)
 {
 	double eps = 8;//to be set parameter
 	double high_eps = 15;
-	if (abs(pt1[0] - pt2[0]) < 3 && p2pdistance(pt1, pt2) < high_eps)
+	double low_eps = 5;
+	if (abs(pt1[0] - pt2[0]) < 3 && p2pdistance(pt1, pt2) < low_eps)
 		return true;
+//	if (abs(pt1[1] - pt2[1]) < 3 && p2pdistance(pt1, pt2) < high_eps)
+//		return true;
 	if (p2pdistance(pt1, pt2) <= eps)
 		return true;
 	else
@@ -1488,7 +1491,24 @@ bool dashLineRecovery(vector<Point2i> &edgePt, Vec2i col_p1,  Vec2i col_p2, vect
 			}
 			else
 			{
-				return true;
+				for (auto j = 0; j < edgePt.size(); ++j)
+				{
+					Vec2i pt = edgePt[j];
+					if (in_line(line, pt))
+					{
+						if (vertical_flag)
+							flag[pt[1]] = 1;
+						else
+							flag[pt[0]] = 1;
+					}
+				}
+				double ratio; int nums = count(flag, flag + 1000, 1);
+				ratio = nums / ranges; cout << ratio * 100 << "%" << endl;
+				double threshold_ratio = 0.8;
+				if (ratio < threshold_ratio)
+					return false;
+				else
+					return true;;
 			}
 		}
 	}
@@ -3038,7 +3058,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-67.jpg", 0);
+	Mat image = imread("Sg-18.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -3055,14 +3075,14 @@ int test_diagram()
 	Mat drawedImages(image.size(), CV_8UC3);
 
 	primitive_parse(binarized_image,diagram_segment, oriEdgePoints, points, lines, circles, drawedImages,false);
-	return 0;
+   	return 0;
 }
 
 int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest28";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest29";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
