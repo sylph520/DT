@@ -2173,25 +2173,39 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 	if (same_pt(raw_cross, pt1, angle ))
 	{
 		cout << "raw_cross =  pt1" << endl;
-		cout << lx1->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
-		lx1->setPt1_vec(pointxs, raw_cross);
+//		cout << lx1->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
 		if (same_pt(raw_cross, pt3, angle))
 		{
 			cout << "also, raw_cross = pt3" << endl;
 //			cout << lx1->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
 			cout << lx2->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
-			lx2->setPt1_vec(pointxs, raw_cross);
-			lx1->setPt1_vec(pointxs, raw_cross);
+			if (p2pdistance(raw_cross, pt2) >= p2pdistance(pt1,pt2) && p2pdistance(raw_cross, pt4) >= p2pdistance(pt3,pt4))
+			{
+				lx2->setPt1_vec(pointxs, raw_cross);
+				lx1->setPt1_vec(pointxs, raw_cross);
+			}
+			else
+			{
+				lx2->setPt1_vec(pointxs, lx1->getpt1vec(pointxs));
+			}
 			lx2->setpt1Id(lx1->getPt1Id()); 
+
 			cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;;
 		}
-		else if (same_pt(raw_cross, pt4,angle))
+		else if (same_pt(raw_cross, pt4, angle))
 		{
 			cout << "also, raw_cross = pt4" << endl;
-//			cout << lx1->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
+			//			cout << lx1->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
 			cout << lx2->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
-			lx1->setPt1_vec(pointxs, raw_cross);
-			lx2->setPt2_vec(pointxs, raw_cross);
+			if (p2pdistance(raw_cross, pt2) >= p2pdistance(pt1, pt2) && p2pdistance(raw_cross, pt3) >= p2pdistance(pt3, pt4))
+			{
+				lx2->setPt2_vec(pointxs, raw_cross);
+				lx1->setPt1_vec(pointxs, raw_cross);
+			}
+			else
+			{
+				lx2->setPt2_vec(pointxs, lx1->getpt1vec(pointxs));
+			}
 			lx2->setpt2Id(lx1->getPt1Id());
 			cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
 		}
@@ -2224,15 +2238,22 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 	else if (same_pt(raw_cross, pt2,angle))
 	{
 		cout << "raw_cross =  pt2" << endl;
-		cout << lx1->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
-		lx1->setPt2_vec(pointxs, raw_cross);
+//		cout << lx1->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
+//		lx1->setPt2_vec(pointxs, raw_cross);
 		if (same_pt(raw_cross, pt3, angle))
 		{
 			cout << "also, raw_cross = pt3" << endl;
 //			cout << lx1->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
 			cout << lx2->getpt1vec(pointxs) << "  ->   " << raw_cross << endl;
-			lx1->setPt2_vec(pointxs, raw_cross);
-			lx2->setPt1_vec(pointxs, raw_cross);
+			if (p2pdistance(raw_cross, pt1) >= p2pdistance(pt1, pt2) && p2pdistance(raw_cross, pt4) >= p2pdistance(pt3, pt4))
+			{
+				lx2->setPt1_vec(pointxs, raw_cross);
+				lx1->setPt2_vec(pointxs, raw_cross);
+			}
+			else
+			{
+				lx2->setPt1_vec(pointxs, lx1->getpt2vec(pointxs));
+			}
 			lx2->setpt1Id(lx1->getPt2Id());
 			cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt1vec(pointxs) << " " << lx2->getPt1Id() << endl;
 		}
@@ -2241,8 +2262,16 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 			cout << "also, raw_cross = pt4" << endl;
 //			cout << lx1->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
 			cout << lx2->getpt2vec(pointxs) << "  ->   " << raw_cross << endl;
-			lx1->setPt2_vec(pointxs, raw_cross);
-			lx2->setPt2_vec(pointxs, raw_cross);
+			if (p2pdistance(raw_cross, pt1) >= p2pdistance(pt1, pt2) && p2pdistance(raw_cross, pt3) >= p2pdistance(pt3, pt4))
+			{
+				lx2->setPt2_vec(pointxs, raw_cross);
+				lx1->setPt2_vec(pointxs, raw_cross);
+			}
+			else
+			{
+				lx2->setPt2_vec(pointxs, lx1->getpt2vec(pointxs));
+				
+			}
 			lx2->setpt2Id(lx1->getPt2Id());
 			cout << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << ", " << lx2->getpt2vec(pointxs) << " " << lx2->getPt2Id() << endl;;
 		}
@@ -2908,7 +2937,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 	for (auto i = 0; i < linexs.size(); i++)
 	{
 		line_class *linex1 = &linexs[i];
-		cout << linex1->getLineVec(pointxs) << endl;
+		cout << endl <<linex1->getLineVec(pointxs) << endl;
 		for (auto j = i + 1; j < linexs.size(); j++)
 		{
 			line_class *linex2 = &linexs[j];
@@ -2944,6 +2973,10 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat &withoutCirBw, vector<Point2
 		}
 	}
 	cout << endl;
+	//rm isolated short lines due to the non-complete circle removal
+
+
+
 	/*set similar points identical*/
 
 
@@ -3093,7 +3126,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-35.jpg", 0);
+	Mat image = imread("Sg-3.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -3117,7 +3150,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest31";
+	char abs_path[100] = "D:\\data\\graph-DB\\newtest32";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
