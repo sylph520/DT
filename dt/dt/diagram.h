@@ -1,36 +1,9 @@
 // class and data structure definition
+
+#pragma once
+
 double p2pdistance(Vec2i pt1, Vec2i pt2);
-//struct pointX
-//{
-//	//bool cflag;// wheather it's  circle center or not
-//	int p_idx; // the sequence, if -1 , it's a circle center.
-//	int px, py; Vec2i pxy;
-//	vector<int> l_idxs;
-//	vector<int> c_idxs;
-//	string label = "";
-//};
-//struct lineX
-//{
-//	int l_idx;
-//	
-////	int px1, py1, px2, py2;
-////	Vec2i pt1, pt2; 
-//	//Vec4i lxy;
-//	//int p_idx1, p_idx2;
-//	point_class *p1, *p2;
-//	
-//	//double length;
-//	string label = "";
-//};
-//struct circleX
-//{
-//	int c_idx; int center_pid;
-//	Vec3i Circle; Vec2i center; int radius; int contour_width;
-//	int cx, cy;
-//
-//	vector<int> p_idxs;
-//	string label = "";
-//};
+
 
 struct distance_info
 {
@@ -94,6 +67,8 @@ public:
 	{
 		pxy = x;
 	}
+	
+	
 	void pushLid(int a)
 	{
 		l_idxs.push_back(a);
@@ -110,6 +85,10 @@ public:
 	~point_class(){}
 };
 
+Vec2i get_line_ptVec_by_id(vector<point_class>& pointxs, int id);
+point_class* get_line_pt_by_id(vector<point_class> & pointxs, int id);
+Vec4i pt2line(Vec2i pt1, Vec2i pt2);
+
 class line_class
 {
 private:
@@ -124,25 +103,32 @@ public:
 		p1_id = _p1_id; p2_id = _p2_id;
 		ptcs = _ptcs;
 	}
+
 	line_class(const line_class &b)
 	{
 		l_id = b.l_id; label = b.label;
 		p1_id = b.p1_id; p2_id = b.p2_id;
 		ptcs = b.ptcs;
 	}
+
 	Vec4i getLineVec(vector<point_class> &pointxs) const
 	{
-		Vec4i lineVec = { pointxs[p1_id].getX(), pointxs[p1_id].getY(), pointxs[p2_id].getX(), pointxs[p2_id].getY() };
+		Vec2i pt1, pt2;
+		pt1 = get_line_ptVec_by_id(pointxs, p1_id); pt2 = get_line_ptVec_by_id(pointxs, p2_id);
+		Vec4i lineVec = pt2line(pt1, pt2);
 		return lineVec;
 	}
+
 	int getPt1Id() const
 	{
 		return p1_id;
 	}
+
 	int getPt2Id() const
 	{
 		return p2_id;
 	}
+
 	int getPtId(int pos) const
 	{
 		if (pos == 1)
@@ -150,6 +136,7 @@ public:
 		else
 			return p2_id;
 	}
+
 	/*point_class getPt1(vector<point_class> &pointxs) const
 	{
 		return  pointxs[p1_id];
@@ -160,25 +147,32 @@ public:
 	}*/
 	Vec2i getpt1vec(vector<point_class> &pointxs) const
 	{
-		return pointxs[p1_id].getXY();
+		return get_line_ptVec_by_id(pointxs, p1_id);
 	}
+
 	Vec2i getpt2vec(vector<point_class> &pointxs) const
 	{
-		return pointxs[p2_id].getXY();
+		return get_line_ptVec_by_id(pointxs, p2_id);
 	}
+
 	double getLen(vector<point_class> &pointxs) const
 	{
 		double length = p2pdistance(pointxs[p1_id].getXY(), pointxs[p2_id].getXY());
 		return length;
 	}
+
 	void setPt1_vec(vector<point_class> &pointxs,Vec2i pv) const
 	{
-		pointxs[p1_id].setXY(pv);
+		point_class *p = get_line_pt_by_id(pointxs, p1_id);
+		p->setXY(pv);
 	}
+
 	void setPt2_vec(vector<point_class> &pointxs, Vec2i pv) const
 	{
-		pointxs[p2_id].setXY(pv);
+		point_class *p = get_line_pt_by_id(pointxs, p2_id);
+		p->setXY(pv);
 	}
+
 	void setPt_vec(vector<point_class> &pointxs, Vec2i pv, int ind) const
 	{
 		if (ind==1)
@@ -187,6 +181,7 @@ public:
 			pointxs[p2_id].setXY(pv);
 
 	}
+
 	/*void setPt1(vector<point_class> pointxs, int p) 
 	{
 		p1_id = p;
@@ -199,10 +194,12 @@ public:
 	{
 		p1_id = p;
 	}
+
 	void setpt2Id(int p)
 	{
 		p2_id = p;
 	}
+
 	void setptId(int p, int ind)
 	{
 		if (ind == 1)
@@ -210,6 +207,7 @@ public:
 		else
 			p2_id = p;
 	}
+
 	~line_class(){}
 };
 
@@ -241,19 +239,23 @@ public:
 		contour_width = b.contour_width;
 		p_idxs = b.p_idxs;
 	}
+
 	Vec3i getCircleVec()
 	{
 		Vec3i circleVec = { center[0], center[1], radius };
 		return circleVec;
 	}
+
 	Vec2i getCenter() const
 	{
 		return center;
 	}
+
 	int getRadius() const
 	{
 		return radius;
 	}
+
 	~circle_class(){}
 };
 int image_parse(Mat image);
