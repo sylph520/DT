@@ -1429,10 +1429,21 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 //			{
 //				lx2->setPt1_vec(pointxs, lx1->getpt1vec(pointxs));
 //			}
-			cout << "id "<< lx2->getPt1Id() << " id change to id " << lx1->getPt1Id() << endl;
-			cout << "point with id " << lx2->getPt1Id() << " is removed" << endl;
-			rm_point_by_id(pointxs, lx2->getPt1Id());
-			lx2->setpt1Id(lx1->getPt1Id()); 
+			int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt1Id(); tmp_id2 = lx2->getPt1Id();
+			if (tmp_id1 < tmp_id2)
+			{
+				cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
+				cout << "point with id " <<tmp_id2 << " is removed" << endl;
+				rm_point_by_id(pointxs, tmp_id2);
+				lx2->setpt1Id(tmp_id1);
+			}
+			else
+			{
+				cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+				cout << "point with id " << tmp_id1 << " is removed" << endl;
+				rm_point_by_id(pointxs, tmp_id1);
+				lx1->setpt1Id(tmp_id2);
+			}
 			cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 			cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 		}
@@ -1450,10 +1461,21 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 //			{
 //				lx2->setPt2_vec(pointxs, lx1->getpt1vec(pointxs));
 //			}
-			cout << "id "<< lx2->getPt2Id() << " id change to id " << lx1->getPt1Id() << endl;
-			cout << "point with id " << lx2->getPt2Id() << " is removed" << endl;
-			rm_point_by_id(pointxs, lx2->getPt2Id());
-			lx2->setpt2Id(lx1->getPt1Id());
+			int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt1Id(); tmp_id2 = lx2->getPt2Id();
+			if (tmp_id1 < tmp_id2)
+			{
+				cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
+				cout << "point with id " << tmp_id2 << " is removed" << endl;
+				rm_point_by_id(pointxs, tmp_id2);
+				lx2->setpt2Id(tmp_id1);
+			}
+			else
+			{
+				cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+				cout << "point with id " << tmp_id1 << " is removed" << endl;
+				rm_point_by_id(pointxs, tmp_id1);
+				lx1->setpt1Id(tmp_id2);
+			}
 			cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 			cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 		}
@@ -1473,16 +1495,34 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 				else if (pos == 1)
 				{
 					cout << "recovery cross link to pt3" << endl;
-					cout << "id "<< lx2->getPt1Id() << " id change to id " << lx1->getPt1Id() << endl;
-					lx2->setpt1Id(lx1->getPt1Id());
+					int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt1Id(); tmp_id2 = lx2->getPt1Id();
+					if (tmp_id1 < tmp_id2)
+					{
+						cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
+						lx2->setpt1Id(tmp_id1);
+					}
+					else
+					{
+						cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+						lx1->setpt1Id(tmp_id2);
+					}
 					cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 					cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 				}
 				else if (pos == 2)
 				{
 					cout << "recovery cross link to pt4" << endl;
-					cout << "id "<< lx2->getPt1Id() << " id change to id " << lx1->getPt1Id() << endl;
-					lx2->setpt2Id(lx1->getPt1Id());
+					int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt1Id(); tmp_id2 = lx2->getPt1Id();
+					if (tmp_id1 < tmp_id2)
+					{
+						cout << "id " << tmp_id2 << " id change to id " << tmp_id1<< endl;
+						lx2->setpt2Id(tmp_id1);
+					}
+					else
+					{
+						cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+						lx1->setpt1Id(tmp_id2);
+					}
 					cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 					cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 				}
@@ -1508,10 +1548,21 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 //			{
 //				lx2->setPt1_vec(pointxs, lx1->getpt2vec(pointxs));
 //			}
-			cout << "id "<< lx2->getPt1Id() << " id change to id " << lx1->getPt2Id() << endl;
-			cout << "point with id " << lx2->getPt1Id() << " is removed" << endl;
-			rm_point_by_id(pointxs, lx2->getPt1Id());
-			lx2->setpt1Id(lx1->getPt2Id());
+			int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt2Id(); tmp_id2 = lx2->getPt1Id();
+			if (tmp_id1 < tmp_id2)
+			{
+				cout << "id " << tmp_id2<< " id change to id " << tmp_id1 << endl;
+				cout << "point with id " << tmp_id2 << " is removed" << endl;
+				rm_point_by_id(pointxs, tmp_id2);
+				lx2->setpt1Id(lx1->getPt2Id());
+			}
+			else
+			{
+				cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+				cout << "point with id " << tmp_id1 << " is removed" << endl;
+				rm_point_by_id(pointxs, tmp_id1);
+				lx1->setpt2Id(tmp_id2);
+			}
 			cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 			cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 		}
@@ -1530,10 +1581,21 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 //				lx2->setPt2_vec(pointxs, lx1->getpt2vec(pointxs));
 //				
 //			}
-			cout << "id "<< lx2->getPt2Id() << " id change to id " << lx1->getPt2Id() << endl;
-			cout << "point with id " << lx2->getPt2Id() << " is removed" << endl;
-			rm_point_by_id(pointxs, lx2->getPt2Id());
-			lx2->setpt2Id(lx1->getPt2Id());
+			int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt2Id(); tmp_id2 = lx2->getPt2Id();
+			if (tmp_id1 < tmp_id2)
+			{
+				cout << "id " <<tmp_id2 << " id change to id " << tmp_id1 << endl;
+				cout << "point with id " << tmp_id2 << " is removed" << endl;
+				rm_point_by_id(pointxs, tmp_id2);
+				lx2->setpt2Id(tmp_id1);
+			}
+			else
+			{
+				cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+				cout << "point with id " << tmp_id1 << " is removed" << endl;
+				rm_point_by_id(pointxs, tmp_id1);
+				lx1->setpt2Id(tmp_id2);
+			}
 			cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 			cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 		}
@@ -1553,16 +1615,34 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 				else if (pos == 1)
 				{
 					cout << "recovery cross link to pt3" << endl;
-					cout << "id "<< lx2->getPt1Id() << " id change to id " << lx1->getPt1Id() << endl;
-					lx2->setpt1Id(lx1->getPt2Id());
+					int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt2Id(); tmp_id2 = lx2->getPt1Id();
+					if (tmp_id1 < tmp_id2)
+					{
+						cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
+						lx2->setpt1Id(tmp_id1);
+					}
+					else
+					{
+						cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+						lx1->setpt2Id(tmp_id2);
+					}
 					cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 					cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 				}
 				else if (pos == 2)
 				{
 					cout << "recovery cross link to pt4" << endl;
-					cout << "id "<< lx2->getPt1Id() << " id change to id " << lx1->getPt1Id() << endl;
-					lx2->setpt2Id(lx1->getPt2Id());
+					int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt2Id(); tmp_id2 = lx2->getPt2Id();
+					if (tmp_id1 < tmp_id2)
+					{
+						cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
+						lx2->setpt2Id(tmp_id1);
+					}
+					else
+					{
+						cout << "id" << tmp_id1 << " id change to id" << tmp_id2 << endl;
+						lx1->setpt2Id(tmp_id2);
+					}
 					cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 					cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 				}
@@ -1593,8 +1673,17 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 			{
 				//line rev between cross and first point in line	
 				cout << "recovery cross link to pt1" << endl;
-				cout << "id "<< lx2->getPt1Id() << " id change to id " << lx1->getPt1Id() << endl;
-				lx1->setpt1Id(lx2->getPt1Id());
+				int tmp_id1, tmp_id2; tmp_id1 = lx2->getPt1Id(); tmp_id2 = lx1->getPt1Id();
+				if (tmp_id1 < tmp_id2)
+				{
+					cout << "id " << tmp_id2<< " id change to id " <<tmp_id1 << endl;
+					lx1->setpt1Id(tmp_id1);
+				}
+				else
+				{
+					cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+					lx2->setpt1Id(tmp_id2);
+				}
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 			}
@@ -1602,8 +1691,18 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 			{
 				//line rev between cross and second point in line	
 				cout << "recovery cross link to pt2" << endl;
-				cout << "id "<< lx2->getPt1Id() << " id change to id " << lx1->getPt2Id() << endl;
-				lx1->setpt2Id(lx2->getPt1Id());
+				int tmp_id1, tmp_id2; tmp_id1 = lx2->getPt1Id(); tmp_id2 = lx1->getPt2Id();
+				if (tmp_id1 < tmp_id2)
+				{
+					cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
+					lx1->setpt2Id(tmp_id1);
+				}
+				else
+				{
+					cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+					lx2->setpt2Id(tmp_id2);
+				}
+					
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 			}
@@ -1629,13 +1728,36 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 			}
 			else if (pos == 1)
 			{
-				lx1->setpt1Id(lx2->getPt2Id());
+				cout << "recovery cross link to pt1" << endl;
+				int tmp_id1, tmp_id2; tmp_id1 = lx2->getPt2Id(); tmp_id2 = lx1->getPt1Id();
+				if (tmp_id1 < tmp_id2)
+				{
+					cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
+					lx1->setpt1Id(tmp_id1);
+				}
+				else
+				{
+					cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+					lx2->setpt2Id(tmp_id2);
+				}
+
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 			}
 			else if (pos == 2)
 			{
-				lx1->setpt2Id(lx2->getPt2Id());
+				cout << "recovery cross link to pt2" << endl;
+				int tmp_id1, tmp_id2; tmp_id1 = lx2->getPt2Id(); tmp_id2 = lx1->getPt2Id();
+				if (tmp_id1 < tmp_id2)
+				{
+					cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
+					lx1->setpt2Id(tmp_id1);
+				}
+				else
+				{
+					cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
+					lx2->setpt2Id(tmp_id2);
+				}
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 			}
@@ -1669,25 +1791,61 @@ void cross_refinement(Vec2f &raw_cross, line_class *lx1, line_class *lx2, vector
 			}
 			else if (pos1 == 1 && pos2 == 1)
 			{
-				lx2->setpt1Id(lx1->getPt1Id());
+				cout << " point pt1 and point pt3 are to be recovered to the same" << endl;
+				int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt1Id(); tmp_id2 = lx2->getPt1Id();
+				if (tmp_id1 < tmp_id2)
+				{
+					lx2->setpt1Id(tmp_id1);
+				}
+				else
+				{
+					lx1->setpt1Id(tmp_id2);
+				}
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 			}
 			else if (pos1 == 1 && pos2 == 2)
 			{
-				lx2->setpt2Id(lx1->getPt1Id());
+				cout << " point pt1 and point pt4 are to be recovered to the same" << endl;
+				int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt1Id(); tmp_id2 = lx2->getPt2Id();
+				if (tmp_id1 < tmp_id2)
+				{
+					lx2->setpt2Id(tmp_id1);
+				}
+				else
+				{
+					lx1->setpt1Id(tmp_id2);
+				}
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 			}
 			else if (pos1 == 2 && pos2 == 1)
 			{
-				lx2->setpt1Id(lx1->getPt1Id());
+				cout << " point pt2 and point pt3 are to be recovered to the same" << endl;
+				int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt2Id(); tmp_id2 = lx1->getPt1Id();
+				if (tmp_id1 < tmp_id2)
+				{
+					lx2->setpt1Id(tmp_id1);
+				}
+				else
+				{
+					lx1->setpt2Id(tmp_id2);
+				}
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 			}
 			else if (pos1 == 2 && pos2 == 2)
 			{
-				lx2->setpt2Id(lx1->getPt2Id());
+				cout << " point pt2 and point pt4 are to be recovered to the same" << endl;
+				int tmp_id1, tmp_id2; tmp_id1 = lx1->getPt2Id(); tmp_id2 = lx2->getPt2Id();
+				if (tmp_id1 < tmp_id2)
+				{
+					lx2->setpt2Id(tmp_id1);
+				}
+				else
+				{
+					lx1->setpt2Id(tmp_id2);
+				}
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
 			}
