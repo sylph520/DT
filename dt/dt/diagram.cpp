@@ -984,14 +984,14 @@ bool dashLineRecovery(vector<Point2i>& edgePt, Vec2i col_p1, Vec2i col_p2, vecto
 			int flag2 = ptWithCircle(center, radius, col_p2);
 			if (abs(center2lineDis - radius) <= 3)
 			{
-				if (p2pdistance(col_p1, col_p2) < 20)
-				{
+//				if (p2pdistance(col_p1, col_p2) < 20)
+//				{
 					return true;
-				}
-				else
-				{
-					return false;
-				}
+//				}
+//				else
+//				{
+//					return false;
+//				}
 			}
 			else
 			{
@@ -1074,9 +1074,9 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 				{
 					// both are on the circle
 					cout << "both points are on the circle" << endl;
-					if (abs(p2pdistance(p_closer, center) - radius) < abs(p2pdistance(p_cross, center) - radius))
-						return false;
-					else
+//					if (abs(p2pdistance(p_closer, center) - radius) < abs(p2pdistance(p_cross, center) - radius))
+//						return false;
+//					else
 						return true;
 				}
 				else if (closer_flag == 1 && cross_flag == 2)
@@ -1151,7 +1151,7 @@ double frac_compute(Vec2i pt1, Vec2i pt2, bool vertical_flag)
 	return ret;
 }
 
-bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& withoutO_ept, Vec2i p_closer, Vec2i p_farther, Vec2i p_cross, vector<circle_class> &circles, bool plflag = false, bool pcflag = false, bool ppflag = false)
+bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgePoints, Vec2i p_closer, Vec2i p_farther, Vec2i p_cross, vector<circle_class> &circles, bool plflag = false, bool pcflag = false, bool ppflag = false)
 {
 	//check if there's dash line between
 	Vec4i line = pt2line(p_closer, p_cross);
@@ -1179,14 +1179,14 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& withoutO
 		{
 			int j = (i - p_closer[1])*frac_compute(p_closer, p_farther, vertical_flag) + p_closer[0];
 			Vec2i tmp_pt = { j, i };
-			auto iter = find_if(withoutO_ept.begin(), withoutO_ept.end(), [&](Point2i a)
+			auto iter = find_if(oriEdgePoints.begin(), oriEdgePoints.end(), [&](Point2i a)
 			{
 				if (same_pt(a, tmp_pt, 3))
 					return true;
 				else
 					return false;
 			});
-			if (iter == withoutO_ept.end())
+			if (iter == oriEdgePoints.end())
 			{
 				cout << tmp_pt;
 				cout << "       no recovery" << endl;
@@ -1221,14 +1221,14 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& withoutO
 		{
 			int j = (i - p_closer[0])*frac_compute(p_closer, p_farther, vertical_flag) + p_closer[1];
 			Vec2i tmp_pt = { i, j };
-			auto iter = find_if(withoutO_ept.begin(), withoutO_ept.end(), [&](Point2i a)
+			auto iter = find_if(oriEdgePoints.begin(), oriEdgePoints.end(), [&](Point2i a)
 			{
 				if (same_pt(a, tmp_pt, 3))
 					return true;
 				else
 					return false;
 			});
-			if (iter == withoutO_ept.end())
+			if (iter == oriEdgePoints.end())
 			{
 				cout << "no recovery" << endl;
 				flag = false;
@@ -1483,7 +1483,7 @@ bool nearToAcross(Vec2i pt, vector<Vec2i>& crossPts)
 		return false;
 }
 
-int line_recovery_process(line_class* linex, Vec2i p_cross, vector<Point2i>& withoutOnL_ept, vector<Point2i> &withoutO_ept, vector<point_class>& pointxs, vector<circle_class>& circlexs, bool id_change = false)
+int line_recovery_process(line_class* linex, Vec2i p_cross, vector<Point2i>& withoutOnL_ept, vector<Point2i> &oriEdgePoints, vector<point_class>& pointxs, vector<circle_class>& circlexs, bool id_change = false)
 {
 	Vec2i pt1 = linex->getpt1vec(pointxs);
 	Vec2i pt2 = linex->getpt2vec(pointxs);
@@ -1499,7 +1499,7 @@ int line_recovery_process(line_class* linex, Vec2i p_cross, vector<Point2i>& wit
 			linex->setPt1_vec(pointxs, p_cross);
 			pos = 1;
 		}
-		else if (dashLineRecovery(withoutOnL_ept,withoutO_ept, pt1, pt2, p_cross, circlexs))
+		else if (dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt1, pt2, p_cross, circlexs))
 		{
 			cout << linex->getpt1vec(pointxs) << "  ->  " << p_cross << endl;
 			linex->setPt1_vec(pointxs, p_cross);
@@ -1514,7 +1514,7 @@ int line_recovery_process(line_class* linex, Vec2i p_cross, vector<Point2i>& wit
 			linex->setPt2_vec(pointxs, p_cross);
 			pos = 2;
 		}
-		else if (dashLineRecovery(withoutOnL_ept,withoutO_ept, pt2, pt1, p_cross, circlexs))
+		else if (dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt2, pt1, p_cross, circlexs))
 		{
 			cout << linex->getpt2vec(pointxs) << "  ->  " << p_cross << endl;
 			linex->setPt2_vec(pointxs, p_cross);
@@ -1524,7 +1524,7 @@ int line_recovery_process(line_class* linex, Vec2i p_cross, vector<Point2i>& wit
 	return pos;
 }
 
-void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector<circle_class>& circlexs, vector<point_class>& pointxs, vector<Point2i>& withoutOnL_ept, vector<Point2i> &withoutO_ept)
+void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector<circle_class>& circlexs, vector<point_class>& pointxs, vector<Point2i>& withoutOnL_ept, vector<Point2i> &oriEdgePoints)
 {
 	Vec4i linex1_vec = lx1->getLineVec(pointxs);
 	Vec4i linex2_vec = lx2->getLineVec(pointxs);
@@ -1677,7 +1677,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 			}
 			else
 			{
-				int pos = line_recovery_process(lx2, lx1->getpt1vec(pointxs), withoutOnL_ept,withoutO_ept, pointxs, circlexs);
+				int pos = line_recovery_process(lx2, lx1->getpt1vec(pointxs), withoutOnL_ept,oriEdgePoints, pointxs, circlexs);
 				if (pos == 0)
 				{
 					cout << "no recovery" << endl;
@@ -1805,7 +1805,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 			}
 			else
 			{
-				int pos = line_recovery_process(lx2, lx1->getpt2vec(pointxs), withoutOnL_ept,withoutO_ept, pointxs, circlexs);
+				int pos = line_recovery_process(lx2, lx1->getpt2vec(pointxs), withoutOnL_ept,oriEdgePoints, pointxs, circlexs);
 				if (pos == 0)
 				{
 					cout << "no recovery" << endl;
@@ -1864,7 +1864,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 		}
 		else
 		{
-			int pos = line_recovery_process(lx1, lx2->getpt1vec(pointxs), withoutOnL_ept,withoutO_ept, pointxs, circlexs);
+			int pos = line_recovery_process(lx1, lx2->getpt1vec(pointxs), withoutOnL_ept,oriEdgePoints, pointxs, circlexs);
 			if (pos == 0)
 			{
 				cout << "no recovery" << endl;
@@ -1927,7 +1927,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 		}
 		else
 		{
-			int pos = line_recovery_process(lx1, lx2->getpt2vec(pointxs), withoutOnL_ept, withoutO_ept, pointxs, circlexs);
+			int pos = line_recovery_process(lx1, lx2->getpt2vec(pointxs), withoutOnL_ept, oriEdgePoints, pointxs, circlexs);
 			if (pos == 0)
 			{
 				cout << "no recovery" << endl;
@@ -1979,12 +1979,12 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 		if (in_line1 && !in_line2)
 		{
 			cout << "cross in line1 but not in line2" << endl;
-			line_recovery_process(lx2, raw_cross, withoutOnL_ept,withoutO_ept, pointxs, circlexs);
+			line_recovery_process(lx2, raw_cross, withoutOnL_ept,oriEdgePoints, pointxs, circlexs);
 		}
 		else if (in_line2 && !in_line1)
 		{
 			cout << "cross in line2 but not in line1" << endl;
-			line_recovery_process(lx1, raw_cross, withoutOnL_ept,withoutO_ept, pointxs, circlexs);
+			line_recovery_process(lx1, raw_cross, withoutOnL_ept,oriEdgePoints, pointxs, circlexs);
 		}
 		else if (in_line1 && in_line2)
 		{
@@ -1993,8 +1993,8 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 		else
 		{
 			cout << "outer cross" << endl;
-			int pos1 = line_recovery_process(lx1, raw_cross, withoutOnL_ept,withoutO_ept, pointxs, circlexs);
-			int pos2 = line_recovery_process(lx2, raw_cross, withoutOnL_ept, withoutO_ept,pointxs, circlexs);
+			int pos1 = line_recovery_process(lx1, raw_cross, withoutOnL_ept,oriEdgePoints, pointxs, circlexs);
+			int pos2 = line_recovery_process(lx2, raw_cross, withoutOnL_ept, oriEdgePoints,pointxs, circlexs);
 			if (pos1 == 0 || pos2 == 0)
 			{
 				cout << "no id set" << endl;
@@ -2076,7 +2076,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 	cout << "refinement stop" << endl;
 }
 
-void detect_line3(Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Vec2i>& plainPoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
+void detect_line3(Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Point2i>& oriEdgePoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
 {
 	vector<Point2i> withoutO_ept = getPointPositions(withoutCirBw);
 	vector<Vec4i> plainLines = {};
@@ -2437,7 +2437,7 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_
 				{
 					//cross in scope
 					cout << linex1_vec << endl << linex2_vec << endl;
-					cross_refinement(raw_cross, linex1, linex2, circles, pointxs, withoutOnL_ept, withoutO_ept);
+					cross_refinement(raw_cross, linex1, linex2, circles, pointxs, withoutOnL_ept, oriEdgePoints);
 					//					cout << linex1->getLineVec(pointxs)<< linex1->getPt1Id() << "," << linex1->getPt2Id() << endl;
 					//					cout << linex2->getLineVec(pointxs) << linex2->getPt1Id() << "," << linex2->getPt2Id() << endl;
 				}
@@ -2650,7 +2650,7 @@ Mat preprocessing(Mat diagram_segment)
 }
 
 
-void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vector<Point2i>& edgePoints, vector<point_class>& points, vector<line_class>& lines, vector<circle_class>& circles, Mat& drawedImages, bool showFlag = true, string fileName = "")
+void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vector<Point2i>& oriEdgePoints, vector<point_class>& points, vector<line_class>& lines, vector<circle_class>& circles, Mat& drawedImages, bool showFlag = true, string fileName = "")
 {
 	/* primitive about points, lines, and circles
 	first detect the circle, we can get the matrix of diagram segments without circle for the next
@@ -2667,10 +2667,10 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	// detect the circle and get the img without circle and bw img without cirlce and circle candidates
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
 	// then the line detection
-	vector<Vec2i> basicEndpoints = {};
+	//vector<Vec2i> basicEndpoints = {};
 
 
-	detect_line3(diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, basicEndpoints, drawedImages, showFlag, fileName);
+	detect_line3(diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
 
 
 	/*display point text info*/
@@ -2694,7 +2694,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("Sg-39.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2721,7 +2721,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\newtest33";
+	char abs_path[100] = "D:\\data\\graph-DB\\testtest2";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
@@ -2737,7 +2737,7 @@ int diagram()
 		// then go on a process of connectivity componnent analysis
 		vector<Mat> label_segment = {};
 		Mat diagram_segment = Mat::zeros(binarized_image.size(), CV_8UC1);
-		vector<Point2i> edgePoints = getPointPositions(binarized_image);
+		vector<Point2i> oriEdgePoints = getPointPositions(binarized_image);
 		/*Mat pointss = Mat::zeros(1000, 1000, CV_8UC3);
 		for (auto i = 0; i < edgePoints.size(); i++)
 		{
@@ -2750,7 +2750,7 @@ int diagram()
 		vector<line_class> lines = {};
 		vector<circle_class> circles = {};
 		Mat drawedImages = Mat::zeros(diagram_segment.size(), CV_8UC3);
-		primitive_parse(binarized_image, diagram_segment, edgePoints, points, lines, circles, drawedImages, false);
+		primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, false);
 		imwrite(saveimgName, drawedImages);
 	}
 	return 0;
