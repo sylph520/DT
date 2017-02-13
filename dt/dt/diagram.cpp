@@ -1067,17 +1067,14 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 			double crossp_diff = abs(p2pdistance(p_cross, center) - radius);
 			cout << "closerp diff " << closerp_diff << " crossp diff " << crossp_diff << endl;
 			cout << "line and center dis" << abs(center2lineDis - radius) << endl;
-			if (abs(center2lineDis - radius) <= 5)
-			{
-				cout << "the line is almost tangent to the circle" << endl;
+//			if (abs(center2lineDis - radius) <= 5)
+//			{
+//				cout << "the line is almost tangent to the circle" << endl;
 				if (closer_flag == 1 && cross_flag == 1)
 				{
 					// both are on the circle
 					cout << "both points are on the circle" << endl;
-//					if (abs(p2pdistance(p_closer, center) - radius) < abs(p2pdistance(p_cross, center) - radius))
-//						return false;
-//					else
-						return true;
+					return true;
 				}
 				else if (closer_flag == 1 && cross_flag == 2)
 				{
@@ -1115,32 +1112,32 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 					else
 						return true;
 				}
-			}
-			else
-			{
-				cout << "not tangent to the cirlce" << endl;
-				for (auto j = 0; j < withoutOnL_ept.size(); ++j)
-				{
-					Vec2i pt = withoutOnL_ept[j];
-					if (in_line(line, pt))
-					{
-						if (vertical_flag)
-							flag[pt[1]] = 1;
-						else
-							flag[pt[0]] = 1;
-					}
-				}
-				double ratio;
-				int nums = count(flag, flag + 1000, 1);
-				ratio = 1.0 * nums / ranges;
-				cout << ratio * 100 << "%" << endl;
-				double threshold_ratio = 0.7;
-				if (ratio < threshold_ratio)
-					return false;
-				else
-					return true;
-				//return false;
-			}
+//			}
+//			else
+//			{
+//				cout << "not tangent to the cirlce" << endl;
+//				for (auto j = 0; j < withoutOnL_ept.size(); ++j)
+//				{
+//					Vec2i pt = withoutOnL_ept[j];
+//					if (in_line(line, pt))
+//					{
+//						if (vertical_flag)
+//							flag[pt[1]] = 1;
+//						else
+//							flag[pt[0]] = 1;
+//					}
+//				}
+//				double ratio;
+//				int nums = count(flag, flag + 1000, 1);
+//				ratio = 1.0 * nums / ranges;
+//				cout << ratio * 100 << "%" << endl;
+//				double threshold_ratio = 0.7;
+//				if (ratio < threshold_ratio)
+//					return false;
+//				else
+//					return true;
+//				//return false;
+//			}
 		}
 	}
 }
@@ -2076,9 +2073,10 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 	cout << "refinement stop" << endl;
 }
 
-void detect_line3(Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Point2i>& oriEdgePoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
+void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Point2i>& oriEdgePoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
 {
 	vector<Point2i> withoutO_ept = getPointPositions(withoutCirBw);
+	
 	vector<Vec4i> plainLines = {};
 
 #pragma region raw detection
@@ -2297,14 +2295,17 @@ void detect_line3(Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_
 
 	/*************cover the detected line with white pixel*/
 	Mat withoutCLOriBw = withoutCirBw.clone();
+	Mat withoutLBw = diagram_segment.clone();
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
 		Vec4i pl = plainLines[i];
 		Vec2i pt1 = {pl[0], pl[1]};
 		Vec2i pt2 = {pl[2], pl[3]};
 		cv::line(withoutCLOriBw, pt1, pt2, 0, 3, 8, 0);
+		cv::line(withoutLBw, pt1, pt2, 0, 3, 8, 0);
 	}
 	vector<Point2i> withoutOnL_ept = getPointPositions(withoutCLOriBw);
+	vector<Point2i> withoutL_ept = getPointPositions(withoutLBw);
 
 	bool testflag = false;
 	/*write test block*/
@@ -2670,7 +2671,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	//vector<Vec2i> basicEndpoints = {};
 
 
-	detect_line3(diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
 
 
 	/*display point text info*/
@@ -2721,7 +2722,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\testtest2";
+	char abs_path[100] = "D:\\data\\graph-DB\\testtest3";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
