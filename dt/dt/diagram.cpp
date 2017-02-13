@@ -1055,6 +1055,7 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 	else
 	{
 		cout << "image with circle" << endl;
+		bool tmpFlag[2] = {false, false};
 		for (auto i = 0; i < circles.size(); ++i)
 		{
 			circle_class* c = &(circles[i]);
@@ -1074,19 +1075,19 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 				{
 					// both are on the circle
 					cout << "both points are on the circle" << endl;
-					return true;
+					tmpFlag[i] = true;
 				}
 				else if (closer_flag == 1 && cross_flag == 2)
 				{
 					// point1 is on the circle
 					cout << "point 1 is on the circle and point 2 is outside the circle" << endl;
 					cout << "to go" << endl;
-					return false;
+					tmpFlag[i] = false;
 				}
 				else if (cross_flag == 1 && closer_flag == 2)
 				{
 					cout << "point 2 is on the circle" << endl;
-					return true;
+					tmpFlag[i] = true;
 				}
 				else
 				{
@@ -1108,9 +1109,9 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 					cout << ratio * 100 << "%" << endl;
 					double threshold_ratio = 0.7;
 					if (ratio < threshold_ratio)
-						return false;
+						tmpFlag[i]= false;
 					else
-						return true;
+						tmpFlag[i] = true;
 				}
 //			}
 //			else
@@ -1139,6 +1140,10 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 //				//return false;
 //			}
 		}
+		if (tmpFlag[0] == true || tmpFlag[1] == true)
+			return true;
+		else
+			return false;
 	}
 }
 
@@ -2695,7 +2700,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-39.jpg", 0);
+	Mat image = imread("Sg-78.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2722,7 +2727,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\testtest3";
+	char abs_path[100] = "D:\\data\\graph-DB\\testtest4";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
