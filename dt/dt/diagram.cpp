@@ -2360,24 +2360,28 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	/***********initialize lines and points**********/
 	for (auto i = 0; i < plainLines.size(); i++)
 	{
-		auto p_l = plainLines[i];
-		Vec2i pt1, pt2;
-		line2pt(p_l, pt1, pt2);
-		auto _pidx1 = px_count++;
-		int _pidx2 = px_count++;
-		int _lidx = lx_count++;
-		point_class* ptx1 = new point_class(pt1, _pidx1);
-		point_class* ptx2 = new point_class(pt2, _pidx2);
-		//cout << &ptx1 << endl<<&ptx2<<endl;
-		ptx1->pushLid(_lidx);
-		ptx2->pushLid(_lidx);
-		pointxs.push_back(*ptx1);
-		pointxs.push_back(*ptx2);
+		Vec2i tmpPt1, tmpPt2; line2pt(plainLines[i], tmpPt1, tmpPt2);
+		if (norm(tmpPt1, tmpPt2) > 20)
+		{
+			auto p_l = plainLines[i];
+			Vec2i pt1, pt2;
+			line2pt(p_l, pt1, pt2);
+			auto _pidx1 = px_count++;
+			int _pidx2 = px_count++;
+			int _lidx = lx_count++;
+			point_class* ptx1 = new point_class(pt1, _pidx1);
+			point_class* ptx2 = new point_class(pt2, _pidx2);
+			//cout << &ptx1 << endl<<&ptx2<<endl;
+			ptx1->pushLid(_lidx);
+			ptx2->pushLid(_lidx);
+			pointxs.push_back(*ptx1);
+			pointxs.push_back(*ptx2);
 
-		line_class* lx = new line_class(ptx1->getPid(), ptx2->getPid(), _lidx);
-		//lx.p1 = &pointxs[_pidx1]; lx.p2 = &pointxs[_pidx2];
-		linexs.push_back(*lx);
-		delete ptx1 , ptx2 , lx;
+			line_class* lx = new line_class(ptx1->getPid(), ptx2->getPid(), _lidx);
+			//lx.p1 = &pointxs[_pidx1]; lx.p2 = &pointxs[_pidx2];
+			linexs.push_back(*lx);
+			delete ptx1, ptx2, lx;
+		}
 	}
 
 	/*display */
@@ -2729,7 +2733,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-81.jpg", 0);
+	Mat image = imread("Sg-80.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2756,7 +2760,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\testtest6";
+	char abs_path[100] = "D:\\data\\graph-DB\\testtest7";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
