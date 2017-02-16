@@ -162,10 +162,10 @@ Vec2i get_line_ptVec_by_id(vector<point_class>& pointxs, int id)
 
 bool same_pt(point_class pt1, point_class pt2)
 {
-	double eps = 8;//to be set parameter
-	double high_eps = 15;
-	if (abs(pt1.getX() - pt2.getX()) < 3 && p2pdistance(pt1.getXY(), pt2.getXY()) < high_eps)
-		return true;
+	double eps = 6;//to be set parameter
+//	double high_eps = 15;
+//	if (abs(pt1.getX() - pt2.getX()) < 3 && p2pdistance(pt1.getXY(), pt2.getXY()) < high_eps)
+//		return true;
 	if (p2pdistance(pt1.getXY(), pt2.getXY()) <= eps)
 		return true;
 	else
@@ -1166,7 +1166,7 @@ double frac_compute(Vec2i pt1, Vec2i pt2, bool vertical_flag)
 	return ret;
 }
 
-bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgePoints, Vec2i p_closer, Vec2i p_farther, Vec2i p_cross, vector<circle_class> &circles, bool plflag = false, bool pcflag = false, bool ppflag = false, bool secCheck = true)
+bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgePoints, Vec2i p_closer, Vec2i p_farther, Vec2i p_cross, vector<circle_class> &circles, bool plflag = false, bool pcflag = false, bool ppflag = false, bool secCheck = true,bool show = true)
 {
 	//check if there's dash line between
 	Vec4i line = pt2line(p_closer, p_cross);
@@ -1174,6 +1174,8 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 	int ranges = vertical_flag ? abs(p_cross[1] - p_closer[1]) - 1 : abs(p_cross[0] - p_closer[0]) - 1;
 	cout << "range: " << ranges << endl;
 	bool flag = true;
+	if (ranges == 8)
+		cout << "test" << endl;
 	if (vertical_flag)
 	{
 		cout << "measuring in the vertical form" << endl;
@@ -1186,7 +1188,7 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 		else
 		{
 			low_bound = p_cross[1];
-			high_bound = p_cross[1];
+			high_bound = p_closer[1];
 		}
 		int step = ranges > 5 ? ranges / 5 : 1;
 		int count = 0;
@@ -1210,7 +1212,9 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 		}
 		if (secCheck)
 		{
-			if (dashLineRecovery2(withoutOnL_ept, p_closer, p_farther, p_cross, circles))
+			if (p2pdistance(p_closer, p_cross) < 20)
+				return true;
+			else if (dashLineRecovery2(withoutOnL_ept, p_closer, p_farther, p_cross, circles))
 			{
 				cout << "recovery" << endl;
 				return true;
@@ -1233,7 +1237,7 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 		else
 		{
 			low_bound = p_cross[0];
-			high_bound = p_cross[0];
+			high_bound = p_closer[0];
 		}
 		int step = (ranges - 2) > 5 ? ranges / 5 : 1;
 		int count = 0;
@@ -1251,13 +1255,14 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 			if (iter == oriEdgePoints.end())
 			{
 				cout << "no recovery" << endl;
-				flag = false;
 				return false;
 			}
 		}
 		if (secCheck)
 		{
-			if (dashLineRecovery2(withoutOnL_ept, p_closer, p_farther, p_cross, circles))
+			if (p2pdistance(p_closer, p_cross) < 20)
+				return true;
+			else if (dashLineRecovery2(withoutOnL_ept, p_closer, p_farther, p_cross, circles))
 				return true;
 			else
 				return false;
@@ -1576,46 +1581,41 @@ void line_recovery_process2(line_class* linex, Vec2i p_cross, vector<Point2i> &w
 		Flag = 1;
 	else
 		Flag = 0;
-	bool dashLine1 = dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt1, pt2, p_cross, circlexs);
-	bool dashLine2 = dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt2, pt1, p_cross, circlexs);
 	bool cond1 = (Flag == -2); bool cond2 = (Flag == 2);
 	bool cond3 = (Flag == 0);
 	if (cond1)
 	{
-		cout << "cross == pt1, no line vec change" << endl;
+		linex->setPt1_vec(pointxs, p_cross);
+		cout << "cross == pt1, pt1 adapt to cross" << endl;
 	}
 	else if (cond2)
 	{
-		cout << "cross == pt2, no line vec change" << endl;
+		linex->setPt2_vec(pointxs, p_cross);
+		cout << "cross == pt2, pt2 adapt to cross" << endl;
 	}
 	else if (cond3)
 	{
 		cout << "deep inside the line, no line vec change" << endl;
 	}
-	else if (((Flag == -4 || Flag == -3) && dashLine1) || (Flag == -1 && !dashLine1))
+	else if (((Flag == -4 || Flag == -3) && dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt1, pt2, p_cross, circlexs)) || (Flag == -1 && !dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt1, pt2, p_cross, circlexs)))
 	{
-		cout << "pt1 -> cross, pt1 vec change" << endl;
 		linex->setPt1_vec(pointxs, p_cross);
+		cout << "pt1 -> cross, pt1 vec change to cross" << endl;
 	}
-	else if (((Flag == 4 || Flag == 3) && dashLine2) || (Flag == 1 && !dashLine2))
+	else if (((Flag == 4 || Flag == 3) && dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt2, pt1, p_cross, circlexs)) || (Flag == 1 && !dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt2, pt1, p_cross, circlexs)))
 	{
-		cout << "pt2 -> cross, pt2 vec change" << endl;
 		linex->setPt2_vec(pointxs, p_cross);
+		cout << "pt2 -> cross, pt2 vec change to cross" << endl;
 	}
 }
 
 void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector<circle_class>& circlexs, vector<point_class>& pointxs, vector<Point2i>& withoutOnL_ept, vector<Point2i> &oriEdgePoints)
 {
-	Vec4i linex1_vec = lx1->getLineVec(pointxs);
-	Vec4i linex2_vec = lx2->getLineVec(pointxs);
+	Vec4i linex1_vec = lx1->getLineVec(pointxs);  Vec4i linex2_vec = lx2->getLineVec(pointxs);
 	Vec2i pt1, pt2, pt3, pt4;
-	line2pt(linex1_vec, pt1, pt2);
-	line2pt(linex2_vec, pt3, pt4);
+	line2pt(linex1_vec, pt1, pt2); line2pt(linex2_vec, pt3, pt4);
 	int id1, id2, id3, id4;
-	id1 = lx1->getPt1Id();
-	id2 = lx1->getPt2Id();
-	id3 = lx2->getPt1Id();
-	id4 = lx2->getPt2Id();
+	id1 = lx1->getPt1Id(); id2 = lx1->getPt2Id(); id3 = lx2->getPt1Id(); id4 = lx2->getPt2Id();
 	cout << "pt1 id " << id1 << " pt2 id " << id2 << endl
 		<< "pt3 id " << id3 << " pt4 id " << id4 << endl;
 	// check according to the relationship between cross and the two lines
@@ -2227,57 +2227,74 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 	//	}
 	else
 	{
+		cout << endl;
 		line_recovery_process2(lx1, raw_cross, withoutOnL_ept, oriEdgePoints, pointxs, circlexs);
 		line_recovery_process2(lx2, raw_cross, withoutOnL_ept, oriEdgePoints, pointxs, circlexs);
-		if (pt1 == pt3)
+		cout << endl;
+		cout << "now the line1 and line2 vec is: " << lx1->getLineVec(pointxs) << " and " << lx2->getLineVec(pointxs) << endl;
+		pt1 = lx1->getpt1vec(pointxs); pt2 = lx1->getpt2vec(pointxs); pt3 = lx2->getpt1vec(pointxs); pt4 = lx2->getpt2vec(pointxs);
+		if (same_pt(pt1,pt3))
 		{
-			if (lx1->getPt1Id() < lx2->getPt1Id())
+			int tmpPt1ID = lx1->getPt1Id(); int tmpPt2ID = lx2->getPt1Id();
+			if (tmpPt1ID < tmpPt2ID)
 			{
-				rm_point_by_id(pointxs, lx2->getPt1Id());
-				lx2->setpt1Id(lx1->getPt1Id());
+				rm_point_by_id(pointxs, tmpPt2ID);
+				lx2->setpt1Id(tmpPt1ID);
+				cout << tmpPt2ID << " change to " << tmpPt1ID << ",and " << "rm the point" << tmpPt2ID << endl;
 			}
 			else
 			{
-				rm_point_by_id(pointxs, lx1->getPt1Id());
-				lx1->setpt1Id(lx2->getPt1Id());
+				rm_point_by_id(pointxs, tmpPt1ID);
+				lx1->setpt1Id(tmpPt2ID);
+				cout << tmpPt1ID << " change to " << tmpPt2ID << ",and " << "rm the point" << tmpPt1ID << endl;
 			}
 		}
-		else if (pt1 == pt4)
+		else if (same_pt(pt1,pt4))
 		{
-			if (lx1->getPt1Id() < lx2->getPt2Id())
+			int tmpPt1ID = lx1->getPt1Id(); int tmpPt2ID = lx2->getPt2Id();
+			if (tmpPt1ID < tmpPt2ID)
 			{
-				rm_point_by_id(pointxs, lx2->getPt2Id());
-				lx2->setpt2Id(lx1->getPt1Id());
+				rm_point_by_id(pointxs, tmpPt2ID);
+				lx2->setpt2Id(tmpPt1ID);
+				cout << tmpPt2ID << " change to " << tmpPt1ID << ",and " << "rm the point" << tmpPt2ID << endl;
 			}
 			else
 			{
-				lx1->setpt1Id(lx2->getPt2Id());
+				rm_point_by_id(pointxs, tmpPt1ID);
+				lx1->setpt1Id(tmpPt2ID);
+				cout << tmpPt1ID << " change to " << tmpPt2ID << ",and " << "rm the point" << tmpPt1ID << endl;
 			}
 		}
-		else if (pt2 == pt3)
+		else if (same_pt(pt2, pt3))
 		{
-			if (lx1->getPt2Id() < lx2->getPt1Id())
+			int tmpPt1ID = lx1->getPt2Id(); int tmpPt2ID = lx2->getPt1Id();
+			if (tmpPt1ID < tmpPt2ID)
 			{
-				rm_point_by_id(pointxs, lx2->getPt1Id());
-				lx2->setpt1Id(lx1->getPt2Id());
+				rm_point_by_id(pointxs, tmpPt2ID);
+				lx2->setpt1Id(tmpPt1ID);
+				cout << tmpPt2ID << " change to " << tmpPt1ID << ",and " << "rm the point" << tmpPt2ID << endl;
 			}
 			else
 			{
-				rm_point_by_id(pointxs, lx1->getPt2Id());
-				lx1->setpt2Id(lx2->getPt1Id());
+				rm_point_by_id(pointxs, tmpPt1ID);
+				lx1->setpt2Id(tmpPt2ID);
+				cout << tmpPt1ID << " change to " << tmpPt2ID << ",and " << "rm the point" << tmpPt1ID << endl;
 			}
 		}
-		else if (pt2 == pt4)
+		else if (same_pt(pt2, pt4))
 		{
-			if (lx1->getPt2Id() < lx2->getPt2Id())
+			int tmpPt1ID = lx1->getPt2Id(); int tmpPt2ID = lx2->getPt2Id();
+			if (tmpPt1ID < tmpPt2ID)
 			{
-				rm_point_by_id(pointxs, lx2->getPt2Id());
-				lx2->setpt2Id(lx1->getPt2Id());
+				rm_point_by_id(pointxs, tmpPt2ID);
+				lx2->setpt2Id(tmpPt1ID);
+				cout << tmpPt2ID << " change to " << tmpPt1ID << ",and " << "rm the point" << tmpPt2ID << endl;
 			}
 			else
 			{
-				rm_point_by_id(pointxs, lx1->getPt2Id());
-				lx1->setpt2Id(lx2->getPt2Id());
+				rm_point_by_id(pointxs, tmpPt1ID);
+				lx1->setpt2Id(tmpPt2ID);
+				cout << tmpPt1ID << " change to " << tmpPt2ID << ",and " << "rm the point" << tmpPt1ID << endl;
 			}
 		}
 	}
@@ -2657,8 +2674,9 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 					//cross in scope
 					cout << linex1_vec << endl << linex2_vec << endl;
 					cross_refinement(raw_cross, linex1, linex2, circles, pointxs, withoutOnL_ept, oriEdgePoints);
-					//					cout << linex1->getLineVec(pointxs)<< linex1->getPt1Id() << "," << linex1->getPt2Id() << endl;
-					//					cout << linex2->getLineVec(pointxs) << linex2->getPt1Id() << "," << linex2->getPt2Id() << endl;
+					cout << linex1->getLineVec(pointxs) << linex1->getPt1Id() << "," << linex1->getPt2Id() << endl;
+					cout << linex2->getLineVec(pointxs) << linex2->getPt1Id() << "," << linex2->getPt2Id() << endl;
+					cout << "test" << endl;
 				}
 			}
 		}
@@ -2940,7 +2958,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-121.jpg", 0);
+	Mat image = imread("Sg-58.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2967,7 +2985,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\testtest8";
+	char abs_path[100] = "D:\\data\\graph-DB\\testtest9";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
