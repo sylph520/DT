@@ -137,6 +137,11 @@ public:
 			return p2_id;
 	}
 
+	int getLid() const
+	{
+		return l_id;
+	}
+
 	/*point_class getPt1(vector<point_class> &pointxs) const
 	{
 		return  pointxs[p1_id];

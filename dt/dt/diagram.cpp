@@ -1549,7 +1549,7 @@ int line_recovery_process(line_class* linex, Vec2i p_cross, vector<Point2i>& wit
 
 
 
-void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector<circle_class>& circlexs, vector<point_class>& pointxs, vector<Point2i>& withoutOnL_ept, vector<Point2i> &oriEdgePoints)
+void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector<circle_class>& circlexs, vector<point_class>& pointxs, vector<point_class>& TACpointxs ,vector<Point2i>& withoutOnL_ept, vector<Point2i> &oriEdgePoints)
 {
 	Vec4i linex1_vec = lx1->getLineVec(pointxs);
 	Vec4i linex2_vec = lx2->getLineVec(pointxs);
@@ -2012,6 +2012,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 				bool FalseFlag = !dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt1, pt2, raw_cross, circlexs, false, false, false, false);
 				if (FalseFlag)
 				{
+					cout << "False Flag" << endl;
 					cout << "id " << lx1->getPt1Id() << " id change to id " << lx2->getPt2Id() << endl;
 					lx2->setpt1Id(lx1->getPt1Id());
 				}
@@ -2021,6 +2022,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 				bool FalseFlag = !dashLineRecovery(withoutOnL_ept, oriEdgePoints, pt2, pt1, raw_cross, circlexs, false, false, false, false);
 				if (FalseFlag)
 				{
+					cout << "False Flag" << endl;
 					cout << "id " << lx1->getPt2Id() << " id change to id " << lx2->getPt2Id() << endl;
 					lx2->setpt2Id(lx1->getPt1Id());
 				}
@@ -2039,11 +2041,13 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 				{
 					cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
 					lx1->setpt1Id(tmp_id1);
+					rm_point_by_id(pointxs,tmp_id2);
 				}
 				else
 				{
 					cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
 					lx2->setpt2Id(tmp_id2);
+					rm_point_by_id(pointxs, tmp_id1);
 				}
 
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
@@ -2059,11 +2063,13 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 				{
 					cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
 					lx1->setpt2Id(tmp_id1);
+					rm_point_by_id(pointxs,tmp_id2);
 				}
 				else
 				{
 					cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
 					lx2->setpt2Id(tmp_id2);
+					rm_point_by_id(pointxs,tmp_id1);
 				}
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
@@ -2086,6 +2092,8 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 		else if (in_line1 && in_line2)
 		{
 			cout << "inner cross" << endl;
+			point_class a; a.setPid(TACpointxs.size()); a.setXY(raw_cross); a.pushLid(lx1->getLid());
+			TACpointxs.push_back(a);
 		}
 		else
 		{
@@ -2508,7 +2516,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	// in order to detect all lines, we suppose to first put all candidates into calculation then remove the false line at the last step.
 	/*******************raw line candidates refinement*/
 	map<int, int> change000;
-
+	vector<point_class> toAddCrossPoints;
 	for (auto i = 0; i < linexs.size(); i++)
 	{
 		line_class* linex1 = &linexs[i];
@@ -2545,7 +2553,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 				{
 					//cross in scope
 					cout << linex1_vec << endl << linex2_vec << endl;
-					cross_refinement(raw_cross, linex1, linex2, circles, pointxs, withoutOnL_ept, oriEdgePoints);
+					cross_refinement(raw_cross, linex1, linex2, circles, pointxs,toAddCrossPoints, withoutOnL_ept, oriEdgePoints);
 					//					cout << linex1->getLineVec(pointxs)<< linex1->getPt1Id() << "," << linex1->getPt2Id() << endl;
 					//					cout << linex2->getLineVec(pointxs) << linex2->getPt1Id() << "," << linex2->getPt2Id() << endl;
 				}
@@ -2756,7 +2764,11 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 		circle(color_img, Point{pt2[0], pt2[1]}, 10, tmp);
 	}
 	cout << endl;
-
+	for (auto j = 0; j < toAddCrossPoints.size(); j++)
+	{
+		Vec2i pt = toAddCrossPoints[j].getXY();
+		circle(color_img, Point(pt[0],pt[1]), 10, (255, 255, 255), 1);
+	}
 
 	//if (showFlag)
 	{
@@ -2829,7 +2841,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-121.jpg", 0);
+	Mat image = imread("Sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2856,7 +2868,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\testtest8";
+	char abs_path[100] = "D:\\data\\graph-DB\\addPtest0";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
