@@ -913,14 +913,15 @@ bool in_circle(Vec2i center, int radius, Vec2i pt)
 int ptWithCircle(Vec2i center, int radius, Vec2i pt)
 {
 	double pt2center = p2pdistance(center, pt);
-	if (radius - pt2center > 4)
+	cout << "radius - pt2center: " << radius - pt2center << endl;
+	if (radius - pt2center > 5)
 		return 0;//inside circle
-	else if (abs(radius - pt2center) <= 4)
+	else if (abs(radius - pt2center) <= 5)
 		return 1; // on cirlce
 	else if (pt2center - radius < 8)
-		return 2;//outside circle
+		return 2;//outside circle with a close distance
 	else
-		return 2;
+		return 3;//outside circle with large distance
 }
 
 bool basicRev(vector<Point2i>& edgePt, Vec2i p1, Vec2i p2, vector<circle_class>& circles)
@@ -1032,6 +1033,30 @@ bool dashLineRecovery(vector<Point2i>& edgePt, Vec2i col_p1, Vec2i col_p2, vecto
 	}
 }
 
+bool basicDashLineRev(vector<Point2i>& withoutOnL_ept,bool vertical_flag, Vec4i line,int *flag, int ranges)
+{
+	for (auto j = 0; j < withoutOnL_ept.size(); ++j)
+	{
+		Vec2i pt = withoutOnL_ept[j];
+		if (in_line(line, pt))
+		{
+			if (vertical_flag)
+				flag[pt[1]] = 1;
+			else
+				flag[pt[0]] = 1;
+		}
+	}
+	double ratio;
+	int nums = count(flag, flag + 1000, 1);
+	ratio = 1.0 * nums / ranges;
+	cout << ratio * 100 << "%" << endl;
+	double threshold_ratio = 0.6;
+	if (ratio < threshold_ratio)
+		return false;
+	else
+		return true;
+}
+
 bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_farther, Vec2i p_cross, vector<circle_class>& circles, bool plflag = false, bool pcflag = false, bool ppflag = false)
 {
 	//check if there's dash line between
@@ -1092,38 +1117,57 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 				else if (closer_flag == 1 && cross_flag == 2)
 				{
 					// point1 is on the circle
-					cout << "point 1 is on the circle and point 2 is outside the circle" << endl;
+					cout << "closer point is on the circle and cross point is outside the circle with close distance" << endl;
 					cout << "to go" << endl;
-					tmpFlag[i] = false;
+					tmpFlag[i] = true;
+				}
+				else if (closer_flag ==1 && cross_flag == 3)
+				{
+					cout << "closer point is on the circle and cross point is outside the circle with large distance" << endl;
+					cout << "norm handle" << endl;
+					tmpFlag[i] = basicDashLineRev(withoutOnL_ept, vertical_flag, line, flag, ranges);
 				}
 				else if (cross_flag == 1 && closer_flag == 2)
 				{
-					cout << "point 2 is on the circle" << endl;
+					cout << "cross point is on the circle and closer point is outside the circle with a close distance" << endl;
 					tmpFlag[i] = true;
+
+				}
+				else if (cross_flag == 1 && closer_flag == 0)
+				{
+					cout << "cross point is on the circle and closer point is inside the circle" <<"norm handle"<< endl;
+					tmpFlag[i] = basicDashLineRev(withoutOnL_ept, vertical_flag, line, flag, ranges);
+				}
+				else if (cross_flag == 1 && closer_flag == 3)
+				{
+					
+					cout << "cross point is on the circle and closer point is outside the circle" <<"norm handle"<< endl;
+					tmpFlag[i] = basicDashLineRev(withoutOnL_ept, vertical_flag, line, flag, ranges);
 				}
 				else
 				{
 					cout << "neither points are on the circle" << endl;
-					for (auto j = 0; j < withoutOnL_ept.size(); ++j)
-					{
-						Vec2i pt = withoutOnL_ept[j];
-						if (in_line(line, pt))
-						{
-							if (vertical_flag)
-								flag[pt[1]] = 1;
-							else
-								flag[pt[0]] = 1;
-						}
-					}
-					double ratio;
-					int nums = count(flag, flag + 1000, 1);
-					ratio = 1.0 * nums / ranges;
-					cout << ratio * 100 << "%" << endl;
-					double threshold_ratio = 0.7;
-					if (ratio < threshold_ratio)
-						tmpFlag[i]= false;
-					else
-						tmpFlag[i] = true;
+//					for (auto j = 0; j < withoutOnL_ept.size(); ++j)
+//					{
+//						Vec2i pt = withoutOnL_ept[j];
+//						if (in_line(line, pt))
+//						{
+//							if (vertical_flag)
+//								flag[pt[1]] = 1;
+//							else
+//								flag[pt[0]] = 1;
+//						}
+//					}
+//					double ratio;
+//					int nums = count(flag, flag + 1000, 1);
+//					ratio = 1.0 * nums / ranges;
+//					cout << ratio * 100 << "%" << endl;
+//					double threshold_ratio = 0.7;
+//					if (ratio < threshold_ratio)
+//						tmpFlag[i]= false;
+//					else
+//						tmpFlag[i] = true;
+					tmpFlag[i] = basicDashLineRev(withoutOnL_ept, vertical_flag, line, flag, ranges);
 				}
 //			}
 //			else
@@ -1209,6 +1253,7 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 		}
 		if (secCheck)
 		{
+			cout << "through the first recovery check" << endl;
 			if (dashLineRecovery2(withoutOnL_ept, p_closer, p_farther, p_cross, circles))
 			{
 				cout << "recovery" << endl;
@@ -1256,6 +1301,7 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 		}
 		if (secCheck)
 		{
+			cout << "through the first recovery check" << endl;
 			if (dashLineRecovery2(withoutOnL_ept, p_closer, p_farther, p_cross, circles))
 				return true;
 			else
@@ -2760,14 +2806,29 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 		//		cout << "*********************" << pt1 << " " << pt2 << endl;
 		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
 		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-		circle(color_img, Point{pt1[0], pt1[1]}, 10, tmp);
-		circle(color_img, Point{pt2[0], pt2[1]}, 10, tmp);
+		circle(color_img, Point{pt1[0], pt1[1]}, 10, tmp,2);
+		circle(color_img, Point{pt2[0], pt2[1]}, 10, tmp,2 );
 	}
+	cout << endl;
 	cout << endl;
 	for (auto j = 0; j < toAddCrossPoints.size(); j++)
 	{
-		Vec2i pt = toAddCrossPoints[j].getXY();
-		circle(color_img, Point(pt[0],pt[1]), 10, (255, 255, 255), 1);
+		auto tmpIter = find_if(pointxs.begin(), pointxs.end(), [&](point_class a)
+		{
+			if (same_pt(a,toAddCrossPoints[j]))
+				return true;
+			else
+				return false;
+		});
+		if (tmpIter == pointxs.end())
+//		if (true)
+		{
+			Vec2i pt = toAddCrossPoints[j].getXY();
+//			cout << pt << endl;
+			circle(color_img, Point(pt[0], pt[1]), 7, (255, 255, 255), 2);
+		}
+		else
+			toAddCrossPoints.erase(toAddCrossPoints.begin() + j--);
 	}
 
 	//if (showFlag)
@@ -2841,7 +2902,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-1.jpg", 0);
+	Mat image = imread("Sg-113.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -2861,6 +2922,8 @@ int test_diagram()
 	Mat drawedImages(image.size(), CV_8UC3);
 
 	primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, false);
+	// then we turn to handle the characters
+
 	return 0;
 }
 
@@ -2868,7 +2931,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\addPtest0";
+	char abs_path[100] = "D:\\data\\graph-DB\\addPtest2";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
