@@ -162,7 +162,7 @@ Vec2i get_line_ptVec_by_id(vector<point_class>& pointxs, int id)
 bool same_pt(point_class pt1, point_class pt2)
 {
 	double eps = 8;//to be set parameter
-	double high_eps = 15;
+	double high_eps = 10;
 	if (abs(pt1.getX() - pt2.getX()) < 3 && p2pdistance(pt1.getXY(), pt2.getXY()) < high_eps)
 		return true;
 	if (p2pdistance(pt1.getXY(), pt2.getXY()) <= eps)
@@ -3091,7 +3091,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("Sg-119.jpg", 0);
+	Mat image = imread("Sg-113.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -3120,7 +3120,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\addPtest3";
+	char abs_path[100] = "D:\\data\\graph-DB\\addPtest4";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	for (int i = 1; i < 136; i++)
