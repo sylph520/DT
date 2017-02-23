@@ -54,7 +54,7 @@ bool isLSeg(Mat seg)
 		return false;
 }
 
-void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> char_imgs, bool showFlag = false)
+void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> &char_imgs, bool showFlag = false)
 {
 	// this function is used to label image with connectedcomponnent analysis, and store the diagram 
 	//and label segment
@@ -62,9 +62,8 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> char_
 	Mat boundImg = binarized_image.clone();
 	Mat statsMat, centroidMat;
 	Mat labeled_image;
-	vector<Mat> segments;
 	int labeln = connectedComponentsWithStats(binarized_image, labeled_image, statsMat, centroidMat, 8, 4);
-
+	vector<Mat> charSegs;
 	// show the labelling image
 	vector<Vec3b> colors(labeln);
 	colors[0] = Vec3b(0, 0, 0);
@@ -79,6 +78,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> char_
 		colors[label] = Vec3b((rand() & 255), (rand() & 255), (rand() & 255));
 		Mat seg_mat = ((labeled_image == label));
 		int seg_area = statsMat.at<int>(label, 4);
+		int wholeIdx = -1;
 		if (seg_area > 5)
 		{
 			//segments.push_back(seg_mat);
@@ -97,8 +97,13 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> char_
 			int seg_area = statsMat.at<int>(label, 4);
 			if (seg_area > 10)
 			{
-				matLabelp[segments.size()] = label;
-				segments.push_back(charImgCandicate);
+				matLabelp[charSegs.size()] = label;
+				charSegs.push_back(charImgCandicate);
+				Rect oriRect = boundingRect(charImgCandicate);
+				int xoffset, yoffset; xoffset = (oriRect.tl()).x >= 1 ? 1 : 0;  yoffset = (oriRect.tl()).y >= 1 ? 1 : 0;
+				Rect adjustRect = oriRect + Point(-xoffset, -yoffset) + Size(2*xoffset, 2*yoffset);
+				Mat pushM = Mat(charImgCandicate, adjustRect);
+				char_imgs.push_back(pushM);
 //				Rect brect = boundingRect(charImgCandicate);
 //				bRects.push_back(brect);
 			}
@@ -106,13 +111,13 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> char_
 	}
 	/*test seg img check*/
 	
-	for (auto i = 0; i < segments.size();++i)
+	for (auto i = 0; i < charSegs.size();++i)
 	{
 		int label1 = matLabelp[i];
 		Vec2i tmpCentroid1 = centroidMat.row(label1);
-		Mat tmp1 = segments[i].clone();
+		Mat tmp1 = charSegs[i].clone();
 		
-		for (auto j = i + 1; j < segments.size();++j)
+		for (auto j = i + 1; j < charSegs.size();++j)
 		{
 			int label2 = matLabelp[j];
 			Vec2i tmpCentroid2 = centroidMat.row(label2);
@@ -121,11 +126,11 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> char_
 			if ( regiondis < 15)
 			{
 				//merge
-				Mat tmp2 = segments[j].clone();
+				Mat tmp2 = charSegs[j].clone();
 				Mat tmp3 = tmp1 + tmp2;
 				cout << label1 << "  " << label2 <<"    "<<tmpCentroid1<<"  "<<tmpCentroid2<< endl;
-				segments[i] = tmp3; segments[j] = tmp3;
-				Mat tmp4 = segments[i]; Mat tmp5 = segments[j];
+				charSegs[i] = tmp3; charSegs[j] = tmp3;
+				Mat tmp4 = charSegs[i]; Mat tmp5 = charSegs[j];
 				cout << "test" << endl;
 			}
 			else
@@ -134,32 +139,32 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> char_
 			}
 		}
 	}
-	sort(segments.begin(), segments.end(), [](Mat a, Mat b)
+	sort(charSegs.begin(), charSegs.end(), [](Mat a, Mat b)
 	{
 		if (countNonZero(a) < countNonZero(b))
 			return true;
 		else
 			return false;
 	});
-	segments.erase(unique(segments.begin(), segments.end(),[](Mat a,Mat b)
+	charSegs.erase(unique(charSegs.begin(), charSegs.end(),[](Mat a,Mat b)
 	{
 		if (countNonZero(a != b) == 0)
 			return true;
 		else
 			return false;
-	}),segments.end());
-	for (auto iter = segments.begin(); iter != segments.end();)
+	}),charSegs.end());
+	for (auto iter = charSegs.begin(); iter != charSegs.end();)
 	{
 		Rect tmp = boundingRect(*iter);
 		double tmpArea = tmp.area();
-		if (tmpArea < 30||isLSeg(*iter))
-			iter = segments.erase(iter);
-		else
+//		if (tmpArea < 30||isLSeg(*iter))
+//			iter = char_imgs.erase(iter);
+//		else
 			iter++;
 	}
-	for (auto i = 0; i < segments.size(); ++i)
+	for (auto i = 0; i < charSegs.size(); ++i)
 	{
-		Rect brect = boundingRect(segments[i]);
+		Rect brect = boundingRect(charSegs[i]);
 		bRects.push_back(brect);
 	}
 	for (int r = 0; r < binarized_image.rows; ++r)
@@ -3202,7 +3207,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("graph-85.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -3216,6 +3221,12 @@ int test_diagram()
 	vector<Point2i> oriEdgePoints = getPointPositions(binarized_image);
 	vector<Mat> char_imgs;
 	image_labelling(binarized_image, diagram_segment,char_imgs, true);
+	for (auto i = 0; i < char_imgs.size();++i)
+	{
+		char fullNameStr[20];
+		sprintf_s(fullNameStr, "charImg-%d.png", i);
+		imwrite(fullNameStr, char_imgs[i]);
+	}
 	vector<point_class> points = {};
 	vector<line_class> lines = {};
 	vector<circle_class> circles = {};
@@ -3231,12 +3242,13 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\addPtest4";
+	char abs_path[100] = "D:\\data\\graph-DB\\nt2";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
-	for (int i = 1; i < 136; i++)
+	int charCount = 0;
+	for (int i = 1; i < 87; i++)
 	{
-		sprintf_s(imageName, "%s\\Sg-%d.jpg", abs_path, i);
+		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
 		sprintf_s(saveimgName, "%s\\saveImage\\sgs-%d.jpg", abs_path, i);
 		//first load a image
 		Mat image = imread(imageName, 0);
@@ -3257,6 +3269,14 @@ int diagram()
 		namedWindow("points"); imshow("points", pointss);*/
 		vector<Mat> char_imgs;
 		image_labelling(binarized_image, diagram_segment,char_imgs);
+
+		for (auto i = 0; i < char_imgs.size(); ++i)
+		{
+			char fullNameStr[100];
+			sprintf_s(fullNameStr, "%s\\charImgs\\charImg-%d.png",abs_path, charCount++);
+			imwrite(fullNameStr, char_imgs[i]);
+		}
+
 		vector<point_class> points = {};
 		vector<line_class> lines = {};
 		vector<circle_class> circles = {};
