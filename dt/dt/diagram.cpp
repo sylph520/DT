@@ -7,16 +7,504 @@ bool dashLineRecovery(vector<Point2i>&, Vec2i, Vec2i, Vec2i, vector<circle_class
 
 bool dashLineRecovery(vector<Point2i>&, Vec2i, Vec2i, vector<circle_class>&, bool plflag, bool pcflag, bool ppflag);
 
-/*******************************load and segment phase***********************/
+/*deserted now*/
+//void chooseNearCircle(vector<Vec3f>& circle_candidates, Vec2i& cross, Vec2i& pt)
+//{
+//	for (auto i = 0; i < circle_candidates.size(); i++)
+//	{
+//		Vec3f circle = circle_candidates[i];
+//		Vec2i center = {int(circle[0]), int(circle[1])};
+//		if (p2pdistance(pt, center) - circle[2] < 5)
+//		{
+//			if (p2pdistance(pt, center) > p2pdistance(cross, center))
+//			{
+//				cross = pt;
+//			}
+//		}
+//	}
+//}
+//bool isPartOfLongerLine(Vec4i line1, Vec4i line2)
+//{
+//	//check if line1 is part of line2;
+//	Vec2i pt1, pt2;
+//	pt1 = {line1[0], line1[1]};
+//	pt2 = {line1[2], line1[3]};
+//	if (in_line(line2, pt1) && in_line(line2, pt2))
+//		return true;
+//	else
+//		return false;
+//}
+//bool nearToAcross(Vec2i pt, vector<Vec2i>& crossPts)
+//{
+//	auto iter = find_if(crossPts.begin(), crossPts.end(), [&](Vec2i a)
+//	                    {
+//		                    if (same_pt(pt, a))
+//			                    return true;
+//		                    else
+//			                    return false;
+//	                    });
+//	if (iter != crossPts.end())
+//		return true;
+//	else
+//		return false;
+//}
+//Mat preprocessing(Mat diagram_segment)
+//{
+//	//namedWindow("origianl diagram seg"); imshow("original diagram seg", diagram_segment);
+//	//now we'll do some preprocessing to make for the following detection procedure
+//	Mat eroded, dilated, opened, closed;
+//	Mat eroEle, dilEle;
+//	eroEle = getStructuringElement(MORPH_RECT, Size(3, 3));
+//	morphologyEx(diagram_segment, dilated, MORPH_DILATE, eroEle);
+//	//erode(diagram_segment, eroded, eroEle);
+//	namedWindow("dilated image");
+//	imshow("dilated image", dilated);
+//	//namedWindow("eroded diagram"); imshow("eroded diagram", eroded);
+//	morphologyEx(diagram_segment, closed, MORPH_CLOSE, eroEle);
+//	namedWindow("closed diagram");
+//	imshow("closed diagram", closed);
+//	return closed;
+//}
+//bool sameLine(Vec4i line1, Vec4i line2)
+//{
+//	Vec2i pt1 = {line1[0], line1[1]};
+//	Vec2i pt2 = {line1[2], line1[3]};
+//	Vec2i pt3 = {line2[0], line2[1]};
+//	Vec2i pt4 = {line2[0], line2[1]};
+//	bool flag1 = (same_pt(pt1, pt3) && same_pt(pt2, pt4));
+//	bool flag2 = (same_pt(pt1, pt4) && same_pt(pt2, pt3));
+//	if (flag1 || flag2)
+//		return true;
+//	else
+//		return false;
+//}
+//double slopeEval(Vec4i line)
+//{
+//	double diff1, diff2, diff;
+//	diff1 = lSlope(line) - 0;
+//	diff2 = lSlope(line) - 90;
+//	diff = (diff1 < diff2) ? diff1 : diff2;
+//	return diff;
+//}
+//bool on_other_noncollinearlines(vector<Vec4i> plainLines, Vec4i temp_line, Vec2i pt)
+//{
+//	for (size_t i = 0; i < plainLines.size(); i++)
+//	{
+//		Vec2i pt1 = { plainLines[i][0], plainLines[i][1] };
+//		Vec2i pt2 = { plainLines[i][2], plainLines[i][3] };
+//		if ((pt == pt1) || (pt == pt2))
+//		{
+//			if ((!on_line(temp_line, pt1)) || (!on_line(temp_line, pt2)))
+//			{
+//				return true;
+//			}
+//		}
+//	}
+//	return false;
+//}
+//void findLineEnds(vector<Vec2i> colpoints, vector<Vec2i>& lineEnds, vector<Vec2i>& plainPoints, vector<Vec4i> plainLines)
+//{
+//	vector<distance_info> distance_infos;
+//	for (vector<Vec2i>::iterator iter1 = colpoints.begin(); iter1 != colpoints.end(); ++iter1)
+//	{
+//		Vec2i pt1 = *iter1;
+//		for (vector<Vec2i>::iterator iter2 = iter1 + 1; iter2 != colpoints.end(); ++iter2)
+//		{
+//			Vec2i pt2 = *iter2;
+//			double tempDistance = p2pdistance(pt1, pt2);
+//			distance_info dis_info = {pt1, pt2, tempDistance};
+//			distance_infos.push_back(dis_info);
+//		}
+//	}
+//	std::sort(distance_infos.begin(), distance_infos.end(),
+//	          [](distance_info a, distance_info b)
+//	          {
+//		          return (a.distance > b.distance);
+//	          });
+//	Vec2i pt3 = distance_infos[0].pt1;
+//	Vec2i pt4 = distance_infos[0].pt2;
+//	lineEnds.push_back(pt3);
+//	lineEnds.push_back(pt4);
+//	int count0 = 0;
+//	//cout << "colpoints size " << colpoints.size();
+//	for (vector<Vec2i>::iterator iter3 = colpoints.begin(); iter3 != colpoints.end(); ++iter3)
+//	{
+//		Vec2i tempPt1 = *iter3;
+//		bool flag = on_other_noncollinearlines(plainLines, {pt3[0], pt3[1], pt4[0], pt4[1]}, tempPt1);
+//		for (vector<Vec2i>::iterator iter4 = plainPoints.begin(); iter4 != plainPoints.end();)
+//		{
+//			Vec2i tempPt2 = *iter4;
+//			if (tempPt2 == tempPt1 && (tempPt2 != pt3) && (tempPt2 != pt4) && (!flag))
+//			{
+//				iter4 = plainPoints.erase(iter4);
+//				count0++;
+//				//cout << "iter4 value " << ++count0 <<" "<<tempPt2<< endl;
+//				break;
+//			}
+//			else
+//			{
+//				++iter4;
+//				continue;
+//			}
+//		}
+//	}
+//	//cout << " count0 " << count0 << endl;
+//bool isLSeg(Mat seg)
+//{
+////	morphologyEx(seg, seg, MORPH_OPEN,getStructuringElement(MORPH_RECT,Size(3,3)));
+//	Rect tmpRect = boundingRect(seg); Rect centerRect = tmpRect + Point(tmpRect.width / 4, tmpRect.height / 4) + Size(-tmpRect.width / 2, -tmpRect.height / 2);
+//	Rect leftRect = tmpRect + Size(-tmpRect.width / 2, 0); Rect rightRect = leftRect+Point(tmpRect.width/4, 0);
+//	Rect topRect = tmpRect + Size(0, -tmpRect.height / 2);Rect bottomRect = topRect + Point(0, tmpRect.height / 4);
+//	
+//	Mat lRect, rRect, tRect, bRect, cRect,oRect;
+//	int fac = 1;
+////	resize(Mat(seg, leftRect), lRect, Size(),fac,fac,INTER_NEAREST);resize(Mat(seg, rightRect), rRect, Size(), fac, fac, INTER_NEAREST);
+////	resize(Mat(seg, topRect), tRect, Size(), fac, fac, INTER_NEAREST);resize(Mat(seg, bottomRect), bRect, Size(), fac, fac, INTER_NEAREST);
+////	resize(Mat(seg, centerRect), cRect, Size(), fac, fac, INTER_NEAREST);	resize(Mat(seg, tmpRect), oRect, Size(), fac, fac, INTER_NEAREST);
+//	lRect= Mat(seg, leftRect);rRect= Mat(seg, rightRect);
+//	tRect= Mat(seg, topRect);bRect= Mat(seg, bottomRect);
+//	cRect= Mat(seg, centerRect);oRect=	Mat(seg, tmpRect);
+//	int LRNum, RRNum, TRNum, BRNum,tNum,cNum;
+//	tNum = countNonZero(oRect); cNum = countNonZero(cRect);
+//	LRNum = countNonZero(lRect);RRNum = countNonZero(rRect);
+//	TRNum = countNonZero(tRect);BRNum = countNonZero(bRect);
+//	if (abs(LRNum - RRNum) < 5 && abs(TRNum - BRNum) < 5)
+//		return true;
+//	else
+//		return false;
+//}
+//}
+//bool isLSeg(Mat seg)
+//{
+////	morphologyEx(seg, seg, MORPH_OPEN,getStructuringElement(MORPH_RECT,Size(3,3)));
+//	Rect tmpRect = boundingRect(seg); Rect centerRect = tmpRect + Point(tmpRect.width / 4, tmpRect.height / 4) + Size(-tmpRect.width / 2, -tmpRect.height / 2);
+//	Rect leftRect = tmpRect + Size(-tmpRect.width / 2, 0); Rect rightRect = leftRect+Point(tmpRect.width/4, 0);
+//	Rect topRect = tmpRect + Size(0, -tmpRect.height / 2);Rect bottomRect = topRect + Point(0, tmpRect.height / 4);
+//	
+//	Mat lRect, rRect, tRect, bRect, cRect,oRect;
+//	int fac = 1;
+////	resize(Mat(seg, leftRect), lRect, Size(),fac,fac,INTER_NEAREST);resize(Mat(seg, rightRect), rRect, Size(), fac, fac, INTER_NEAREST);
+////	resize(Mat(seg, topRect), tRect, Size(), fac, fac, INTER_NEAREST);resize(Mat(seg, bottomRect), bRect, Size(), fac, fac, INTER_NEAREST);
+////	resize(Mat(seg, centerRect), cRect, Size(), fac, fac, INTER_NEAREST);	resize(Mat(seg, tmpRect), oRect, Size(), fac, fac, INTER_NEAREST);
+//	lRect= Mat(seg, leftRect);rRect= Mat(seg, rightRect);
+//	tRect= Mat(seg, topRect);bRect= Mat(seg, bottomRect);
+//	cRect= Mat(seg, centerRect);oRect=	Mat(seg, tmpRect);
+//	int LRNum, RRNum, TRNum, BRNum,tNum,cNum;
+//	tNum = countNonZero(oRect); cNum = countNonZero(cRect);
+//	LRNum = countNonZero(lRect);RRNum = countNonZero(rRect);
+//	TRNum = countNonZero(tRect);BRNum = countNonZero(bRect);
+//	if (abs(LRNum - RRNum) < 5 && abs(TRNum - BRNum) < 5)
+//		return true;
+//	else
+//		return false;
+//}
+
+
+
+/**************************************************************geometry funcs*******************************/
+/********basic eff funcs*******/
+Vec4i pt2line(Vec2i pt1, Vec2i pt2)
+{
+	Vec4i ret = { pt1[0], pt1[1], pt2[0], pt2[1] };
+	return ret;
+}
+Vec4f pt2line(Vec2f pt1, Vec2f pt2)
+{
+	Vec4f ret = { pt1[0], pt1[1], pt2[0], pt2[1] };
+	return ret;
+}
+
+inline void line2pt(Vec4i line, Vec2i& pt1, Vec2i& pt2)
+{
+	pt1 = { line[0], line[1] };
+	pt2 = { line[2], line[3] };
+}
+inline void line2pt(Vec4f line, Vec2f& pt1, Vec2f& pt2)
+{
+	pt1 = { line[0], line[1] };
+	pt2 = { line[2], line[3] };
+}
+
+/**p2p**/
+double p2pdistance(Vec2i pt1, Vec2i pt2)
+{
+	double distance;
+	distance = sqrt(powf((pt1[0] - pt2[0]), 2) + powf((pt1[1] - pt2[1]), 2));
+	return distance;
+}
+
+bool same_pt(point_class pt1, point_class pt2)
+{
+	double eps = 8;//to be set parameter
+	double high_eps = 10;
+	if (abs(pt1.getX() - pt2.getX()) < 3 && p2pdistance(pt1.getXY(), pt2.getXY()) < high_eps)
+		return true;
+	if (p2pdistance(pt1.getXY(), pt2.getXY()) <= eps)
+		return true;
+	else
+		return false;
+}
+bool same_pt(Vec2i pt1, Vec2i pt2, double theta, bool in_line)
+{
+	double eps = 6;//to be set parametere
+	double sin_val = sin(2 * CV_PI * theta / 360.0);
+	double adapt_eps = eps / sin_val;
+	double plainDis = p2pdistance(pt1, pt2);
+	//cout << "plain dis " << plainDis << " ,adapt eps " << adapt_eps << endl;
+	if (plainDis <= adapt_eps)
+		return true;
+	else
+		return false;
+}
+bool same_pt(Vec2i pt1, Vec2i pt2, int adapt_eps)
+{
+	double plainDis = p2pdistance(pt1, pt2);
+	//	cout << "plain dis " << plainDis << " ,adapt eps " << adapt_eps << endl;
+	if (plainDis <= adapt_eps)
+		return true;
+	else
+		return false;
+}
+
+bool close_pt(Vec2i pt1, Vec2i pt2)
+{
+	double eps = 10;//to be set parametere
+	double plainDis = p2pdistance(pt1, pt2);
+	//cout << "plain dis " << plainDis << " ,adapt eps " << adapt_eps << endl;
+	if (plainDis <= eps)
+		return true;
+	else
+		return false;
+}
+
+double cross_product(Vec2i a, Vec2i b)
+{
+	return a[0] * b[1] - a[1] * b[0];
+}
+
+
+/**  p2l **/
+float pt2lineDis(Vec4i line, Vec2i pt)
+{
+	Vec2i bottom = { line[2] - line[0], line[3] - line[1] };
+	Vec2i slope = { pt[0] - line[0], pt[1] - line[1] };
+	float p2l = abs(cross_product(bottom, slope) / norm(bottom));
+	return p2l;
+}
+
+float pt2lineDis(Vec4f line, Vec2f pt)
+{
+	Vec2f pt1, pt2;
+	line2pt(line, pt1, pt2);
+	Vec2f bottom = { line[2] - line[0], line[3] - line[1] };
+	Vec2f slope = { pt[0] - line[0], pt[1] - line[1] };
+	float p2l = abs(cross_product(bottom, slope) / p2pdistance(pt1, pt2));
+	return p2l;
+}
+
+bool on_line(Vec4i line, Vec2i pt)
+{
+	double linedis_eps = 3;// double pointdis_eps = 5;
+	/*Vec2i ref_point = { line[0], line[1] };
+	Vec2i pt2 = { -pt[1], pt[0] };
+	Vec2i ref_point_t = { line[1], -line[0] };
+	Vec2i vec = { line[2] - line[0], line[3] - line[1] };
+	double point2line0 = abs((pt2.dot(vec) + ref_point_t.dot(vec))) / sqrt(vec.dot(vec));*/
+	//point2line0 is always equal to point2line
+	Vec2i bottom = { line[2] - line[0], line[3] - line[1] };
+	Vec2i slope = { pt[0] - line[0], pt[1] - line[1] };
+	double point2line = abs(cross_product(bottom, slope) / norm(bottom));
+	//	cout << "test  " << point2line0 << "," << point2line << "  " << (point2line == point2line0) << endl;
+	if (point2line < linedis_eps)
+		return true;
+	else
+		return false;
+}
+
+bool in_line(Vec4i line, Vec2i pt)
+{
+	//if (on_line(line, pt))
+	{
+		Vec2i pt1, pt2;
+		pt1 = { line[0], line[1] };
+		pt2 = { line[2], line[3] };
+		if (p2pdistance(pt1, pt) + p2pdistance(pt2, pt) - p2pdistance(pt1, pt2) < 10)
+			return true;
+		else
+			return false;
+	}
+	//else
+	//	return false;
+}
+
+int on_in_line(Vec4i line, Vec2i pt)
+{
+	Vec2i pt1, pt2;
+	pt1 = { line[0], line[1] };
+	pt2 = { line[2], line[3] };
+	if (pt[0] - pt1[0] < 5 || pt[0] - pt2[0] < 5)
+		return 1;
+	if ((pt[0] - pt1[0] + 5) * (pt[0] - pt2[0] + 5) > 0)
+	{
+		return 0;
+	}
+	else
+		return 2;
+}
+
+int ptLine(Vec4i line, Vec2i pt)
+{
+	//check the relationship between pt and line
+	//returns: 0- not on line,1 - on but not in line, 2- same with pt1, 3 - same with pt2, 4 general in line
+	Vec2i pt1, pt2;
+	pt1 = { line[0], line[1] };
+	pt2 = { line[2], line[3] };
+	if (same_pt(pt, pt1))
+	{
+		return 2;
+	}
+	else if (same_pt(pt, pt2))
+	{
+		return 3;
+	}
+	else if (in_line(line, pt))
+	{
+		//cout << "pt is in line" << endl;
+		return 4;
+	}
+	else if (on_line(line, pt))
+		return 1;
+	else
+		return 0;
+}
+
+bool onLinePtInLine(Vec4i line, Vec2i pt)
+{
+	Vec2i pt1, pt2;
+	pt1 = { line[0], line[1] };
+	pt2 = { line[2], line[3] };
+	int xLeft, xRight;
+	if (pt1[0] > pt2[0])
+	{
+		xLeft = pt2[0];
+		xRight = pt1[0];
+	}
+	else
+	{
+		xLeft = pt1[0];
+		xRight = pt2[0];
+	}
+	if (pt[0] >= xLeft && pt[0] <= xRight)
+		return true;
+	else
+		return false;
+}
+
+bool on_nin_line(Vec4i line, Vec2i pt)
+{
+	if (on_line(line, pt))
+	{
+		Vec2i pt1, pt2;
+		pt1 = { line[0], line[1] };
+		pt2 = { line[2], line[3] };
+		if (p2pdistance(pt1, pt) + p2pdistance(pt2, pt) - p2pdistance(pt1, pt2) > 20)
+			return true;
+		else
+			return false;
+	}
+	else
+		return false;
+}
+
+double frac_compute(Vec2i pt1, Vec2i pt2, bool vertical_flag)
+{
+	double ret = vertical_flag ? 1.0*(pt2[0] - pt1[0]) / (pt2[1] - pt1[1]) : 1.0*(pt2[1] - pt1[1]) / (pt2[0] - pt1[0]);
+	return ret;
+}
+
+double lSlope(Vec4i line)
+{
+	Vec2i pt1, pt2;
+	line2pt(line, pt1, pt2);
+	Vec2i lineV = { line[2] - line[0], line[3] - line[1] };
+	double theta = atan2(lineV[1], lineV[0]);
+	return theta;
+}
+
+double llAngle(Vec4i line1, Vec4i line2)
+{
+	if (line1 == line2)
+		return 0;
+	double theta1, theta2;
+	theta1 = lSlope(line1);
+	theta2 = lSlope(line2);
+	double angle = int(abs(theta1 - theta2) / CV_PI * 180);
+	return angle;
+}
+
+bool isParallel(Vec4i line1, Vec4i line2)
+{
+	Vec2i pt1, pt2, pt3, pt4;
+	line2pt(line1, pt1, pt2);
+	line2pt(line2, pt3, pt4);
+	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] };
+	Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
+	double theta1, theta2;
+	/*if (abs(line1V[0]) < 3)
+	{
+	theta1 = CV_PI / 2.0;
+	}
+	else if (abs(line1V[1]) < 3)
+	{
+	theta1 = 0;
+	}
+	else
+	{
+	theta1 = (atan2(line1V[1], line1V[0]));
+	}
+	if (abs(line2V[0]) < 3)
+	{
+	theta2 = CV_PI / 2.0;
+	}
+	else if (abs(line2V[1]) < 3)
+	{
+	theta2 = 0;
+	}
+	else
+	{
+	theta2 = (atan2(line2V[1], line2V[0]));
+	}*/
+	if (on_line(line1, pt3) && on_line(line1, pt4))
+	{
+		return true;
+	}
+	if ((abs(line1V[0]) < 3 && abs(line2V[0]) < 3) | (abs(line1V[1]) < 3 && abs(line2V[1]) < 3))
+	{
+		return true;
+	}
+	else
+	{
+		theta1 = (atan2(line1V[1], line1V[0]));
+		theta2 = (atan2(line2V[1], line2V[0]));
+	}
+
+	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
+	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
+	double angle = llAngle(line1, line2);
+	return (angle <= 5) || (angle >= 175);
+}
+
+
+/********************preprocessing funcs*************************************************/
 Mat image_binarizing(Mat input_image, bool showFlag = false)
 {
 	/* This function is used for transform image to its binarized image */
 
 	int block_size;
 	double c;
-	block_size = 13;
+	block_size = 11;
 	c = 20;
-	Mat binarized_image = Mat::zeros(input_image.size(),CV_8UC1);
+	Mat binarized_image = Mat::zeros(input_image.size(), CV_8UC1);
 	//binarizing 
 	adaptiveThreshold(input_image, binarized_image, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, block_size, c);
 
@@ -29,32 +517,7 @@ Mat image_binarizing(Mat input_image, bool showFlag = false)
 	return binarized_image;
 }
 
-bool isLSeg(Mat seg)
-{
-//	morphologyEx(seg, seg, MORPH_OPEN,getStructuringElement(MORPH_RECT,Size(3,3)));
-	Rect tmpRect = boundingRect(seg); Rect centerRect = tmpRect + Point(tmpRect.width / 4, tmpRect.height / 4) + Size(-tmpRect.width / 2, -tmpRect.height / 2);
-	Rect leftRect = tmpRect + Size(-tmpRect.width / 2, 0); Rect rightRect = leftRect+Point(tmpRect.width/4, 0);
-	Rect topRect = tmpRect + Size(0, -tmpRect.height / 2);Rect bottomRect = topRect + Point(0, tmpRect.height / 4);
-	
-	Mat lRect, rRect, tRect, bRect, cRect,oRect;
-	int fac = 1;
-//	resize(Mat(seg, leftRect), lRect, Size(),fac,fac,INTER_NEAREST);resize(Mat(seg, rightRect), rRect, Size(), fac, fac, INTER_NEAREST);
-//	resize(Mat(seg, topRect), tRect, Size(), fac, fac, INTER_NEAREST);resize(Mat(seg, bottomRect), bRect, Size(), fac, fac, INTER_NEAREST);
-//	resize(Mat(seg, centerRect), cRect, Size(), fac, fac, INTER_NEAREST);	resize(Mat(seg, tmpRect), oRect, Size(), fac, fac, INTER_NEAREST);
-	lRect= Mat(seg, leftRect);rRect= Mat(seg, rightRect);
-	tRect= Mat(seg, topRect);bRect= Mat(seg, bottomRect);
-	cRect= Mat(seg, centerRect);oRect=	Mat(seg, tmpRect);
-	int LRNum, RRNum, TRNum, BRNum,tNum,cNum;
-	tNum = countNonZero(oRect); cNum = countNonZero(cRect);
-	LRNum = countNonZero(lRect);RRNum = countNonZero(rRect);
-	TRNum = countNonZero(tRect);BRNum = countNonZero(bRect);
-	if (abs(LRNum - RRNum) < 5 && abs(TRNum - BRNum) < 5)
-		return true;
-	else
-		return false;
-}
-
-void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> &char_imgs, bool showFlag = false)
+void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &char_imgs, bool showFlag = false)
 {
 	// this function is used to label image with connectedcomponnent analysis, and store the diagram 
 	//and label segment
@@ -69,7 +532,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> &char
 	colors[0] = Vec3b(0, 0, 0);
 	int dia_idx = 1;
 
-	
+
 	// random labelling color generation and segmented image logical matrix
 	for (int label = 1; label < labeln; ++label)
 	{
@@ -101,34 +564,34 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> &char
 				charSegs.push_back(charImgCandicate);
 				Rect oriRect = boundingRect(charImgCandicate);
 				int xoffset, yoffset; xoffset = (oriRect.tl()).x >= 1 ? 1 : 0;  yoffset = (oriRect.tl()).y >= 1 ? 1 : 0;
-				Rect adjustRect = oriRect + Point(-xoffset, -yoffset) + Size(2*xoffset, 2*yoffset);
+				Rect adjustRect = oriRect + Point(-xoffset, -yoffset) + Size(2 * xoffset, 2 * yoffset);
 				Mat pushM = Mat(charImgCandicate, adjustRect);
 				char_imgs.push_back(pushM);
-//				Rect brect = boundingRect(charImgCandicate);
-//				bRects.push_back(brect);
+				//				Rect brect = boundingRect(charImgCandicate);
+				//				bRects.push_back(brect);
 			}
 		}
 	}
 	/*test seg img check*/
-	
-	for (auto i = 0; i < charSegs.size();++i)
+
+	for (auto i = 0; i < charSegs.size(); ++i)
 	{
 		int label1 = matLabelp[i];
 		Vec2i tmpCentroid1 = centroidMat.row(label1);
 		Mat tmp1 = charSegs[i].clone();
-		
-		for (auto j = i + 1; j < charSegs.size();++j)
+
+		for (auto j = i + 1; j < charSegs.size(); ++j)
 		{
 			int label2 = matLabelp[j];
 			Vec2i tmpCentroid2 = centroidMat.row(label2);
 			double regiondis = norm(tmpCentroid1, tmpCentroid2);
 			cout << regiondis << endl;
-			if ( regiondis < 15)
+			if (regiondis < 15)
 			{
 				//merge
 				Mat tmp2 = charSegs[j].clone();
 				Mat tmp3 = tmp1 + tmp2;
-				cout << label1 << "  " << label2 <<"    "<<tmpCentroid1<<"  "<<tmpCentroid2<< endl;
+				cout << label1 << "  " << label2 << "    " << tmpCentroid1 << "  " << tmpCentroid2 << endl;
 				charSegs[i] = tmp3; charSegs[j] = tmp3;
 				Mat tmp4 = charSegs[i]; Mat tmp5 = charSegs[j];
 				cout << "test" << endl;
@@ -146,21 +609,21 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> &char
 		else
 			return false;
 	});
-	charSegs.erase(unique(charSegs.begin(), charSegs.end(),[](Mat a,Mat b)
+	charSegs.erase(unique(charSegs.begin(), charSegs.end(), [](Mat a, Mat b)
 	{
 		if (countNonZero(a != b) == 0)
 			return true;
 		else
 			return false;
-	}),charSegs.end());
+	}), charSegs.end());
 	for (auto iter = charSegs.begin(); iter != charSegs.end();)
 	{
 		Rect tmp = boundingRect(*iter);
 		double tmpArea = tmp.area();
-//		if (tmpArea < 30||isLSeg(*iter))
-//			iter = char_imgs.erase(iter);
-//		else
-			iter++;
+		//		if (tmpArea < 30||isLSeg(*iter))
+		//			iter = char_imgs.erase(iter);
+		//		else
+		iter++;
 	}
 	for (auto i = 0; i < charSegs.size(); ++i)
 	{
@@ -207,10 +670,8 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> &char
 	}
 }
 
-/********** *********************detection phase *************************/
-
+/******************************detection funcs*******************************************/
 /**********point part************/
-
 vector<Point2i> getPointPositions(Mat bw)
 {
 	vector<Point2i> pointPositions;
@@ -223,13 +684,6 @@ vector<Point2i> getPointPositions(Mat bw)
 		}
 	}
 	return pointPositions;
-}
-
-double p2pdistance(Vec2i pt1, Vec2i pt2)
-{
-	double distance;
-	distance = sqrt(powf((pt1[0] - pt2[0]), 2) + powf((pt1[1] - pt2[1]), 2));
-	return distance;
 }
 
 point_class* get_line_pt_by_id(vector<point_class>& pointxs, int id)
@@ -274,108 +728,58 @@ Vec2i get_line_ptVec_by_id(vector<point_class>& pointxs, int id)
 	}
 }
 
-
-bool same_pt(point_class pt1, point_class pt2)
-{
-	double eps = 8;//to be set parameter
-	double high_eps = 10;
-	if (abs(pt1.getX() - pt2.getX()) < 3 && p2pdistance(pt1.getXY(), pt2.getXY()) < high_eps)
-		return true;
-	if (p2pdistance(pt1.getXY(), pt2.getXY()) <= eps)
-		return true;
-	else
-		return false;
-}
-
-bool same_pt(Vec2i pt1, Vec2i pt2, double theta, bool in_line)
-{
-	double eps = 6;//to be set parametere
-	double sin_val = sin(2 * CV_PI * theta / 360.0);
-	double adapt_eps = eps / sin_val;
-	double plainDis = p2pdistance(pt1, pt2);
-	//cout << "plain dis " << plainDis << " ,adapt eps " << adapt_eps << endl;
-	if (plainDis <= adapt_eps)
-		return true;
-	else
-		return false;
-}
-
-bool close_pt(Vec2i pt1, Vec2i pt2)
-{
-	double eps = 10;//to be set parametere
-	double plainDis = p2pdistance(pt1, pt2);
-	//cout << "plain dis " << plainDis << " ,adapt eps " << adapt_eps << endl;
-	if (plainDis <= eps)
-		return true;
-	else
-		return false;
-}
-
-
-bool same_pt(Vec2i pt1, Vec2i pt2, int adapt_eps)
-{
-	double plainDis = p2pdistance(pt1, pt2);
-//	cout << "plain dis " << plainDis << " ,adapt eps " << adapt_eps << endl;
-	if (plainDis <= adapt_eps)
-		return true;
-	else
-		return false;
-}
-
-Vec2i avg_pt(vector<Vec2i> pts)
-{
-	Vec2i new_pt;
-	double xsum = 0.0;
-	double ysum = 0.0;
-	int ptsSize = pts.size();
-	for (size_t i = 0; i < ptsSize; ++i)
-	{
-		xsum += pts[i][0];
-		ysum += pts[i][1];
-	}
-	new_pt = {cvRound(xsum / ptsSize), cvRound(ysum / ptsSize)};
-	return new_pt;
-}
-
-void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i& newpts)
-{
-	/*choose the leftmost and rightmost points in 4 points coz the line is is other */
-	int x[4] = {pt1[0], pt2[0], pt3[0], pt4[0]};
-	int y[4] = {pt1[1], pt2[1], pt3[1], pt4[1]};
-	int x1, y1, x2, y2;
-	int idx1, idx2;
-	idx1 = idx2 = 0;
-	x1 = x[0];
-	x2 = x[0];
-	for (int i = 1; i < 4; ++i)
-	{
-		if (x[i] <= x1)
-		{
-			x1 = x[i];
-			idx1 = i;
-		}
-		if (x[i] >= x2)
-		{
-			x2 = x[i];
-			idx2 = i;
-		}
-	}
-	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
-}
-
-void getRangePts(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec2i& firstPt, Vec2i& fourthPt)
-{
-	map<int, int> tmpMap;
-	tmpMap[pt1[0]] = pt1[1];
-	tmpMap[pt2[0]] = pt2[1];
-	tmpMap[pt3[0]] = pt3[1];
-	tmpMap[pt4[0]] = pt4[1];
-	auto iterBegin = tmpMap.begin();
-	auto iterEnd = tmpMap.end();
-	--iterEnd;
-	firstPt = {iterBegin->first, iterBegin->second};
-	fourthPt = {iterEnd->first, iterEnd->second};
-}
+//Vec2i avg_pt(vector<Vec2i> pts)
+//{
+//	Vec2i new_pt;
+//	double xsum = 0.0;
+//	double ysum = 0.0;
+//	int ptsSize = pts.size();
+//	for (size_t i = 0; i < ptsSize; ++i)
+//	{
+//		xsum += pts[i][0];
+//		ysum += pts[i][1];
+//	}
+//	new_pt = {cvRound(xsum / ptsSize), cvRound(ysum / ptsSize)};
+//	return new_pt;
+//}
+//void computeNewPoints(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec4i& newpts)
+//{
+//	/*choose the leftmost and rightmost points in 4 points coz the line is is other */
+//	int x[4] = {pt1[0], pt2[0], pt3[0], pt4[0]};
+//	int y[4] = {pt1[1], pt2[1], pt3[1], pt4[1]};
+//	int x1, y1, x2, y2;
+//	int idx1, idx2;
+//	idx1 = idx2 = 0;
+//	x1 = x[0];
+//	x2 = x[0];
+//	for (int i = 1; i < 4; ++i)
+//	{
+//		if (x[i] <= x1)
+//		{
+//			x1 = x[i];
+//			idx1 = i;
+//		}
+//		if (x[i] >= x2)
+//		{
+//			x2 = x[i];
+//			idx2 = i;
+//		}
+//	}
+//	newpts = {x[idx1],y[idx1], x[idx2], y[idx2]};
+//}
+//void getRangePts(Vec2i pt1, Vec2i pt2, Vec2i pt3, Vec2i pt4, Vec2i& firstPt, Vec2i& fourthPt)
+//{
+//	map<int, int> tmpMap;
+//	tmpMap[pt1[0]] = pt1[1];
+//	tmpMap[pt2[0]] = pt2[1];
+//	tmpMap[pt3[0]] = pt3[1];
+//	tmpMap[pt4[0]] = pt4[1];
+//	auto iterBegin = tmpMap.begin();
+//	auto iterEnd = tmpMap.end();
+//	--iterEnd;
+//	firstPt = {iterBegin->first, iterBegin->second};
+//	fourthPt = {iterEnd->first, iterEnd->second};
+//}
 
 void rm_point_by_id(vector<point_class>& pointxs, int id)
 {
@@ -527,6 +931,35 @@ Vec3i radiusThicknessRev(Vec3f circle, Mat bw, int& width)
 	return ret;
 }
 
+bool on_circle(Vec2i pt, Vec3f circle)
+{
+	// check if the point pt is on one of the circles,or joints of multiple circles, or nothing to do with circles
+	// joint_flag parameter: 0 means not on any circle, 1 means on a circle, 2 means on two circles and so on
+	int dis = 5;// this parameter is to be set to check on the distance tolerants within the distance between radius and distance of pt and circle center point
+	//int count = 0;
+
+	Vec2f center = { circle[0], circle[1] };
+	double radius = circle[2];
+	double distance = p2pdistance(center, pt);
+	if (abs(distance - radius) <= dis)
+		return true;
+	else
+		return false;
+}
+bool on_circle(Vec2f pt, Vec3f circle)
+{
+	int dis = 5;// this parameter is to be set to check on the distance tolerants within the distance between radius and distance of pt and circle center point
+	//int count = 0;
+
+	Vec2f center = { circle[0], circle[1] };
+	double radius = circle[2];
+	double distance = norm(center, pt);
+	if (abs(distance - radius) <= dis)
+		return true;
+	else
+		return false;
+}
+
 void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, bool showFlag)
 {
 	unsigned int circleN_todetect = 2;
@@ -604,259 +1037,102 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 	}
 }
 
-bool on_circle(Vec2i pt, Vec3f circle)
+void detect_circle3(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, bool showFlag)
 {
-	// check if the point pt is on one of the circles,or joints of multiple circles, or nothing to do with circles
-	// joint_flag parameter: 0 means not on any circle, 1 means on a circle, 2 means on two circles and so on
-	int dis = 5;// this parameter is to be set to check on the distance tolerants within the distance between radius and distance of pt and circle center point
-	//int count = 0;
-
-	Vec2f center = {circle[0], circle[1]};
-	double radius = circle[2];
-	double distance = p2pdistance(center, pt);
-	if (abs(distance - radius) <= dis)
-		return true;
-	else
-		return false;
+	//Hough circle detection go
+	vector<Vec3f> houghc;
+	Mat diagram_segment2 = color_img.clone();
+//	Mat edge;
+//	Canny(diagram_segment, edge, 100, 200);
+//	imshow("edge", edge);
+	HoughCircles(diagram_segment, houghc, HOUGH_GRADIENT,1, 8, 1,22,  30,diagram_segment.rows/2);
+	for (size_t i = 0; i < houghc.size(); i++)
+	{
+		Point center(cvRound(houghc[i][0]), cvRound(houghc[i][1]));
+		int radius = cvRound(houghc[i][2]);
+		// circle center
+		circle(diagram_segment2, center, 3, Scalar(0, 255, 0), -1, 8, 0);
+		// circle outline
+		circle(diagram_segment2, center, radius, Scalar(0, 0, 255), 3, 8, 0);
+	}
 }
 
-bool on_circle(Vec2f pt, Vec3f circle)
-{
-	int dis = 5;// this parameter is to be set to check on the distance tolerants within the distance between radius and distance of pt and circle center point
-	//int count = 0;
 
-	Vec2f center = {circle[0], circle[1]};
-	double radius = circle[2];
-	double distance = norm(center, pt);
-	if (abs(distance - radius) <= dis)
-		return true;
-	else
-		return false;
-}
 
 /**************line part****************/
-double cross_product(Vec2i a, Vec2i b)
-{
-	return a[0] * b[1] - a[1] * b[0];
-}
 
-float pt2lineDis(Vec4i line, Vec2i pt)
-{
-	Vec2i bottom = {line[2] - line[0], line[3] - line[1]};
-	Vec2i slope = {pt[0] - line[0], pt[1] - line[1]};
-	float p2l = abs(cross_product(bottom, slope) / norm(bottom));
-	return p2l;
-}
 
-bool on_line(Vec4i line, Vec2i pt)
-{
-	double linedis_eps = 3;// double pointdis_eps = 5;
-	/*Vec2i ref_point = { line[0], line[1] };
-	Vec2i pt2 = { -pt[1], pt[0] };
-	Vec2i ref_point_t = { line[1], -line[0] };
-	Vec2i vec = { line[2] - line[0], line[3] - line[1] };
-	double point2line0 = abs((pt2.dot(vec) + ref_point_t.dot(vec))) / sqrt(vec.dot(vec));*/
-	//point2line0 is always equal to point2line
-	Vec2i bottom = {line[2] - line[0], line[3] - line[1]};
-	Vec2i slope = {pt[0] - line[0], pt[1] - line[1]};
-	double point2line = abs(cross_product(bottom, slope) / norm(bottom));
-	//	cout << "test  " << point2line0 << "," << point2line << "  " << (point2line == point2line0) << endl;
-	if (point2line < linedis_eps)
-		return true;
-	else
-		return false;
-}
-
-bool in_line(Vec4i line, Vec2i pt)
-{
-	//if (on_line(line, pt))
-	{
-		Vec2i pt1, pt2;
-		pt1 = {line[0], line[1]};
-		pt2 = {line[2], line[3]};
-		if (p2pdistance(pt1, pt) + p2pdistance(pt2, pt) - p2pdistance(pt1, pt2) < 10)
-			return true;
-		else
-			return false;
-	}
-	//else
-	//	return false;
-}
-
-int on_in_line(Vec4i line, Vec2i pt)
-{
-	Vec2i pt1, pt2;
-	pt1 = {line[0], line[1]};
-	pt2 = {line[2], line[3]};
-	if (pt[0] - pt1[0] < 5 || pt[0] - pt2[0] < 5)
-		return 1;
-	if ((pt[0] - pt1[0] + 5) * (pt[0] - pt2[0] + 5) > 0)
-	{
-		return 0;
-	}
-	else
-		return 2;
-}
-
-int ptLine(Vec4i line, Vec2i pt)
-{
-	//check the relationship between pt and line
-	//returns: 0- not on line,1 - on but not in line, 2- same with pt1, 3 - same with pt2, 4 general in line
-	Vec2i pt1, pt2;
-	pt1 = {line[0], line[1]};
-	pt2 = {line[2], line[3]};
-	if (same_pt(pt, pt1))
-	{
-		return 2;
-	}
-	else if (same_pt(pt, pt2))
-	{
-		return 3;
-	}
-	else if (in_line(line, pt))
-	{
-		//cout << "pt is in line" << endl;
-		return 4;
-	}
-	else if (on_line(line, pt))
-		return 1;
-	else
-		return 0;
-}
-
-bool onLinePtInLine(Vec4i line, Vec2i pt)
-{
-	Vec2i pt1, pt2;
-	pt1 = {line[0], line[1]};
-	pt2 = {line[2], line[3]};
-	int xLeft, xRight;
-	if (pt1[0] > pt2[0])
-	{
-		xLeft = pt2[0];
-		xRight = pt1[0];
-	}
-	else
-	{
-		xLeft = pt1[0];
-		xRight = pt2[0];
-	}
-	if (pt[0] >= xLeft && pt[0] <= xRight)
-		return true;
-	else
-		return false;
-}
-
-bool on_nin_line(Vec4i line, Vec2i pt)
-{
-	if (on_line(line, pt))
-	{
-		Vec2i pt1, pt2;
-		pt1 = {line[0], line[1]};
-		pt2 = {line[2], line[3]};
-		if (p2pdistance(pt1, pt) + p2pdistance(pt2, pt) - p2pdistance(pt1, pt2) > 20)
-			return true;
-		else
-			return false;
-	}
-	else
-		return false;
-}
-
-bool on_other_noncollinearlines(vector<Vec4i> plainLines, Vec4i temp_line, Vec2i pt)
-{
-	for (size_t i = 0; i < plainLines.size(); i++)
-	{
-		Vec2i pt1 = {plainLines[i][0], plainLines[i][1]};
-		Vec2i pt2 = {plainLines[i][2], plainLines[i][3]};
-		if ((pt == pt1) || (pt == pt2))
-		{
-			if ((!on_line(temp_line, pt1)) || (!on_line(temp_line, pt2)))
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-bool crossPtWithinLines(Vec4i line1, Vec4i line2, Vec2i cross)
-{
-	if (in_line(line1, cross))
-	{
-		//cross in line1
-		if (in_line(line2, cross))
-		{
-			//cross in line2
-			return true;
-		}
-		else
-		{
-			cout << "cross not in line2" << endl;
-			return false;
-		}
-	}
-	else
-	{
-		cout << "cross not in line1" << endl;
-		return false;
-	}
-}
-
-inline void line2pt(Vec4i line, Vec2i& pt1, Vec2i& pt2)
-{
-	pt1 = {line[0], line[1]};
-	pt2 = {line[2], line[3]};
-}
-
-Vec2i ptAttachToCircle(Vec2f& tmp, vector<circle_class>& circles)
-{
-	Vec2i cross;
-	if (circles.size() != 0)
-	{
-		for (int j = 0; j < circles.size(); j++)
-		{
-			Vec3i c = circles[j].getCircleVec();
-			Vec2f center = circles[j].getCenter();
-			float radius = circles[j].getRadius();
-			/*			if (on_circle(pt1, c) || on_circle(pt2, c) || on_circle(pt3, c) || on_circle(pt4, c))
-			{
-			continue;
-			}
-			else */
-			//To Note: there're changes here
-			if (on_circle(tmp, c))
-			{
-				cout << "cross approximately on circle" << endl;
-				float minDiff = 100;
-				int cenx = int(tmp[0]);
-				int ceny = int(tmp[1]);
-				int offset = int(p2pdistance(tmp, center) - radius);
-				offset = (offset < 1) ? 1 : offset;
-				for (auto m = cenx - offset; m <= cenx + offset; m++)
-				{
-					for (auto n = ceny - offset; n <= ceny + offset; n++)
-					{
-						Vec2i temp2 = {m, n};
-						float tmpDiff = abs(p2pdistance(temp2, center) - radius);
-						if (tmpDiff < minDiff)
-						{
-							tmp = temp2;
-							minDiff = tmpDiff;
-						}
-					}
-				}
-			}
-		}
-		cross = {int(tmp[0]), int(tmp[1])};
-		cout << "after attach to circle the cross is " << cross << endl;
-	}
-	else
-	{
-		cross = {int(tmp[0]), int(tmp[1])};
-		cout << "not circle on image, no attachment" << endl;
-	}
-	return cross;
-}
+//bool crossPtWithinLines(Vec4i line1, Vec4i line2, Vec2i cross)
+//{
+//	if (in_line(line1, cross))
+//	{
+//		//cross in line1
+//		if (in_line(line2, cross))
+//		{
+//			//cross in line2
+//			return true;
+//		}
+//		else
+//		{
+//			cout << "cross not in line2" << endl;
+//			return false;
+//		}
+//	}
+//	else
+//	{
+//		cout << "cross not in line1" << endl;
+//		return false;
+//	}
+//}
+//Vec2i ptAttachToCircle(Vec2f& tmp, vector<circle_class>& circles)
+//{
+//	Vec2i cross;
+//	if (circles.size() != 0)
+//	{
+//		for (int j = 0; j < circles.size(); j++)
+//		{
+//			Vec3i c = circles[j].getCircleVec();
+//			Vec2f center = circles[j].getCenter();
+//			float radius = circles[j].getRadius();
+//			/*			if (on_circle(pt1, c) || on_circle(pt2, c) || on_circle(pt3, c) || on_circle(pt4, c))
+//			{
+//			continue;
+//			}
+//			else */
+//			//To Note: there're changes here
+//			if (on_circle(tmp, c))
+//			{
+//				cout << "cross approximately on circle" << endl;
+//				float minDiff = 100;
+//				int cenx = int(tmp[0]);
+//				int ceny = int(tmp[1]);
+//				int offset = int(p2pdistance(tmp, center) - radius);
+//				offset = (offset < 1) ? 1 : offset;
+//				for (auto m = cenx - offset; m <= cenx + offset; m++)
+//				{
+//					for (auto n = ceny - offset; n <= ceny + offset; n++)
+//					{
+//						Vec2i temp2 = {m, n};
+//						float tmpDiff = abs(p2pdistance(temp2, center) - radius);
+//						if (tmpDiff < minDiff)
+//						{
+//							tmp = temp2;
+//							minDiff = tmpDiff;
+//						}
+//					}
+//				}
+//			}
+//		}
+//		cross = {int(tmp[0]), int(tmp[1])};
+//		cout << "after attach to circle the cross is " << cross << endl;
+//	}
+//	else
+//	{
+//		cross = {int(tmp[0]), int(tmp[1])};
+//		cout << "not circle on image, no attachment" << endl;
+//	}
+//	return cross;
+//}
 
 void getCrossPt(Vec4i line1, Vec4i line2, Vec2f& tmpCross)
 {
@@ -871,56 +1147,6 @@ void getCrossPt(Vec4i line1, Vec4i line2, Vec2f& tmpCross)
 	tmpCross[0] = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) * 1.0 / ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4));
 	tmpCross[1] = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) * 1.0 / ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4));
 }
-
-void findLineEnds(vector<Vec2i> colpoints, vector<Vec2i>& lineEnds, vector<Vec2i>& plainPoints, vector<Vec4i> plainLines)
-{
-	vector<distance_info> distance_infos;
-	for (vector<Vec2i>::iterator iter1 = colpoints.begin(); iter1 != colpoints.end(); ++iter1)
-	{
-		Vec2i pt1 = *iter1;
-		for (vector<Vec2i>::iterator iter2 = iter1 + 1; iter2 != colpoints.end(); ++iter2)
-		{
-			Vec2i pt2 = *iter2;
-			double tempDistance = p2pdistance(pt1, pt2);
-			distance_info dis_info = {pt1, pt2, tempDistance};
-			distance_infos.push_back(dis_info);
-		}
-	}
-	std::sort(distance_infos.begin(), distance_infos.end(),
-	          [](distance_info a, distance_info b)
-	          {
-		          return (a.distance > b.distance);
-	          });
-	Vec2i pt3 = distance_infos[0].pt1;
-	Vec2i pt4 = distance_infos[0].pt2;
-	lineEnds.push_back(pt3);
-	lineEnds.push_back(pt4);
-	int count0 = 0;
-	//cout << "colpoints size " << colpoints.size();
-	for (vector<Vec2i>::iterator iter3 = colpoints.begin(); iter3 != colpoints.end(); ++iter3)
-	{
-		Vec2i tempPt1 = *iter3;
-		bool flag = on_other_noncollinearlines(plainLines, {pt3[0], pt3[1], pt4[0], pt4[1]}, tempPt1);
-		for (vector<Vec2i>::iterator iter4 = plainPoints.begin(); iter4 != plainPoints.end();)
-		{
-			Vec2i tempPt2 = *iter4;
-			if (tempPt2 == tempPt1 && (tempPt2 != pt3) && (tempPt2 != pt4) && (!flag))
-			{
-				iter4 = plainPoints.erase(iter4);
-				count0++;
-				//cout << "iter4 value " << ++count0 <<" "<<tempPt2<< endl;
-				break;
-			}
-			else
-			{
-				++iter4;
-				continue;
-			}
-		}
-	}
-	//cout << " count0 " << count0 << endl;
-}
-
 
 void erase_pointfrom_set(vector<Vec2i>& set, Vec2i pt)
 {
@@ -1008,12 +1234,6 @@ bool in_rect(Vec2i pt, int leftx, int rightx, int lowy, int highy)
 		return false;
 }
 
-Vec4i pt2line(Vec2i pt1, Vec2i pt2)
-{
-	Vec4i ret = {pt1[0], pt1[1], pt2[0], pt2[1]};
-	return ret;
-}
-
 bool in_circle(Vec2i center, int radius, Vec2i pt)
 {
 	if (radius - p2pdistance(center, pt) >= 3)
@@ -1039,8 +1259,6 @@ int ptWithCircle(Vec2i center, int radius, Vec2i pt)
 	else
 		return 3;//outside circle with large distance
 }
-
-
 
 bool dashLineRecovery(vector<Point2i>& edgePt, Vec2i col_p1, Vec2i col_p2, vector<circle_class>& circles, bool plflag = false, bool pcflag = false, bool ppflag = false)
 {//check if there's dash line between
@@ -1419,12 +1637,6 @@ bool dashLineRecovery2(vector<Point2i>& withoutOnL_ept, Vec2i p_closer, Vec2i p_
 	}
 }
 
-double frac_compute(Vec2i pt1, Vec2i pt2, bool vertical_flag)
-{
-	double ret = vertical_flag ? 1.0*(pt2[0] - pt1[0]) / (pt2[1] - pt1[1]) : 1.0*(pt2[1] - pt1[1]) / (pt2[0] - pt1[0]);
-	return ret;
-}
-
 bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgePoints, Vec2i p_closer, Vec2i p_farther, Vec2i p_cross, vector<circle_class> &circles, bool plflag = false, bool pcflag = false, bool ppflag = false, bool secCheck = true)
 {
 	//check if there's dash line between
@@ -1528,78 +1740,6 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 	}
 }
 
-double lSlope(Vec4i line)
-{
-	Vec2i pt1, pt2;
-	line2pt(line, pt1, pt2);
-	Vec2i lineV = {line[2] - line[0], line[3] - line[1]};
-	double theta = atan2(lineV[1], lineV[0]);
-	return theta;
-}
-
-double llAngle(Vec4i line1, Vec4i line2)
-{
-	if (line1 == line2)
-		return 0;
-	double theta1, theta2;
-	theta1 = lSlope(line1);
-	theta2 = lSlope(line2);
-	double angle = int(abs(theta1 - theta2) / CV_PI * 180);
-	return angle;
-}
-
-bool isParallel(Vec4i line1, Vec4i line2)
-{
-	Vec2i pt1, pt2, pt3, pt4;
-	line2pt(line1, pt1, pt2);
-	line2pt(line2, pt3, pt4);
-	Vec2i line1V = {line1[2] - line1[0], line1[3] - line1[1]};
-	Vec2i line2V = {line2[2] - line2[0], line2[3] - line2[1]};
-	double theta1, theta2;
-	/*if (abs(line1V[0]) < 3)
-	{
-		theta1 = CV_PI / 2.0;
-	}
-	else if (abs(line1V[1]) < 3)
-	{
-		theta1 = 0;
-	}
-	else
-	{
-		theta1 = (atan2(line1V[1], line1V[0]));
-	}
-	if (abs(line2V[0]) < 3)
-	{
-		theta2 = CV_PI / 2.0;
-	}
-	else if (abs(line2V[1]) < 3)
-	{
-		theta2 = 0;
-	}
-	else
-	{
-		theta2 = (atan2(line2V[1], line2V[0]));
-	}*/
-	if (on_line(line1, pt3) && on_line(line1, pt4))
-	{
-		return true;
-	}
-	if ((abs(line1V[0]) < 3 && abs(line2V[0]) < 3) | (abs(line1V[1]) < 3 && abs(line2V[1]) < 3))
-	{
-		return true;
-	}
-	else
-	{
-		theta1 = (atan2(line1V[1], line1V[0]));
-		theta2 = (atan2(line2V[1], line2V[0]));
-	}
-
-	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
-	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
-	double angle = llAngle(line1, line2);
-	return (angle <= 5) || (angle >= 175);
-}
-
 bool ptSortPred(Vec2i pt1, Vec2i pt2)
 {
 	return (pt1[0] < pt2[0]);
@@ -1660,33 +1800,6 @@ int isEndPoint(Vec4i line, Vec2i pt)
 		return 0;
 }
 
-void chooseNearCircle(vector<Vec3f>& circle_candidates, Vec2i& cross, Vec2i& pt)
-{
-	for (auto i = 0; i < circle_candidates.size(); i++)
-	{
-		Vec3f circle = circle_candidates[i];
-		Vec2i center = {int(circle[0]), int(circle[1])};
-		if (p2pdistance(pt, center) - circle[2] < 5)
-		{
-			if (p2pdistance(pt, center) > p2pdistance(cross, center))
-			{
-				cross = pt;
-			}
-		}
-	}
-}
-
-bool isPartOfLongerLine(Vec4i line1, Vec4i line2)
-{
-	//check if line1 is part of line2;
-	Vec2i pt1, pt2;
-	pt1 = {line1[0], line1[1]};
-	pt2 = {line1[2], line1[3]};
-	if (in_line(line2, pt1) && in_line(line2, pt2))
-		return true;
-	else
-		return false;
-}
 
 bool existRealLineWithinPtxs(vector<line_class>& lineXs, vector<point_class> pointxs, point_class ptx1, point_class ptx2)
 {
@@ -1723,49 +1836,11 @@ bool existRealLineWithinPtxs(vector<line_class>& lineXs, vector<point_class> poi
 		return false;
 }
 
-bool sameLine(Vec4i line1, Vec4i line2)
-{
-	Vec2i pt1 = {line1[0], line1[1]};
-	Vec2i pt2 = {line1[2], line1[3]};
-	Vec2i pt3 = {line2[0], line2[1]};
-	Vec2i pt4 = {line2[0], line2[1]};
-	bool flag1 = (same_pt(pt1, pt3) && same_pt(pt2, pt4));
-	bool flag2 = (same_pt(pt1, pt4) && same_pt(pt2, pt3));
-	if (flag1 || flag2)
-		return true;
-	else
-		return false;
-}
-
-double slopeEval(Vec4i line)
-{
-	double diff1, diff2, diff;
-	diff1 = lSlope(line) - 0;
-	diff2 = lSlope(line) - 90;
-	diff = (diff1 < diff2) ? diff1 : diff2;
-	return diff;
-}
-
 void vecSwapValue(vector<Vec4i>::iterator iter1, vector<Vec4i>::iterator iter2)
 {
 	auto tmp = *iter1;
 	*iter1 = *iter2;
 	*iter2 = tmp;
-}
-
-bool nearToAcross(Vec2i pt, vector<Vec2i>& crossPts)
-{
-	auto iter = find_if(crossPts.begin(), crossPts.end(), [&](Vec2i a)
-	                    {
-		                    if (same_pt(pt, a))
-			                    return true;
-		                    else
-			                    return false;
-	                    });
-	if (iter != crossPts.end())
-		return true;
-	else
-		return false;
 }
 
 int line_recovery_process(line_class* linex, Vec2i p_cross, vector<Point2i>& withoutOnL_ept, vector<Point2i> &oriEdgePoints, vector<point_class>& pointxs, vector<circle_class>& circlexs, bool id_change = false)
@@ -1808,8 +1883,6 @@ int line_recovery_process(line_class* linex, Vec2i p_cross, vector<Point2i>& wit
 	}
 	return pos;
 }
-
-
 
 void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector<circle_class>& circlexs, vector<point_class>& pointxs, vector<point_class>& TACpointxs ,vector<Point2i>& withoutOnL_ept, vector<Point2i> &oriEdgePoints)
 {
@@ -2449,8 +2522,6 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 	}
 	cout << "refinement stop" << endl;
 }
-
-
 
 void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Point2i>& oriEdgePoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
 {
@@ -3144,24 +3215,89 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	drawedImages = color_img;
 }
 
-Mat preprocessing(Mat diagram_segment)
+Vec4f plineRet(Vec4f a, Vec4f b)
 {
-	//namedWindow("origianl diagram seg"); imshow("original diagram seg", diagram_segment);
-	//now we'll do some preprocessing to make for the following detection procedure
-	Mat eroded, dilated, opened, closed;
-	Mat eroEle, dilEle;
-	eroEle = getStructuringElement(MORPH_RECT, Size(3, 3));
-	morphologyEx(diagram_segment, dilated, MORPH_DILATE, eroEle);
-	//erode(diagram_segment, eroded, eroEle);
-	namedWindow("dilated image");
-	imshow("dilated image", dilated);
-	//namedWindow("eroded diagram"); imshow("eroded diagram", eroded);
-	morphologyEx(diagram_segment, closed, MORPH_CLOSE, eroEle);
-	namedWindow("closed diagram");
-	imshow("closed diagram", closed);
-	return closed;
+	Vec2f pt1, pt2, pt3, pt4;
+	pt1 = { a[0], a[1] };pt2 = { a[2], a[3] };
+	pt3 = { b[0], b[1] };pt4 = { b[2], b[3] };
+	float x1, x2, x3, x4, y1, y2, y3, y4,x0,y0;
+	x1 = pt1[0];x2 = pt2[0];x3 = pt3[0];x4 = pt4[0];
+	y1 = pt1[1];y2 = pt2[1];y3 = pt3[1];y4 = pt4[1];
+
+	bool vertical_flag = (abs(pt1[0] - pt2[0]) < abs(pt1[1] - pt2[1])) ? true : false;
+	Vec4f ret;
+
+//	bool overlap = (x3 - x1)*(x4 - x2) >= 0 ? true : false;
+//	double frac = frac_compute(pt1, pt2, vertical_flag);
+//	ret[2] = (x4 - frac*y1 + frac*frac*x1) / (1 + frac*frac);
+//	x0 = ret[2];
+//	ret[3] = y1 + frac*(x0 - x1);
+	if (!vertical_flag)
+	{
+		if (x1==x3)
+		{
+			cout << "x1 == x3" << endl;
+			if (abs(x1-x4) > abs(x1- x2))
+			{
+				ret = { x3, y3, x4, y4 };
+			}
+			else
+			{
+				ret = { x1, y1, x2, y2 };
+			}
+		}
+	}
+	else
+	{
+		
+	}
+	return ret;
 }
 
+double lldis(Vec4f l1,Vec4f l2)
+{
+	Vec2f pt1, pt2;
+	line2pt(l1, pt1, pt2);
+	return pt2lineDis(l2, pt1);
+}
+
+void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Point2i>& oriEdgePoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
+{
+	Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD);
+	vector<Vec4f> line_std;
+	ls->detect(diagram_segwithoutcircle, line_std);
+	Mat drawLines(diagram_segwithoutcircle);
+	ls->drawSegments(drawLines, line_std);
+	imshow("standard refinement", drawLines);
+	for (auto iter1 = line_std.begin(); iter1 != line_std.end(); ++iter1)
+	{
+		for (auto iter2 = iter1+1; iter2 != line_std.end();++iter2)
+		{
+			if (isParallel(*iter1, *iter2)&&lldis(*iter1,*iter2)<8)
+			{
+				cout << "parallel" << endl;
+				*iter1 = plineRet(*iter1, *iter2);
+				*iter2 = *iter1;
+			}
+
+		}
+	}
+	sort(line_std.begin(), line_std.end(), [](Vec4f a, Vec4f b)
+	{
+		if (a[0] < b[0])
+			return true;
+		else
+			return false;
+	});
+	line_std.erase(line_std.begin(), unique(line_std.begin(), line_std.end()));
+	for (auto iter = line_std.begin(); iter != line_std.end(); iter++)
+	{
+		Vec2i p1, p2;
+		p1 = { int((*iter)[0]), int((*iter)[1]) };
+		p2 = { int((*iter)[2]),int( (*iter)[3]) };
+		line(drawLines, p1, p2, Scalar(255, 255, 0), 1);
+	}
+}
 
 void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vector<Point2i>& oriEdgePoints, vector<point_class>& points, vector<line_class>& lines, vector<circle_class>& circles, Mat& drawedImages, bool showFlag = true, string fileName = "")
 {
@@ -3183,8 +3319,8 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	//vector<Vec2i> basicEndpoints = {};
 
 
-	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
-
+//	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+	detect_line_lsd(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
 
 	/*display point text info*/
 	//for (int i = 0; i < points.size(); ++i)
@@ -3207,7 +3343,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("graph-85.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
