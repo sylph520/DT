@@ -38,8 +38,5 @@
     <ClCompile Include="diagram.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="text.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

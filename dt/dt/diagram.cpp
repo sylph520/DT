@@ -225,6 +225,17 @@ inline void line2pt(Vec4f line, Vec2f& pt1, Vec2f& pt2)
 	pt2 = { line[2], line[3] };
 }
 
+Vec2i f2i(Vec2f fp)
+{
+	Vec2i retP = { int(fp[0]), int(fp[1]) }; 
+	return retP;
+}
+Vec4i f2i(Vec4f fl)
+{
+	Vec4i retL= { int(fl[0]), int(fl[1]), int(fl[2]), int(fl[3]) };
+	return retL;
+}
+
 /**p2p**/
 double p2pdistance(Vec2i pt1, Vec2i pt2)
 {
@@ -1740,9 +1751,21 @@ bool dashLineRecovery(vector<Point2i> &withoutOnL_ept, vector<Point2i>& oriEdgeP
 	}
 }
 
-bool ptSortPred(Vec2i pt1, Vec2i pt2)
+bool ptXiSortPred(Vec2i pt1, Vec2i pt2)
 {
 	return (pt1[0] < pt2[0]);
+}
+bool ptYiSortPred(Vec2i pt1, Vec2i pt2)
+{
+	return (pt1[1] < pt2[1]);
+}
+bool ptXfSortPred(Vec2f pt1, Vec2f pt2)
+{
+	return (pt1[0] < pt2[0]);
+}
+bool ptYfSortPred(Vec2f pt1, Vec2f pt2)
+{
+	return (pt1[1] < pt2[1]);
 }
 
 bool with_same_line(vector<Vec4i>& plainLines, Vec2i pt1, Vec2i pt2)
@@ -2652,7 +2675,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 				}
 				else
 				{
-					sort(tmpPtVec.begin(), tmpPtVec.end(), ptSortPred);
+					sort(tmpPtVec.begin(), tmpPtVec.end(), ptXiSortPred);
 					cout << "line1 is not vertical" << endl;
 				}
 				Vec2i firstPt = tmpPtVec[0];
@@ -3224,7 +3247,7 @@ Vec4f plineRet(Vec4f a, Vec4f b)
 	x1 = pt1[0];x2 = pt2[0];x3 = pt3[0];x4 = pt4[0];
 	y1 = pt1[1];y2 = pt2[1];y3 = pt3[1];y4 = pt4[1];
 	float x_4[4] = { x1, x2, x3, x4 };
-	sort(x_4, x_4 + 4);
+//	sort(x_4, x_4 + 4);
 	
 	bool vertical_flag = (abs(pt1[0] - pt2[0]) < abs(pt1[1] - pt2[1])) ? true : false;
 	Vec4f ret;
@@ -3253,10 +3276,13 @@ double lldis(Vec4f l1,Vec4f l2)
 	return pt2lineDis(l2, mid);
 }
 
+
 void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Point2i>& oriEdgePoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
 {
 	Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD);
 	vector<Vec4f> line_std;
+//	ofstream tmpLogFile;
+//	tmpLogFile.open("tmpLog.txt");
 	ls->detect(diagram_segwithoutcircle, line_std);
 	Mat drawLines(diagram_segwithoutcircle);
 	ls->drawSegments(drawLines, line_std);
@@ -3277,14 +3303,25 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 					cout << "collinear,then combine" << endl;
 					Vec2f pt1, pt2, pt3, pt4;
 					line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
+					Mat tmpImg = drawLines.clone();
+					line(tmpImg, f2i(pt1), f2i(pt2), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
+					circle(tmpImg, f2i(pt1), 10, Scalar(255, 255, 0),1);
+					circle(tmpImg, f2i(pt2), 10, Scalar(255, 255, 0),1 );
+					circle(tmpImg, f2i(pt3), 5, Scalar(255, 0, 255),1);
+					circle(tmpImg, f2i(pt4), 5, Scalar(255, 0, 255),1);
 					vector<Vec2f> tmp;
 					tmp.push_back(pt1);
 					tmp.push_back(pt2);
 					tmp.push_back(pt3);
 					tmp.push_back(pt4);
-					sort(tmp.begin(), tmp.end(), ptSortPred);
+					sort(tmp.begin(), tmp.end(), ptXfSortPred);
 					Vec4f newline = pt2line(tmp[0], tmp[3]);
+					circle(tmpImg, f2i(tmp[0]), 7, Scalar(0, 255, 255), 1);
+					circle(tmpImg, f2i(tmp[3]), 7, Scalar(0, 255, 255), 1);
 					*iter1 = newline; *iter2 = newline;
+//					tmpLogFile << pt1 << endl << pt2 << endl << pt3 << endl << pt4 << endl;
+//					tmpLogFile << newline << endl << endl;
+					cout << "sep" << endl;
 				}
 			}
 		}
