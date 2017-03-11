@@ -3223,7 +3223,9 @@ Vec4f plineRet(Vec4f a, Vec4f b)
 	float x1, x2, x3, x4, y1, y2, y3, y4,x0,y0;
 	x1 = pt1[0];x2 = pt2[0];x3 = pt3[0];x4 = pt4[0];
 	y1 = pt1[1];y2 = pt2[1];y3 = pt3[1];y4 = pt4[1];
-
+	float x_4[4] = { x1, x2, x3, x4 };
+	sort(x_4, x_4 + 4);
+	
 	bool vertical_flag = (abs(pt1[0] - pt2[0]) < abs(pt1[1] - pt2[1])) ? true : false;
 	Vec4f ret;
 
@@ -3234,18 +3236,7 @@ Vec4f plineRet(Vec4f a, Vec4f b)
 //	ret[3] = y1 + frac*(x0 - x1);
 	if (!vertical_flag)
 	{
-		if (x1==x3)
-		{
-			cout << "x1 == x3" << endl;
-			if (abs(x1-x4) > abs(x1- x2))
-			{
-				ret = { x3, y3, x4, y4 };
-			}
-			else
-			{
-				ret = { x1, y1, x2, y2 };
-			}
-		}
+
 	}
 	else
 	{
@@ -3258,7 +3249,8 @@ double lldis(Vec4f l1,Vec4f l2)
 {
 	Vec2f pt1, pt2;
 	line2pt(l1, pt1, pt2);
-	return pt2lineDis(l2, pt1);
+	Vec2f mid = (pt1 + pt2) / 2;
+	return pt2lineDis(l2, mid);
 }
 
 void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Point2i>& oriEdgePoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
@@ -3269,33 +3261,49 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 	Mat drawLines(diagram_segwithoutcircle);
 	ls->drawSegments(drawLines, line_std);
 	imshow("standard refinement", drawLines);
-	for (auto iter1 = line_std.begin(); iter1 != line_std.end(); ++iter1)
+	int corlinear_num = 0;
+	for (auto iter1 = line_std.begin(); iter1 != line_std.end();++iter1)
 	{
-		for (auto iter2 = iter1+1; iter2 != line_std.end();++iter2)
+		for (auto iter2 = iter1 + 1; iter2 != line_std.end(); ++iter2)
 		{
-			if (isParallel(*iter1, *iter2)&&lldis(*iter1,*iter2)<8)
+			Vec4f line1 = *iter1; Vec4f line2 = *iter2;
+			if (isParallel(line1, line2))
 			{
-				cout << "parallel" << endl;
-				*iter1 = plineRet(*iter1, *iter2);
-				*iter2 = *iter1;
+				cout << "the two line is parallel" << endl;
+				double tmp_lldis = lldis(line1, line2);
+				cout << "the distance between the two line is " << tmp_lldis << endl;
+				if (tmp_lldis < 3)
+				{
+					cout << "collinear,then combine" << endl;
+					Vec2f pt1, pt2, pt3, pt4;
+					line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
+					vector<Vec2f> tmp;
+					tmp.push_back(pt1);
+					tmp.push_back(pt2);
+					tmp.push_back(pt3);
+					tmp.push_back(pt4);
+					sort(tmp.begin(), tmp.end(), ptSortPred);
+					Vec4f newline = pt2line(tmp[0], tmp[3]);
+					*iter1 = newline; *iter2 = newline;
+				}
 			}
-
 		}
 	}
-	sort(line_std.begin(), line_std.end(), [](Vec4f a, Vec4f b)
-	{
+
+	sort(line_std.begin(), line_std.end(), [](Vec4f a, Vec4f b){
 		if (a[0] < b[0])
 			return true;
 		else
 			return false;
 	});
 	line_std.erase(line_std.begin(), unique(line_std.begin(), line_std.end()));
+	
 	for (auto iter = line_std.begin(); iter != line_std.end(); iter++)
 	{
 		Vec2i p1, p2;
 		p1 = { int((*iter)[0]), int((*iter)[1]) };
 		p2 = { int((*iter)[2]),int( (*iter)[3]) };
-		line(drawLines, p1, p2, Scalar(255, 255, 0), 1);
+		line(drawLines, p1, p2, Scalar(255, 0, 255), 5);
 	}
 }
 
