@@ -3281,48 +3281,97 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 {
 	Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD);
 	vector<Vec4f> line_std;
-//	ofstream tmpLogFile;
-//	tmpLogFile.open("tmpLog.txt");
+	//	ofstream tmpLogFile;
+	//	tmpLogFile.open("tmpLog.txt");
 	ls->detect(diagram_segwithoutcircle, line_std);
 	Mat drawLines(diagram_segwithoutcircle);
 	ls->drawSegments(drawLines, line_std);
 	imshow("standard refinement", drawLines);
+	
+
 	int corlinear_num = 0;
-	for (auto iter1 = line_std.begin(); iter1 != line_std.end();++iter1)
+	for (auto iter1 = line_std.begin(); iter1 != line_std.end(); ++iter1)
 	{
-		for (auto iter2 = iter1 + 1; iter2 != line_std.end(); ++iter2)
+		Vec2f pt1, pt2; Vec4f line1 = *iter1; line2pt(line1, pt1, pt2);
+		Mat tmpImg = drawLines.clone();
+		line(tmpImg, f2i(pt1), f2i(pt2), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
+		circle(tmpImg, f2i(pt1), 10, Scalar(255, 255, 0), 1);
+		circle(tmpImg, f2i(pt2), 10, Scalar(255, 255, 0), 1);
+		cout << "sep" << endl;
+		Vec4i test1 = {  176, 183,196, 29 };
+		if (test1 == f2i(line1))
+			cout << "test stop" << endl;
+		for (auto iter2 = line_std.begin(); iter2 != line_std.end(); ++iter2)
 		{
-			Vec4f line1 = *iter1; Vec4f line2 = *iter2;
+//			Vec4f line1 = *iter1; Vec4f line2 = *iter2;
+			Vec4f line2 = *iter2;
+			int id1, id2; id1 = int(iter1 - line_std.begin()); id2 = int(iter2 - line_std.begin());
+			Vec2f pt3, pt4;
+			line2pt(line2, pt3, pt4);
+			line(tmpImg, f2i(pt3), f2i(pt4), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
+			circle(tmpImg, f2i(pt3), 5, Scalar(255, 0, 255), 1);
+			circle(tmpImg, f2i(pt4), 5, Scalar(255, 0, 255), 1);
+			Vec4i test2 = { 180, 174, 189, 100 };
+			if (test2 == f2i(line2))
+				cout << "stop" << endl;
 			if (isParallel(line1, line2))
 			{
 				cout << "the two line is parallel" << endl;
 				double tmp_lldis = lldis(line1, line2);
+//				Vec2f pt1, pt2, pt3, pt4;
+//				line(tmpImg, f2i(pt3), f2i(pt4), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
+//				circle(tmpImg, f2i(pt3), 5, Scalar(255, 0, 255), 1);
+//				circle(tmpImg, f2i(pt4), 5, Scalar(255, 0, 255), 1);
 				cout << "the distance between the two line is " << tmp_lldis << endl;
-				if (tmp_lldis < 3)
+				if (tmp_lldis < 5)
 				{
 					cout << "collinear,then combine" << endl;
-					Vec2f pt1, pt2, pt3, pt4;
-					line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
-					Mat tmpImg = drawLines.clone();
-					line(tmpImg, f2i(pt1), f2i(pt2), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
-					circle(tmpImg, f2i(pt1), 10, Scalar(255, 255, 0),1);
-					circle(tmpImg, f2i(pt2), 10, Scalar(255, 255, 0),1 );
-					circle(tmpImg, f2i(pt3), 5, Scalar(255, 0, 255),1);
-					circle(tmpImg, f2i(pt4), 5, Scalar(255, 0, 255),1);
+					cout << "line " << id1 << ": " << *iter1 << endl << "line " << id2 << ": " << *iter2 << endl;
+//					Vec2f pt1, pt2, pt3, pt4;
+//					line2pt(line1, pt1, pt2); line2pt(line2, pt3, pt4);
+//					Mat tmpImg = drawLines.clone();
+//					line(tmpImg, f2i(pt1), f2i(pt2), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
+//					line(tmpImg, f2i(pt3), f2i(pt4), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
+//					circle(tmpImg, f2i(pt1), 10, Scalar(255, 255, 0), 1);
+//					circle(tmpImg, f2i(pt2), 10, Scalar(255, 255, 0), 1);
+//					circle(tmpImg, f2i(pt3), 5, Scalar(255, 0, 255), 1);
+//					circle(tmpImg, f2i(pt4), 5, Scalar(255, 0, 255), 1);
 					vector<Vec2f> tmp;
 					tmp.push_back(pt1);
 					tmp.push_back(pt2);
 					tmp.push_back(pt3);
 					tmp.push_back(pt4);
 					sort(tmp.begin(), tmp.end(), ptXfSortPred);
-					Vec4f newline = pt2line(tmp[0], tmp[3]);
-					circle(tmpImg, f2i(tmp[0]), 7, Scalar(0, 255, 255), 1);
-					circle(tmpImg, f2i(tmp[3]), 7, Scalar(0, 255, 255), 1);
+					Vec2f newPt1, newPt2;
+					newPt1 = (p2pdistance(tmp[0], tmp[3]) < p2pdistance(tmp[1], tmp[3])) ? tmp[1] : tmp[0];
+					newPt2 = (p2pdistance(tmp[3], tmp[0]) < p2pdistance(tmp[2], tmp[0])) ? tmp[2] : tmp[3];
+					//					if (p2pdistance(pt1,pt2)<p2pdistance(pt3,pt4))
+					//					{
+					//						newPt1 = pt3;
+					//						newPt2 = pt4;
+					//					}
+					//					else
+					//					{
+					//						newPt1 = pt1;
+					//						newPt2 = pt2;
+					//					}
+					Vec4f newline = pt2line(newPt1, newPt2);
+
+					circle(tmpImg, f2i(newPt1), 7, Scalar(0, 255, 255), 1);
+					circle(tmpImg, f2i(newPt2), 7, Scalar(0, 255, 255), 1);
+					line(tmpImg, f2i(newPt1), f2i(newPt2), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 2);
+					cout << "both line -> " << newline << endl;
 					*iter1 = newline; *iter2 = newline;
-//					tmpLogFile << pt1 << endl << pt2 << endl << pt3 << endl << pt4 << endl;
-//					tmpLogFile << newline << endl << endl;
+					cout << line_std[id1] << "  " << line_std[id2] << endl;
+					//					tmpLogFile << pt1 << endl << pt2 << endl << pt3 << endl << pt4 << endl;
+					//					tmpLogFile << newline << endl << endl;
+
 					cout << "sep" << endl;
 				}
+			}
+			else
+			{
+				cout << "not parallel and no change" << endl;
 			}
 		}
 	}
@@ -3333,14 +3382,28 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 		else
 			return false;
 	});
-	line_std.erase(line_std.begin(), unique(line_std.begin(), line_std.end()));
-	
+	line_std.erase(unique(line_std.begin(), line_std.end(),[](Vec4f a,Vec4f b)
+	{
+		Vec2i pt1, pt2, pt3, pt4;
+		pt1 = { int(a[0]), int(a[1]) }; pt2 = { int(a[2]), int(a[3]) };
+		pt3 = { int(b[0]), int(b[1]) }; pt4 = { int(b[2]), int(b[3]) };
+		if ((a == b) || (same_pt(pt1, pt3) && same_pt(pt2, pt4)) || (same_pt(pt1, pt4)&same_pt(pt2, pt3)))
+		{
+			return true;
+		}
+		else
+			return false;
+	}), line_std.end());
+
 	for (auto iter = line_std.begin(); iter != line_std.end(); iter++)
 	{
 		Vec2i p1, p2;
+		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
 		p1 = { int((*iter)[0]), int((*iter)[1]) };
 		p2 = { int((*iter)[2]),int( (*iter)[3]) };
-		line(drawLines, p1, p2, Scalar(255, 0, 255), 5);
+		circle(drawLines, p1, 10*(rand()/double(RAND_MAX))+5, tmp, 1);
+		circle(drawLines, p2, 5, tmp, 1);
+		line(drawLines, p1, p2, Scalar(0,255,255), 1);
 	}
 }
 
