@@ -3299,7 +3299,7 @@ double lldis(Vec4f l1,Vec4f l2)
 bool get_vertical_flag(Vec4f lf)
 {
 	Vec2f pt1, pt2; line2pt(lf, pt1, pt2);
-	if (abs(pt1[1] - pt2[1]) < 3)
+	if (abs(pt1[0] - pt2[0]) < 3)
 		return true;
 	else
 		return false;
@@ -3307,7 +3307,7 @@ bool get_vertical_flag(Vec4f lf)
 bool get_vertical_flag(Vec4i lf)
 {
 	Vec2i pt1, pt2; line2pt(lf, pt1, pt2);
-	if (abs(pt1[1] - pt2[1]) < 3)
+	if (abs(pt1[0] - pt2[0]) < 3)
 		return true;
 	else
 		return false;
@@ -3402,16 +3402,82 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 					//					circle(tmpImg, f2i(pt3), 5, Scalar(255, 0, 255), 1);
 					//					circle(tmpImg, f2i(pt4), 5, Scalar(255, 0, 255), 1);
 
-					vector<Vec2f> tmp;
-					tmp.push_back(pt1);
-					tmp.push_back(pt2);
-					tmp.push_back(pt3);
-					tmp.push_back(pt4);
-					sort(tmp.begin(), tmp.end(), ptXfSortPred);
+//					vector<Vec2f> tmp;
+//					tmp.push_back(pt1);
+//					tmp.push_back(pt2);
+//					tmp.push_back(pt3);
+//					tmp.push_back(pt4);
+//					sort(tmp.begin(), tmp.end(), ptXfSortPred);
 
 					Vec2f newPt1, newPt2;
-					newPt1 = (p2pdistance(tmp[0], tmp[3]) < p2pdistance(tmp[1], tmp[3])) ? tmp[1] : tmp[0];
-					newPt2 = (p2pdistance(tmp[3], tmp[0]) < p2pdistance(tmp[2], tmp[0])) ? tmp[2] : tmp[3];
+//					newPt1 = (p2pdistance(tmp[0], tmp[3]) < p2pdistance(tmp[1], tmp[3])) ? tmp[1] : tmp[0];
+//					newPt2 = (p2pdistance(tmp[3], tmp[0]) < p2pdistance(tmp[2], tmp[0])) ? tmp[2] : tmp[3];
+					bool tmpVFlag = get_vertical_flag(line1);
+					
+					if (!tmpVFlag)
+					{
+						if (pt1[0] < pt3[0])
+						{
+//							if (p2pdistance(pt1, pt4) > p2pdistance(pt3, pt4))
+//								newPt1 = pt1;
+//							else
+//								newPt1 = pt3;
+							newPt1 = (p2pdistance(pt1, pt4) > p2pdistance(pt3, pt4)) ? pt1 : pt3;
+						}
+						else
+						{
+							if (p2pdistance(pt3, pt4) > p2pdistance(pt1, pt4))
+								newPt1 = pt3;
+							else
+								newPt1 = pt1;
+							newPt1 = (p2pdistance(pt3, pt4) > p2pdistance(pt1, pt4)) ? pt3 : pt1;
+						}
+						if (pt4[0] > pt2[0])
+						{
+							if (p2pdistance(pt4, pt1) > p2pdistance(pt2, pt1))
+								newPt2 = pt4;
+							else
+								newPt2 = pt2;
+						}
+						else
+						{
+							if (p2pdistance(pt2, pt1) > p2pdistance(pt4, pt1))
+								newPt2 = pt2;
+							else
+								newPt2 = pt4;
+						}
+					}
+					else
+					{
+						if (pt1[1] < pt3[1])
+						{
+							if (p2pdistance(pt1, pt4) > p2pdistance(pt3, pt4))
+								newPt1 = pt1;
+							else
+								newPt1 = pt3;
+						}
+						else
+						{
+							if (p2pdistance(pt3, pt4) > p2pdistance(pt1, pt4))
+								newPt1 = pt3;
+							else
+								newPt1 = pt1;
+						}
+						if (pt4[1] > pt2[1])
+						{
+							if (p2pdistance(pt4, pt1) > p2pdistance(pt2, pt1))
+								newPt2 = pt4;
+							else
+								newPt2 = pt2;
+						}
+						else
+						{
+							if (p2pdistance(pt2, pt1) > p2pdistance(pt4, pt1))
+								newPt2 = pt2;
+							else
+								newPt2 = pt4;
+						}
+					}
 					Vec4f newline = pt2line(newPt1, newPt2);
 
 					circle(tmpImg, f2i(newPt1), 7, Scalar(0, 255, 255), 1);
