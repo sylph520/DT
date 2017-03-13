@@ -433,23 +433,35 @@ double frac_compute(Vec2i pt1, Vec2i pt2, bool vertical_flag)
 	return ret;
 }
 
-double lSlope(Vec4i line)
+double lSlope_r(Vec4i line)
 {
 	Vec2i pt1, pt2;
 	line2pt(line, pt1, pt2);
 	Vec2i lineV = { line[2] - line[0], line[3] - line[1] };
-	double theta = atan2(lineV[1], lineV[0]);
-	return theta;
+	if ((abs(lineV[0]) < 3))
+	{
+		return 0;
+	}
+	else if (abs(lineV[1] < 3))
+	{
+		return CV_PI / 2;
+	}
+	double theta_r = atan2(lineV[1], lineV[0]);
+	if (theta_r < 0 || theta_r >180)
+		cout << "stop" << endl;
+	return theta_r;
 }
 
 double llAngle(Vec4i line1, Vec4i line2)
 {
 	if (line1 == line2)
 		return 0;
-	double theta1, theta2;
-	theta1 = lSlope(line1);
-	theta2 = lSlope(line2);
-	double angle = int(abs(theta1 - theta2) / CV_PI * 180);
+	double theta1_r, theta2_r;
+	theta1_r = lSlope_r(line1);
+	theta2_r = lSlope_r(line2);
+	if (theta1_r < 0 || theta2_r < 0)
+		cout << "stop" << endl;
+	double angle = int(abs(theta1_r - theta2_r) / CV_PI * 180);
 	return angle;
 }
 
@@ -489,19 +501,21 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	{
 		return true;
 	}
-	if ((abs(line1V[0]) < 3 && abs(line2V[0]) < 3) | (abs(line1V[1]) < 3 && abs(line2V[1]) < 3))
+	if ((abs(line1V[0]) < 3 && abs(line2V[0]) < 3) || (abs(line1V[1]) < 3 && abs(line2V[1]) < 3))
 	{
 		return true;
 	}
-	else
-	{
-		theta1 = (atan2(line1V[1], line1V[0]));
-		theta2 = (atan2(line2V[1], line2V[0]));
-	}
+//	else
+//	{
+//		theta1 = (atan2(line1V[1], line1V[0]));
+//		theta2 = (atan2(line2V[1], line2V[0]));
+//	}
 
 	/*double theta1 = abs((abs(line1V[0]) <= 3) ? CV_PI / 2.0 : atan2(line1V[1], line1V[0]));
 	double theta2 = abs((abs(line2V[0]) <= 3) ? CV_PI / 2.0 : atan2(line2V[1], line2V[0]));*/
 	double angle = llAngle(line1, line2);
+	if (angle > 180)
+		cout << "stop" << endl;
 	return (angle <= 5) || (angle >= 175);
 }
 
@@ -3299,18 +3313,19 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 	Mat tmpImg;
 	for (auto iter1 = line_std.begin(); iter1 != line_std.end(); ++iter1)
 	{
-		Vec2f pt1, pt2; Vec4f line1 = *iter1; line2pt(line1, pt1, pt2);
-		tmpImg = drawLines.clone();
-		line(tmpImg, f2i(pt1), f2i(pt2), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
-		circle(tmpImg, f2i(pt1), 10, Scalar(255, 255, 0), 1);
-		circle(tmpImg, f2i(pt2), 10, Scalar(255, 255, 0), 1);
-		cout << "sep" << endl;
-		Vec4i test1 = { 176, 183, 196, 29 };
+		Vec4f line1 = *iter1;
+		Vec4i test1 = { 37, 19, 37, 84 };
 		if (test1 == f2i(line1))
 			cout << "test stop" << endl;
 		for (auto iter2 = line_std.begin(); iter2 != line_std.end(); ++iter2)
 		{
 			//			Vec4f line1 = *iter1; Vec4f line2 = *iter2;
+			Vec2f pt1, pt2;  line2pt(line1, pt1, pt2);
+			tmpImg = drawLines.clone();
+			line(tmpImg, f2i(pt1), f2i(pt2), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
+			circle(tmpImg, f2i(pt1), 10, Scalar(255, 255, 0), 1);
+			circle(tmpImg, f2i(pt2), 10, Scalar(255, 255, 0), 1);
+			cout << "sep" << endl;
 			Vec4f line2 = *iter2;
 			int id1, id2; id1 = int(iter1 - line_std.begin()); id2 = int(iter2 - line_std.begin());
 			Vec2f pt3, pt4;
@@ -3318,7 +3333,7 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			line(tmpImg, f2i(pt3), f2i(pt4), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
 			circle(tmpImg, f2i(pt3), 5, Scalar(255, 0, 255), 1);
 			circle(tmpImg, f2i(pt4), 5, Scalar(255, 0, 255), 1);
-			Vec4i test2 = { 180, 174, 189, 100 };
+			Vec4i test2 = { 41, 54, 68, 68 };
 			if (test2 == f2i(line2))
 				cout << "stop" << endl;
 			if (isParallel(line1, line2))
