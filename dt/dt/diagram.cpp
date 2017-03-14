@@ -438,17 +438,17 @@ double lSlope_r(Vec4i line)
 	Vec2i pt1, pt2;
 	line2pt(line, pt1, pt2);
 	Vec2i lineV = { line[2] - line[0], line[3] - line[1] };
-	if ((abs(lineV[0]) < 3))
+	if ((abs(lineV[1]) < 3))
 	{
 		return 0;
 	}
-	else if (abs(lineV[1] < 3))
+	else if (abs(lineV[0] < 3))
 	{
 		return CV_PI / 2;
 	}
-	double theta_r = atan2(lineV[1], lineV[0]);
-	if (theta_r < 0 || theta_r >180)
-		cout << "stop" << endl;
+	int ydelta = lineV[1];
+	int xdelta = lineV[0];
+	double theta_r = atan2(ydelta, xdelta);
 	return theta_r;
 }
 
@@ -2369,7 +2369,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 				else
 				{
 					cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
-					lx2->setpt2Id(tmp_id2);
+					lx2->setpt1Id(tmp_id2);
 				}
 
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
@@ -3360,6 +3360,7 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 		Vec4i test1 = { 37, 19, 37, 84 };
 		if (test1 == f2i(line1))
 			cout << "test stop" << endl;
+
 		for (auto iter2 = line_std.begin(); iter2 != line_std.end(); ++iter2)
 		{
 			//			Vec4f line1 = *iter1; Vec4f line2 = *iter2;
@@ -3370,6 +3371,8 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			circle(tmpImg, f2i(pt2), 10, Scalar(255, 255, 0), 1);
 			cout << "sep" << endl;
 			Vec4f line2 = *iter2;
+			if (abs(line1[3] - line1[1]) < 3 && abs(line2[3] - line2[1])< 3)
+				cout << "stop" << endl;
 			int id1, id2; id1 = int(iter1 - line_std.begin()); id2 = int(iter2 - line_std.begin());
 			Vec2f pt3, pt4;
 			line2pt(line2, pt3, pt4);
@@ -3516,17 +3519,18 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 	}), line_std.end());
 
 	
-	for (auto iter = line_std.begin(); iter != line_std.end(); ++iter)
-	{
-		Vec2i p1, p2;
-		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
-		p1 = { int((*iter)[0]), int((*iter)[1]) };
-		p2 = { int((*iter)[2]), int((*iter)[3]) };
-		circle(drawLines, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
-		circle(drawLines, p2, 5, tmp, 1);
-		line(drawLines, p1, p2, Scalar(0, 255, 255), 1);
-	}
-	cout << "stop" << endl;
+//	for (auto iter = line_std.begin(); iter != line_std.end(); ++iter)
+//	{
+//		Vec2i p1, p2;
+//		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
+//		p1 = { int((*iter)[0]), int((*iter)[1]) };
+//		p2 = { int((*iter)[2]), int((*iter)[3]) };
+//		circle(drawLines, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
+//		circle(drawLines, p2, 5, tmp, 1);
+//		line(drawLines, p1, p2, Scalar(0, 255, 255), 1);
+//	}
+//	cout << "stop" << endl;
+
 //	// initialize linex and pointx
 //	int px_count = 0; int lx_count = 0;
 //	vector<point_class> pointxs;
@@ -3803,6 +3807,19 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			delete ptx1 , ptx2 , lx;
 		}
 	}
+	
+	for (auto iter = linexs.begin(); iter != linexs.end(); ++iter)
+	{
+		Vec2i p1, p2;
+		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
+		p1 = { int((iter->getLineVec(pointxs))[0]), int((iter->getLineVec(pointxs))[1]) };
+		p2 = { int((iter->getLineVec(pointxs))[2]), int((iter->getLineVec(pointxs))[3]) };
+		circle(drawLines, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
+		circle(drawLines, p2, 5, tmp, 1);
+		line(drawLines, p1, p2, Scalar(0, 255, 255), 1);
+		cout << p1 << " " << p2 << endl;
+	}
+	cout << "stop" << endl;
 
 	map<int, int> change000;
 	vector<point_class> toAddCrossPoints;
@@ -3816,6 +3833,7 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			Vec4i linex1_vec = linex1->getLineVec(pointxs);
 			Vec4i linex2_vec = linex2->getLineVec(pointxs);
 			//check whether the two line are parallel, if so, jump ahead
+			Mat tmp = color_img.clone();
 			if (isParallel(linex1_vec, linex2_vec))
 			{
 				//cout << linex1_vec << endl << linex2_vec << endl;
@@ -3830,8 +3848,11 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 				line2pt(linex1_vec, pt1, pt2);
 				line2pt(linex2_vec, pt3, pt4);
 				getCrossPt(linex1_vec, linex2_vec, raw_cross);
-				cout << endl << "raw cross" << raw_cross << endl;
+				cout << linex1_vec << endl << linex2_vec << endl;
+//				cout << endl << "raw cross" << raw_cross << endl;
 				double angle = llAngle(linex1_vec, linex2_vec);
+				line(tmp, pt1, pt2, Scalar(0, 255, 255), 1);
+				line(tmp, pt3, pt4, Scalar(0, 255, 255), 1);
 				if ((angle > 15) && (!isInImage(diagram_segwithoutcircle.cols, diagram_segwithoutcircle.rows, raw_cross)))
 				{
 					cout << raw_cross << endl;
@@ -3841,11 +3862,13 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 				else
 				{
 					//cross in scope
-					cout << linex1_vec << endl << linex2_vec << endl;
+//					cout << linex1_vec << endl << linex2_vec << endl;
+					circle(tmp, f2i(raw_cross), 5, Scalar(255, 255, 0), 1);
 					cross_refinement(raw_cross, linex1, linex2, circles, pointxs, toAddCrossPoints, withouCnlBw_ept, oriEdgePoints);
+
 					//					cout << linex1->getLineVec(pointxs)<< linex1->getPt1Id() << "," << linex1->getPt2Id() << endl;
 					//					cout << linex2->getLineVec(pointxs) << linex2->getPt1Id() << "," << linex2->getPt2Id() << endl;
-					cout << "step separate" << endl;
+					cout << "step separate" << endl << endl;
 				}
 			}
 		}
@@ -4116,7 +4139,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("sg-6.jpg", 0);
+	Mat image = imread("sg-2.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
