@@ -2080,6 +2080,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 			}
 			else
 			{
+				cout << "cross disjoint with line1" << endl;
 				int pos = line_recovery_process(lx2, lx1->getpt1vec(pointxs), withoutOnL_ept,oriEdgePoints, pointxs, circlexs);
 //				if (close_pt(raw_cross, pt3))
 //				{
@@ -2113,11 +2114,13 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 					{
 						cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
 						lx2->setpt1Id(tmp_id1);
+						rm_point_by_id(pointxs, tmp_id2);
 					}
 					else
 					{
 						cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
 						lx1->setpt1Id(tmp_id2);
+						rm_point_by_id(pointxs, tmp_id1);
 					}
 					cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 					cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
@@ -2264,11 +2267,13 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 					{
 						cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
 						lx2->setpt1Id(tmp_id1);
+						rm_point_by_id(pointxs, tmp_id2);
 					}
 					else
 					{
 						cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
 						lx1->setpt2Id(tmp_id2);
+						rm_point_by_id(pointxs, tmp_id1);
 					}
 					cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 					cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
@@ -2328,6 +2333,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 //					lx2->setpt2Id(lx1->getPt1Id());
 //				}
 //			}
+			
 			if (pos == 0)
 			{
 				cout << "no recovery" << endl;
@@ -2345,11 +2351,13 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 				{
 					cout << "id " << tmp_id2 << " id change to id " << tmp_id1 << endl;
 					lx1->setpt1Id(tmp_id1);
+					rm_point_by_id(pointxs, tmp_id2);
 				}
 				else
 				{
 					cout << "id " << tmp_id1 << " id change to id " << tmp_id2 << endl;
 					lx2->setpt1Id(tmp_id2);
+					rm_point_by_id(pointxs, tmp_id1);
 				}
 				cout << lx1->getPt1Id() << " " << lx1->getpt1vec(pointxs) << ", " << lx1->getPt2Id() << " " << lx1->getpt2vec(pointxs) << endl;
 				cout << lx2->getPt1Id() << " " << lx2->getpt1vec(pointxs) << ", " << lx2->getPt2Id() << " " << lx2->getpt2vec(pointxs) << endl;
@@ -3331,31 +3339,7 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 	Mat drawLines0 = drawLines.clone();
 	ls->drawSegments(drawLines0, line_std);
 	imshow("standard refinement", drawLines);
-	for (auto iter = line_std.begin(); iter != line_std.end(); )
-	{
-		//rm the too short lines
-		Vec2f pt1, pt2;
-		line2pt(*iter, pt1, pt2);
-		if (p2pdistance(pt1, pt2) < 20)
-			iter = line_std.erase(iter);
-		else
-		{
-			if (get_vertical_flag(*iter))
-			{
-				cout << " the line is thought to be vertical" << endl;
-				if (pt2[1] < pt1[1])
-					*iter = pt2line(pt2, pt1);
-			}
-			else
-			{
-				cout << "not verical" << endl;
-				if (pt2[0] < pt1[0])
-					*iter = pt2line(pt2, pt1);
-			}
-			++iter;
-		}
-
-	}
+	
 
 
 	int corlinear_num = 0;
@@ -3504,7 +3488,31 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			}
 		}
 	}
+	for (auto iter = line_std.begin(); iter != line_std.end();)
+	{
+		//rm the too short lines
+		Vec2f pt1, pt2;
+		line2pt(*iter, pt1, pt2);
+		if (p2pdistance(pt1, pt2) < 20)
+			iter = line_std.erase(iter);
+		else
+		{
+			if (get_vertical_flag(*iter))
+			{
+				cout << " the line is thought to be vertical" << endl;
+				if (pt2[1] < pt1[1])
+					*iter = pt2line(pt2, pt1);
+			}
+			else
+			{
+				cout << "not verical" << endl;
+				if (pt2[0] < pt1[0])
+					*iter = pt2line(pt2, pt1);
+			}
+			++iter;
+		}
 
+	}
 	sort(line_std.begin(), line_std.end(), [](Vec4f a, Vec4f b){
 		if (a[0] < b[0])
 			return true;
@@ -3910,7 +3918,7 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			if (flag1&&flag2)
 			{
 				double len = p2pdistance(pt1, pt2);
-//				if (len < cir[2] / 3)
+				if (len < cir[2] / 3)
 				{
 					auto iter1 = find_if(linexs.begin(), linexs.end(), [&](line_class a)
 					                     {
@@ -4152,7 +4160,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("sg-4.jpg", 0);
+	Mat image = imread("sg-17.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -4191,7 +4199,7 @@ int diagram()
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
-	for (int i = 1; i < 5; i++)
+	for (int i = 1; i < 87; i++)
 	{
 		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
 		sprintf_s(saveimgName, "%s\\saveImage\\sgs-%d.jpg", abs_path, i);
