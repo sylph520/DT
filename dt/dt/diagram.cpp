@@ -3339,7 +3339,31 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 	Mat drawLines0 = drawLines.clone();
 	ls->drawSegments(drawLines0, line_std);
 	imshow("standard refinement", drawLines);
-	
+	for (auto iter = line_std.begin(); iter != line_std.end(); )
+	{
+		//rm the too short lines
+		Vec2f pt1, pt2;
+		line2pt(*iter, pt1, pt2);
+		if (p2pdistance(pt1, pt2) < 10)
+			iter = line_std.erase(iter);
+		else
+		{
+			if (get_vertical_flag(*iter))
+			{
+				cout << " the line is thought to be vertical" << endl;
+				if (pt2[1] < pt1[1])
+					*iter = pt2line(pt2, pt1);
+			}
+			else
+			{
+				cout << "not verical" << endl;
+				if (pt2[0] < pt1[0])
+					*iter = pt2line(pt2, pt1);
+			}
+			++iter;
+		}
+
+	}
 
 
 	int corlinear_num = 0;
@@ -3488,31 +3512,7 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			}
 		}
 	}
-	for (auto iter = line_std.begin(); iter != line_std.end();)
-	{
-		//rm the too short lines
-		Vec2f pt1, pt2;
-		line2pt(*iter, pt1, pt2);
-		if (p2pdistance(pt1, pt2) < 20)
-			iter = line_std.erase(iter);
-		else
-		{
-			if (get_vertical_flag(*iter))
-			{
-				cout << " the line is thought to be vertical" << endl;
-				if (pt2[1] < pt1[1])
-					*iter = pt2line(pt2, pt1);
-			}
-			else
-			{
-				cout << "not verical" << endl;
-				if (pt2[0] < pt1[0])
-					*iter = pt2line(pt2, pt1);
-			}
-			++iter;
-		}
 
-	}
 	sort(line_std.begin(), line_std.end(), [](Vec4f a, Vec4f b){
 		if (a[0] < b[0])
 			return true;
@@ -4160,7 +4160,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("sg-17.jpg", 0);
+	Mat image = imread("sg-2.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
