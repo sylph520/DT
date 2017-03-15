@@ -442,7 +442,7 @@ double lSlope_r(Vec4i line)
 	{
 		return 0;
 	}
-	else if (abs(lineV[0] < 3))
+	else if (abs(lineV[0]) < 3)
 	{
 		return CV_PI / 2;
 	}
@@ -516,7 +516,7 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	double angle = llAngle(line1, line2);
 	if (angle > 180)
 		cout << "stop" << endl;
-	return (angle <= 5) || (angle >= 175);
+	return (angle <= 10) || (angle >= 175);
 }
 
 
@@ -3266,6 +3266,575 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	drawedImages = color_img;
 }
 
+void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withoutCirBw, vector<point_class> pointXs, vector<circle_class>& circles, Mat& color_img, vector<line_class> lineXs, vector<Point2i>& oriEdgePoints, Mat& drawedImages, bool showFlag = true, string fileName = "")
+{
+	vector<Point2i> withoutO_ept = getPointPositions(withoutCirBw);
+
+	vector<Vec4i> plainLines = {};
+
+#pragma region raw detection
+
+	Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD);
+	vector<Vec4f> line_std;
+	//	ofstream tmpLogFile;
+	//	tmpLogFile.open("tmpLog.txt");
+	ls->detect(diagram_segwithoutcircle, line_std);
+	
+	for (size_t i = 0; i < line_std.size(); ++i)
+	{
+		//eliminate the false detected lines with few points on it
+		Vec4i rawLine = f2i(line_std[i]);
+
+		float lineEV = evaluateLine(diagram_segwithoutcircle, rawLine);
+		if (lineEV > 10)//this threshold should be set a litter lower to generate enough line candidates
+		{
+			plainLines.push_back(rawLine);
+			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(255, 0, 0), 2, 8);
+		}
+	}
+	/*display or write into file*/
+	if (showFlag)
+	{
+		for (size_t j = 0; j < plainLines.size(); ++j)
+		{
+			Vec4i l = plainLines[j];
+			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
+		}
+		namedWindow("7.lines first opt version now 1");
+		imshow("7.lines first opt version now 1", color_img);
+	}
+	else if (fileName != "")
+	{
+		// write into txt
+		ofstream ofile, ofile2;
+		ofile.open(fileName, ios_base::app);
+		for (size_t k = 0; k < plainLines.size(); ++k)
+		{
+			Vec4i l = plainLines[k];
+			cout << l[0] << "," << l[1] << endl << l[2] << "," << l[3] << endl;
+			ofile << l[0] << "," << l[1] << "\n" << l[2] << "," << l[3] << "\n";
+		}
+		ofile << "\n";
+		cout << endl;
+		ofile.close();
+	}
+
+#pragma endregion raw detection
+
+	/* then we handle the lines specifically*/
+	/* for lines should be combined 1. colinear 2. */
+
+	/*display*/
+	Mat oriL_img = color_img.clone();
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+		//			cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(oriL_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+	}
+
+	cout << "stop and test point" << endl;
+
+#pragma region rmParallel
+
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		// output the rough line infoes here
+		cout << plainLines[i][0] << "," << plainLines[i][1] << "," << plainLines[i][2] << "," << plainLines[i][3] << endl;
+	}
+	// remove parallel lines
+	for (auto iter1 = plainLines.begin(); iter1 != plainLines.end(); ++iter1)
+	{
+		// first combine collinear line
+		//int maxXDiff = 0;
+		cout << "stop" << endl;
+		for (auto iter2 = iter1 + 1; iter2 != plainLines.end();)
+		{
+			Vec4i line1 = *iter1;
+			Vec2i pt1 = { line1[0], line1[1] };
+			Vec2i pt2 = { line1[2], line1[3] };
+			cout << pt1 << "pt" << pt2 << endl;
+
+			Vec4i line2 = *iter2;
+			Vec2i pt3 = { line2[0], line2[1] };
+			Vec2i pt4 = { line2[2], line2[3] };
+			cout << pt3 << "pt" << pt4 << endl;
+
+			if (isParallel(line1, line2))
+			{
+				//if it's parallel, followed by checking if collinear
+				cout << "line1 and line2 is parallel" << endl;
+				vector<Vec2i> tmpPtVec;
+				tmpPtVec.push_back(pt1);
+				tmpPtVec.push_back(pt2);
+				tmpPtVec.push_back(pt3);
+				tmpPtVec.push_back(pt4);
+				bool flag0 = false;
+
+				//flag0 indicates whether line 1 is vertical, if vertical sort the tmpvec by y axis info, otherwise sort it  by x axis
+				if ((flag0 = (abs(pt1[0] - pt2[0]) < 3)))
+				{
+					sort(tmpPtVec.begin(), tmpPtVec.end(), [](Vec2i a, Vec2i b) { return a[1] < b[1]; });
+					cout << "line1 is vertical" << endl;
+				}
+				else
+				{
+					sort(tmpPtVec.begin(), tmpPtVec.end(), ptXiSortPred);
+					cout << "line1 is not vertical" << endl;
+				}
+				Vec2i firstPt = tmpPtVec[0];
+				Vec2i fourthPt = tmpPtVec[3];
+				Vec2i secondPt = tmpPtVec[1];
+				Vec2i thirdPt = tmpPtVec[2];
+				//check;
+
+				if (ptLine(line1, pt3)) //pt3 of line2 is on line 1
+					//||sameLine(line1,line2)) 
+					//TO Note: change here
+				{
+					// if it's collinear
+					cout << "two line is collinear" << endl;
+					int eps = 5;
+					bool flag3, flag4;
+					if (!flag0)
+					{
+						// line1 not vertical
+						flag3 = ((pt3[0] - pt1[0]) * (pt3[0] - pt2[0]) > 0); //appoximate if pt3 is in line1 or on line1 but not in it
+						flag4 = ((pt4[0] - pt1[0]) * (pt4[0] - pt2[0]) > 0);//approximate if pt4 is in  line1
+					}
+					else
+					{
+						flag3 = ((pt3[1] - pt1[1]) * (pt3[1] - pt2[1]) > 0); //appoximate if pt3 is in line1
+						flag4 = ((pt4[1] - pt1[1]) * (pt4[1] - pt2[1]) > 0);//approximate if pt4 is in  line1					
+					}
+					// four points are all different
+					if (flag3 && flag4 && !same_pt(pt1, pt3) && !same_pt(pt1, pt4) && !same_pt(pt2, pt3) && !same_pt(pt2, pt4))
+					{
+						// two disjoint collinear line
+						cout << "four point are all different,";
+						cout << firstPt << "range" << fourthPt << endl;
+						if (dashLineRecovery(withoutO_ept, secondPt, thirdPt, circles, true, false, false))
+						{
+							*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
+							cout << "collinear line recovery, now the line1 is " << *iter1 << "and erase line2" << endl << endl;
+							iter2 = plainLines.erase(iter2);
+						}
+						else
+						{
+							cout << "collinear but two differnent line" << endl << endl;
+							++iter2;
+						}
+						//iter2++;
+					}
+					else
+					{
+						cout << "colliner line cross over" << endl;
+						cout << firstPt << "range" << fourthPt << endl;
+						*iter1 = { firstPt[0], firstPt[1], fourthPt[0], fourthPt[1] };
+						cout << "now the line1 is " << *iter1 << endl << endl;
+						iter2 = plainLines.erase(iter2);
+					}
+				}
+				else
+				{
+					cout << "parallel but not collinear" << endl << endl;
+					++iter2;
+				}
+			}
+			else
+			{
+				cout << "line1 and line2 is not parallel" << endl << endl;
+				++iter2;
+			}
+		}
+		cout << endl;
+	}
+
+
+#pragma endregion rmParallel
+
+	Mat rmParaI = color_img.clone();
+	/*display*/
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i l = plainLines[i];
+		Vec2i pt1 = { l[0], l[1] };
+		Vec2i pt2 = { l[2], l[3] };
+		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(rmParaI, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(rmParaI, Point{ pt1[0], pt1[1] }, 10, tmp);
+		circle(rmParaI, Point{ pt2[0], pt2[1] }, 10, tmp);
+	}
+	namedWindow("rm parallel", 0);
+	imshow("rm parallel", rmParaI);
+
+	// remove the line detected and store it as withoutCLOriBw
+
+	/*************cover the detected line with white pixel*/
+	Mat withoutCnLBw = withoutCirBw.clone();
+	Mat withoutLBw = diagram_segment.clone();
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec4i pl = plainLines[i];
+		Vec2i pt1 = { pl[0], pl[1] };
+		Vec2i pt2 = { pl[2], pl[3] };
+		cv::line(withoutCnLBw, pt1, pt2, 0, 3, 8, 0);
+		cv::line(withoutLBw, pt1, pt2, 0, 3, 8, 0);
+	}
+	vector<Point2i> withouCnlBw_ept = getPointPositions(withoutCnLBw);
+	vector<Point2i> withoutL_ept = getPointPositions(withoutLBw);
+
+	bool testflag = false;
+
+	cout << endl << "***********block stop" << endl << endl;
+
+	/****************sort the line and mod the horionzal and vertical line*/
+	vector<Vec4i> tmpLines;
+	auto ordered_iter = plainLines.begin();
+	for (auto iter = plainLines.begin() + 1; iter != plainLines.end(); ++iter)
+	{
+		Vec4i line = *iter;
+		Vec2i pt1, pt2;
+		line2pt(line, pt1, pt2);
+		if (abs(pt1[0] - pt2[0]) < 3)
+		{
+			//the line is vertical
+			(*iter)[0] = (*iter)[2];
+			vecSwapValue(iter, ordered_iter);
+			++ordered_iter;
+		}
+		else if (abs(pt1[1] - pt2[1]) < 3)
+		{
+			//the line is horizonal
+			(*iter)[1] = (*iter)[3];
+			vecSwapValue(iter, ordered_iter);
+			++ordered_iter;
+		}
+	}
+
+	int px_count = 0;
+	int lx_count = 0;
+	vector<line_class> linexs;
+	vector<point_class> pointxs;
+
+	/***********initialize lines and points**********/
+	for (auto i = 0; i < plainLines.size(); i++)
+	{
+		Vec2i tmpPt1, tmpPt2; line2pt(plainLines[i], tmpPt1, tmpPt2);
+		if (norm(tmpPt1, tmpPt2) > 20)
+		{
+			auto p_l = plainLines[i];
+			Vec2i pt1, pt2;
+			line2pt(p_l, pt1, pt2);
+			auto _pidx1 = px_count++;
+			int _pidx2 = px_count++;
+			int _lidx = lx_count++;
+			point_class* ptx1 = new point_class(pt1, _pidx1);
+			point_class* ptx2 = new point_class(pt2, _pidx2);
+			//cout << &ptx1 << endl<<&ptx2<<endl;
+			ptx1->pushLid(_lidx);
+			ptx2->pushLid(_lidx);
+			pointxs.push_back(*ptx1);
+			pointxs.push_back(*ptx2);
+
+			line_class* lx = new line_class(ptx1->getPid(), ptx2->getPid(), _lidx);
+			//lx.p1 = &pointxs[_pidx1]; lx.p2 = &pointxs[_pidx2];
+			linexs.push_back(*lx);
+			delete ptx1, ptx2, lx;
+		}
+	}
+
+	/*display */
+	//	for (auto i = 0; i < linexs.size(); i++)
+	//	{
+	//		Vec4i l = linexs[i].getLineVec(pointxs);
+	//		Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+	//		//cout << "*********************" << pt1 << " " << pt2 << endl;
+	//		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
+	//		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+	//		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+	//		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+	//	}
+	//namedWindow("7.lines first opt version now", 0); imshow("7.lines first opt version now", color_img);
+
+	/*print line axis and id infos*/
+	for (auto i = 0; i < linexs.size(); i++)
+	{
+		Vec4i l = linexs[i].getLineVec(pointxs);
+		Vec2i pt1 = { l[0], l[1] };
+		Vec2i pt2 = { l[2], l[3] };
+		cout << pt1 << " " << pt2 << endl;
+		cout << linexs[i].getPt1Id() << " " << linexs[i].getPt2Id() << endl;
+	}
+	cout << "****************sep" << endl << endl;
+
+	// with the raw detection result, we may get extra false line or omit some line(eg. dash line falsely removed previously or real line not detected)
+	// in order to detect all lines, we suppose to first put all candidates into calculation then remove the false line at the last step.
+	/*******************raw line candidates refinement*/
+	map<int, int> change000;
+	vector<point_class> toAddCrossPoints;
+	for (auto i = 0; i < linexs.size(); i++)
+	{
+		line_class* linex1 = &linexs[i];
+		cout << endl << "**********" << linex1->getLineVec(pointxs) << endl;
+		for (auto j = i + 1; j < linexs.size(); j++)
+		{
+			line_class* linex2 = &linexs[j];
+			Vec4i linex1_vec = linex1->getLineVec(pointxs);
+			Vec4i linex2_vec = linex2->getLineVec(pointxs);
+			//check whether the two line are parallel, if so, jump ahead
+			if (isParallel(linex1_vec, linex2_vec))
+			{
+				//cout << linex1_vec << endl << linex2_vec << endl;
+				cout << "the two line is parallel but not collinear" << endl;
+				continue;
+			}
+			else
+			{
+				// not parallel, then calculate the rough cross first
+				Vec2i pt1, pt2, pt3, pt4;
+				Vec2f raw_cross;
+				line2pt(linex1_vec, pt1, pt2);
+				line2pt(linex2_vec, pt3, pt4);
+				getCrossPt(linex1_vec, linex2_vec, raw_cross);
+				cout << endl << "raw cross" << raw_cross << endl;
+				double angle = llAngle(linex1_vec, linex2_vec);
+				if ((angle>15) && (!isInImage(diagram_segwithoutcircle.cols, diagram_segwithoutcircle.rows, raw_cross)))
+				{
+					cout << raw_cross << endl;
+					cout << "cross out of scope, then take it as no cross" << endl;
+					continue;
+				}
+				else
+				{
+					//cross in scope
+					cout << linex1_vec << endl << linex2_vec << endl;
+					cross_refinement(raw_cross, linex1, linex2, circles, pointxs, toAddCrossPoints, withouCnlBw_ept, oriEdgePoints);
+					cout << "step separate" << endl;
+				}
+			}
+		}
+	}
+	for (auto i = 0; i < linexs.size(); i++)
+	{
+		cout << linexs[i].getLineVec(pointxs) << linexs[i].getPt1Id() << ", " << linexs[i].getPt2Id() << endl;
+	}
+	for (auto j = 0; j < pointxs.size(); j++)
+	{
+		cout << pointxs[j].getPid() << "  " << pointxs[j].getXY() << endl;
+	}
+	cout << "after cross points refinement" << endl;
+	//rm isolated short lines due to the non-complete circle removal
+	// 1. two points almost on circles 2. the length is short 3. the end points is ont on other lines
+	int rm_pt_num = 0;
+	int rm_line_num = 0;
+	map<int, int> changeMap0;
+	for (auto iter = linexs.begin(); iter != linexs.end();)
+	{
+		Vec2i pt1, pt2;
+		line2pt(iter->getLineVec(pointxs), pt1, pt2);
+		bool rm_flag = false;
+		for (auto i = 0; i < circles.size(); ++i)
+		{
+			Vec3i cir = circles[i].getCircleVec();
+			if (on_circle(pt1, cir) && on_circle(pt2, cir))
+			{
+				double len = p2pdistance(pt1, pt2);
+				if (len < cir[2] / 2)
+				{
+					auto iter1 = find_if(linexs.begin(), linexs.end(), [&](line_class a)
+					{
+						if (a.getLineVec(pointxs) != iter->getLineVec(pointxs))
+						{
+							if (a.getpt1vec(pointxs) == pt1 || a.getpt2vec(pointxs) == pt1)
+								return true;
+							else
+								return false;
+						}
+						else
+							return false;
+					});
+					auto iter2 = find_if(linexs.begin(), linexs.end(), [&](line_class a)
+					{
+						if (a.getLineVec(pointxs) != iter->getLineVec(pointxs))
+						{
+							if (a.getpt1vec(pointxs) == pt2 || a.getpt2vec(pointxs) == pt2)
+								return true;
+							else
+								return false;
+						}
+						else
+							return false;
+					});
+					bool not_find_pt1_flag = (iter1 == linexs.end()) ? true : false;
+					bool not_find_pt2_flag = (iter2 == linexs.end()) ? true : false;
+					if (not_find_pt1_flag && !not_find_pt2_flag)
+					{
+						auto rm_iter = find_if(pointxs.begin(), pointxs.end(), [&](point_class a)
+						{
+							if (a.getPid() == iter->getPt1Id())
+								return true;
+							else
+								return false;
+						});
+						pointxs.erase(rm_iter);
+						iter = linexs.erase(iter);
+						rm_flag = true;
+						rm_line_num++;
+
+					}
+					else if (not_find_pt2_flag && !not_find_pt1_flag)
+					{
+						auto rm_iter = find_if(pointxs.begin(), pointxs.end(), [&](point_class a)
+						{
+							if (a.getPid() == iter->getPt2Id())
+								return true;
+							else
+								return false;
+						});
+						pointxs.erase(rm_iter);
+						iter = linexs.erase(iter);
+						rm_flag = true;
+						rm_line_num++;
+
+					}
+					else if (not_find_pt1_flag && not_find_pt2_flag)
+					{
+						auto rm_iter1 = find_if(pointxs.begin(), pointxs.end(), [&](point_class a)
+						{
+							if (a.getPid() == iter->getPt1Id())
+								return true;
+							else
+								return false;
+						});
+						pointxs.erase(rm_iter1);
+						auto rm_iter2 = find_if(pointxs.begin(), pointxs.end(), [&](point_class a)
+						{
+							if (a.getPid() == iter->getPt2Id())
+								return true;
+							else
+								return false;
+						});
+						pointxs.erase(rm_iter2);
+						iter = linexs.erase(iter);
+						rm_flag = true; rm_line_num++;
+					}
+				}
+			}
+		}
+		if (!rm_flag)
+		{
+			++iter;
+			changeMap0[iter - linexs.begin() + rm_line_num] = iter - linexs.begin();
+		}
+	}
+	cout << "after remove isolated short lines due to the non-complete circle removal " << endl;
+	for (auto i = 0; i < linexs.size(); i++)
+	{
+		cout << linexs[i].getLineVec(pointxs) << linexs[i].getPt1Id() << ", " << linexs[i].getPt2Id() << endl;
+	}
+	for (auto j = 0; j < pointxs.size(); j++)
+	{
+		cout << pointxs[j].getPid() << "  " << pointxs[j].getXY() << endl;
+	}
+
+	/*set similar points identical*/
+
+
+	//	cout << "now remove indentical vec points and reorder the indices";
+	// point index indicate the line id in which it locate
+	map<int, int> changeMap;
+
+	//reordering index
+	map<int, int> changeMap2;
+	for (auto i = 0; i < pointxs.size(); i++)
+	{
+		//		cout << "point id " << pointxs[i].getPid() << pointxs[i].getXY() << endl;
+		changeMap2[pointxs[i].getPid()] = i;
+		pointxs[i].setPid(i);
+	}
+	for (auto j = 0; j < linexs.size(); j++)
+	{
+		cout << linexs[j].getPt1Id() << "->" << changeMap2[linexs[j].getPt1Id()] << endl;
+		cout << linexs[j].getPt2Id() << "->" << changeMap2[linexs[j].getPt2Id()] << endl;
+		linexs[j].setpt1Id(changeMap2[linexs[j].getPt1Id()]);
+		linexs[j].setpt2Id(changeMap2[linexs[j].getPt2Id()]);
+	}
+	for (auto i = 0; i < linexs.size(); i++)
+	{
+		cout << linexs[i].getLineVec(pointxs) << linexs[i].getPt1Id() << ", " << linexs[i].getPt2Id() << endl;
+	}
+	for (auto j = 0; j < pointxs.size(); j++)
+	{
+		cout << pointxs[j].getPid() << "  " << pointxs[j].getXY() << endl;
+	}
+
+	/*display*/
+
+	cout << endl;
+	for (auto j = 0; j < toAddCrossPoints.size(); j++)
+	{
+		auto tmpIter = find_if(pointxs.begin(), pointxs.end(), [&](point_class a)
+		{
+			if (same_pt(a, toAddCrossPoints[j]))
+				return true;
+			else
+				return false;
+		});
+		if (tmpIter == pointxs.end())
+			//		if (true)
+		{
+			Vec2i pt = toAddCrossPoints[j].getXY();
+			//			cout << pt << endl;
+			circle(color_img, Point(pt[0], pt[1]), 7, (255, 255, 255), 2);
+		}
+		else
+			toAddCrossPoints.erase(toAddCrossPoints.begin() + j--);
+	}
+
+	for (auto iter1 = pointxs.begin(); iter1 != pointxs.end(); ++iter1)
+	{
+		for (auto iter2 = pointxs.begin(); iter2 != pointxs.end(); ++iter2)
+		{
+			Vec2i pt1 = iter1->getXY(); Vec2i pt2 = iter2->getXY();
+			if (!existRealLineWithinPtxs(linexs, pointxs, pt1, pt2))
+			{
+				Vec2i tmpPt1 = iter1->getXY(); Vec2i tmpPt2 = iter2->getXY();
+				int id1 = iter1->getPid(); int id2 = iter2->getPid();
+				if (basicDashLineRev(withouCnlBw_ept, tmpPt1, tmpPt2, 0.4))
+				{
+					int pid1 = id1;
+					int pid2 = id2;
+					int lid = int(linexs.size());
+					line_class tmpNewline(pid1, pid2, lid);
+					linexs.push_back(tmpNewline);
+				}
+			}
+		}
+	}
+	for (auto i = 0; i < linexs.size(); i++)
+	{
+		Vec4i l = linexs[i].getLineVec(pointxs);
+		Vec2i pt1 = { l[0], l[1] };
+		Vec2i pt2 = { l[2], l[3] };
+		//		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp, 2);
+		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp, 2);
+	}
+	cout << endl;
+	//if (showFlag)
+	{
+		namedWindow("8.lines first opt version now", 0);
+		imshow("8.lines first opt version now", color_img);
+	}
+	drawedImages = color_img;
+}
+
+
 Vec4f plineRet(Vec4f a, Vec4f b)
 {
 	Vec2f pt1, pt2, pt3, pt4;
@@ -3371,11 +3940,7 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 	for (auto iter1 = line_std.begin(); iter1 != line_std.end(); ++iter1)
 	{
 		Vec4f line1 = *iter1;
-		Vec4i test1 = { 37, 19, 37, 84 };
-		if (test1 == f2i(line1))
-			cout << "test stop" << endl;
-
-		for (auto iter2 = line_std.begin(); iter2 != line_std.end(); ++iter2)
+		for (auto iter2 = iter1+1; iter2 != line_std.end(); )
 		{
 			//			Vec4f line1 = *iter1; Vec4f line2 = *iter2;
 			Vec2f pt1, pt2;  line2pt(line1, pt1, pt2);
@@ -3393,7 +3958,10 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			line(tmpImg, f2i(pt3), f2i(pt4), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 1);
 			circle(tmpImg, f2i(pt3), 5, Scalar(255, 0, 255), 1);
 			circle(tmpImg, f2i(pt4), 5, Scalar(255, 0, 255), 1);
+			Vec4i test1 = { 57, 34, 170, 59 };
 			Vec4i test2 = { 41, 54, 68, 68 };
+			if (test1 == f2i(line1))
+				cout << "test stop" << endl;
 			if (test2 == f2i(line2))
 				cout << "stop" << endl;
 			if (isParallel(line1, line2))
@@ -3435,10 +4003,6 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 					{
 						if (pt1[0] < pt3[0])
 						{
-//							if (p2pdistance(pt1, pt4) > p2pdistance(pt3, pt4))
-//								newPt1 = pt1;
-//							else
-//								newPt1 = pt3;
 							newPt1 = (p2pdistance(pt1, pt4) > p2pdistance(pt3, pt4)) ? pt1 : pt3;
 						}
 						else
@@ -3501,13 +4065,21 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 					circle(tmpImg, f2i(newPt2), 7, Scalar(0, 255, 255), 1);
 					line(tmpImg, f2i(newPt1), f2i(newPt2), Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 0), 2);
 					cout << "both line -> " << newline << endl;
-					*iter1 = newline; *iter2 = newline;
+					*iter1 = newline; 
+//					*iter2 = newline;
+					
 					cout << line_std[id1] << "  " << line_std[id2] << endl;
+					iter2 = line_std.erase(iter2);
 					cout << "sep" << endl;
+				}
+				else
+				{
+					++iter2;
 				}
 			}
 			else
 			{
+				++iter2;
 				cout << "not parallel and no change" << endl;
 			}
 		}
@@ -3830,7 +4402,7 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 		p2 = { int((iter->getLineVec(pointxs))[2]), int((iter->getLineVec(pointxs))[3]) };
 		circle(drawLines, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
 		circle(drawLines, p2, 5, tmp, 1);
-		line(drawLines, p1, p2, Scalar(0, 255, 255), 1);
+		line(drawLines, p1, p2, tmp, 1);
 		cout << p1 << " " << p2 << endl;
 	}
 	cout << "stop" << endl;
@@ -4160,7 +4732,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("sg-2.jpg", 0);
+	Mat image = imread("graph-78.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
