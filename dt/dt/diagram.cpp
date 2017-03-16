@@ -2471,7 +2471,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 	}
 	else
 	{
-		//cout << "two cross disjoint line" << endl;
+		cout << "two cross disjoint line" << endl;
 		if (in_line1 && !in_line2)
 		{
 			cout << "cross in line1 but not in line2" << endl;
@@ -2493,6 +2493,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 			cout << "outer cross" << endl;
 			int pos1 = line_recovery_process(lx1, raw_cross, withoutOnL_ept,oriEdgePoints, pointxs, circlexs);
 			int pos2 = line_recovery_process(lx2, raw_cross, withoutOnL_ept, oriEdgePoints,pointxs, circlexs);
+			cout << "*********************pos1 " << pos1 << ", pos2 " << pos2 << endl;
 			if (pos1 == 0 || pos2 == 0)
 			{
 				cout << "no id set" << endl;
@@ -2536,7 +2537,7 @@ void cross_refinement(Vec2f& raw_cross, line_class* lx1, line_class* lx2, vector
 				cout << " point pt2 and point pt3 are to be recovered to the same" << endl;
 				int tmp_id1, tmp_id2;
 				tmp_id1 = lx1->getPt2Id();
-				tmp_id2 = lx1->getPt1Id();
+				tmp_id2 = lx2->getPt1Id();////////////
 				if (tmp_id1 < tmp_id2)
 				{
 					lx2->setpt1Id(tmp_id1);
@@ -4474,6 +4475,19 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 	int rm_pt_num = 0;
 	int rm_line_num = 0;
 	map<int, int> changeMap0;
+	Mat test = color_img.clone();
+	for (auto iter = linexs.begin(); iter != linexs.end(); ++iter)
+	{
+		Vec2i p1, p2;
+		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
+		p1 = { int((iter->getLineVec(pointxs))[0]), int((iter->getLineVec(pointxs))[1]) };
+		p2 = { int((iter->getLineVec(pointxs))[2]), int((iter->getLineVec(pointxs))[3]) };
+		circle(test, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
+		circle(test, p2, 5, tmp, 1);
+		line(test, p1, p2, tmp, 1);
+		cout << p1 << " " << p2 << endl;
+	}
+	cout << "stop" << endl;
 	for (auto iter = linexs.begin(); iter != linexs.end();)
 	{
 		Vec2i pt1, pt2;
