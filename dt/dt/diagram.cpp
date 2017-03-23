@@ -516,7 +516,19 @@ bool isParallel(Vec4i line1, Vec4i line2)
 	double angle = llAngle(line1, line2);
 	if (angle > 180)
 		cout << "stop" << endl;
-	return (angle <= 10) || (angle >= 175);
+	double threshold_ori = 10;
+	double threshold_adp = (norm(line1V) < 15 || norm(line2V) < 15) ? 20 : threshold_ori;
+	return (angle <= threshold_adp) || (angle >= 180-threshold_adp);
+}
+
+bool isParallel2(Vec4i line1,Vec4i line2)
+{
+	Vec2i line1V = { line1[2] - line1[0], line1[3] - line1[1] };
+	Vec2i line2V = { line2[2] - line2[0], line2[3] - line2[1] };
+	double len1 = norm(line1V); double len2 = norm(line2V);
+	double ret = (line1V[0] * line2V[0] + line1V[1] * line2V[1])/(len1*len2);
+	double angle = acos(ret) / CV_PI * 180;
+	return angle < 20;
 }
 
 
@@ -856,7 +868,7 @@ float evaluateCircle(Mat dt, Point2f center, float radius)
 	// if this is too slow for you (e.g. too many points created for each circle), increase the step parameter, but only by factor so that it still depends on the radius
 
 	// the parameter step depends on the circle size, otherwise small circles will create more inlier on the circle
-	float step = 2 * 3.14159265359f / (6.0f * radius);
+	float step = 2 * CV_PI / (6.0f * radius);
 	if (step < minStep) step = minStep; // TODO: find a good value here.
 
 	//for(float t =0; t<2*3.14159265359f; t+= 0.05f) // this one which doesnt depend on the radius, is much worse!
@@ -1067,10 +1079,8 @@ void detect_circle3(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithout
 	//Hough circle detection go
 	vector<Vec3f> houghc;
 	Mat diagram_segment2 = color_img.clone();
-//	Mat edge;
-//	Canny(diagram_segment, edge, 100, 200);
-//	imshow("edge", edge);
-	HoughCircles(diagram_segment, houghc, HOUGH_GRADIENT,1, 8, 1,22,  30,diagram_segment.rows/2);
+
+	HoughCircles(diagram_segment, houghc, HOUGH_GRADIENT,1, 20, 1,22, 50,diagram_segment.rows/2);
 	for (size_t i = 0; i < houghc.size(); i++)
 	{
 		Point center(cvRound(houghc[i][0]), cvRound(houghc[i][1]));
@@ -1082,7 +1092,253 @@ void detect_circle3(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithout
 	}
 }
 
+void circleRANSAC(Mat &image, std::vector<Vec3f> &circles, double canny_threshold, double circle_threshold, int numIterations)
+{
+	CV_Assert(image.type() == CV_8UC1 || image.type() == CV_8UC3);
+	circles.clear();
 
+	// Edge Detection
+	Mat edges;
+	Canny(image, edges, MAX(canny_threshold / 2, 1), canny_threshold, 3);
+
+	// Create point set from Canny Output
+	std::vector<Point2d> points;
+	for (int r = 0; r < edges.rows; r++)
+	{
+		for (int c = 0; c < edges.cols; c++)
+		{
+			if (edges.at<unsigned char>(r, c) == 255)
+			{
+				points.push_back(cv::Point2d(c, r));
+			}
+		}
+	}
+
+	// 4 point objects to hold the random samples
+	Point2d pointA;
+	Point2d pointB;
+	Point2d pointC;
+	Point2d pointD;
+
+	// distances between points
+	double AB;
+	double BC;
+	double CA;
+	double DC;
+
+	// varibales for line equations y = mx + b
+	double m_AB;
+	double b_AB;
+	double m_BC;
+	double b_BC;
+
+	// varibles for line midpoints
+	double XmidPoint_AB;
+	double YmidPoint_AB;
+	double XmidPoint_BC;
+	double YmidPoint_BC;
+
+	// variables for perpendicular bisectors
+	double m2_AB;
+	double m2_BC;
+	double b2_AB;
+	double b2_BC;
+
+	// RANSAC
+	cv::RNG rng;
+	int min_point_separation = 10; // change to be relative to image size?
+	int colinear_tolerance = 1; // make sure points are not on a line
+	int radius_tolerance = 3; // change to be relative to image size?
+	int points_threshold = 10; //should always be greater than 4
+	//double min_circle_separation = 10; //reject a circle if it is too close to a previously found circle
+	//double min_radius = 10.0; //minimum radius for a circle to not be rejected
+
+	int x, y;
+	Point2d center;
+	double radius;
+
+	// Iterate
+	for (int iteration = 0; iteration < numIterations; iteration++)
+	{
+		//std::cout << "RANSAC iteration: " << iteration << std::endl;
+
+		// get 4 random points
+		pointA = points[rng.uniform((int)0, (int)points.size())];
+		pointB = points[rng.uniform((int)0, (int)points.size())];
+		pointC = points[rng.uniform((int)0, (int)points.size())];
+		pointD = points[rng.uniform((int)0, (int)points.size())];
+
+		// calc lines
+		AB = norm(pointA - pointB);
+		BC = norm(pointB - pointC);
+		CA = norm(pointC - pointA);
+		DC = norm(pointD - pointC);
+
+		// one or more random points are too close together
+		if (AB < min_point_separation || BC < min_point_separation || CA < min_point_separation || DC < min_point_separation) continue;
+
+		//find line equations for AB and BC
+		//AB
+		m_AB = (pointB.y - pointA.y) / (pointB.x - pointA.x + 0.000000001); //avoid divide by 0
+		b_AB = pointB.y - m_AB*pointB.x;
+
+		//BC
+		m_BC = (pointC.y - pointB.y) / (pointC.x - pointB.x + 0.000000001); //avoid divide by 0
+		b_BC = pointC.y - m_BC*pointC.x;
+
+
+		//test colinearity (ie the points are not all on the same line)
+		if (abs(pointC.y - (m_AB*pointC.x + b_AB + colinear_tolerance)) < colinear_tolerance) continue;
+
+		//find perpendicular bisector
+		//AB
+		//midpoint
+		XmidPoint_AB = (pointB.x + pointA.x) / 2.0;
+		YmidPoint_AB = m_AB * XmidPoint_AB + b_AB;
+		//perpendicular slope
+		m2_AB = -1.0 / m_AB;
+		//find b2
+		b2_AB = YmidPoint_AB - m2_AB*XmidPoint_AB;
+
+		//BC
+		//midpoint
+		XmidPoint_BC = (pointC.x + pointB.x) / 2.0;
+		YmidPoint_BC = m_BC * XmidPoint_BC + b_BC;
+		//perpendicular slope
+		m2_BC = -1.0 / m_BC;
+		//find b2
+		b2_BC = YmidPoint_BC - m2_BC*XmidPoint_BC;
+
+		//find intersection = circle center
+		x = (b2_AB - b2_BC) / (m2_BC - m2_AB);
+		y = m2_AB * x + b2_AB;
+		center = Point2d(x, y);
+		radius = cv::norm(center - pointB);
+
+		/// geometry debug image
+		if (true)
+		{
+			Mat debug_image = edges.clone();
+			cvtColor(debug_image, debug_image, CV_GRAY2RGB);
+
+			Scalar pink(255, 0, 255);
+			Scalar blue(255, 0, 0);
+			Scalar green(0, 255, 0);
+			Scalar yellow(0, 255, 255);
+			Scalar red(0, 0, 255);
+
+			// the 3 points from which the circle is calculated in pink
+			circle(debug_image, pointA, 3, pink);
+			circle(debug_image, pointB, 3, pink);
+			circle(debug_image, pointC, 3, pink);
+
+			// the 2 lines (blue) and the perpendicular bisectors (green)
+			line(debug_image, pointA, pointB, blue);
+			line(debug_image, pointB, pointC, blue);
+			line(debug_image, Point(XmidPoint_AB, YmidPoint_AB), center, green);
+			line(debug_image, Point(XmidPoint_BC, YmidPoint_BC), center, green);
+
+			circle(debug_image, center, 3, yellow); // center
+			circle(debug_image, center, radius, yellow);// circle
+
+			// 4th point check
+			circle(debug_image, pointD, 3, red);
+
+			imshow("ransac debug", debug_image);
+			waitKey(0);
+		}
+
+		//check if the 4 point is on the circle
+		if (abs(cv::norm(pointD - center) - radius) > radius_tolerance) continue;
+
+		// vote
+		std::vector<int> votes;
+		std::vector<int> no_votes;
+		for (int i = 0; i < (int)points.size(); i++)
+		{
+			double vote_radius = norm(points[i] - center);
+
+			if (abs(vote_radius - radius) < radius_tolerance)
+			{
+				votes.push_back(i);
+			}
+			else
+			{
+				no_votes.push_back(i);
+			}
+		}
+
+		// check votes vs circle_threshold
+		if ((float)votes.size() / (2.0*CV_PI*radius) >= circle_threshold)
+		{
+			circles.push_back(Vec3f(x, y, radius));
+
+			// voting debug image
+			if (false)
+			{
+				Mat debug_image2 = edges.clone();
+				cvtColor(debug_image2, debug_image2, CV_GRAY2RGB);
+
+				Scalar yellow(0, 255, 255);
+				Scalar green(0, 255, 0);
+
+				circle(debug_image2, center, 3, yellow); // center
+				circle(debug_image2, center, radius, yellow);// circle
+
+				// draw points that voted
+				for (int i = 0; i < (int)votes.size(); i++)
+				{
+					circle(debug_image2, points[votes[i]], 1, green);
+				}
+
+				imshow("ransac debug", debug_image2);
+				waitKey(0);
+			}
+
+			// remove points from the set so they can't vote on multiple circles
+			std::vector<Point2d> new_points;
+			for (int i = 0; i < (int)no_votes.size(); i++)
+			{
+				new_points.push_back(points[no_votes[i]]);
+			}
+			points.clear();
+			points = new_points;
+		}
+
+		// stop RANSAC if there are few points left
+		if ((int)points.size() < points_threshold)
+			break;
+	}
+
+	return;
+}
+
+void ransac_circle(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, bool showFlag)
+{
+	vector<Vec3f> ransac_cs;
+
+	const clock_t start = clock();
+	circleRANSAC(diagram_segment, ransac_cs, 100, 10, 2000);
+	clock_t end = clock();
+
+	cout << "Found " << (int)ransac_cs.size() << " Circles." << endl;
+
+	double time = ((double)(end - start)) / (double)CLOCKS_PER_SEC;
+	std::cout << "RANSAC runtime: " << time << " seconds" << std::endl;
+
+	// Draw Circles
+	cvtColor(diagram_segment, diagram_segment, CV_GRAY2RGB);
+	for (int i = 0; i < (int)ransac_cs.size(); i++)
+	{
+		int x = ransac_cs[i][0];
+		int y = ransac_cs[i][1];
+		float rad = ransac_cs[i][2];
+
+		circle(diagram_segment, Point(x, y), rad, Scalar(0, 255, 0));
+	}
+
+	imshow("circles", diagram_segment);
+}
 
 /**************line part****************/
 
@@ -4420,8 +4676,14 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			line_class* linex2 = &linexs[j];
 			Vec4i linex1_vec = linex1->getLineVec(pointxs);
 			Vec4i linex2_vec = linex2->getLineVec(pointxs);
+
 			//check whether the two line are parallel, if so, jump ahead
 			Mat tmp = color_img.clone();
+			Vec2i pt1, pt2, pt3, pt4;
+			line2pt(linex1_vec, pt1, pt2);
+			line2pt(linex2_vec, pt3, pt4);
+			line(tmp, pt1, pt2, Scalar(0, 255, 255), 1);
+			line(tmp, pt3, pt4, Scalar(0, 255, 255), 1);
 			if (isParallel(linex1_vec, linex2_vec))
 			{
 				//cout << linex1_vec << endl << linex2_vec << endl;
@@ -4431,16 +4693,15 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 			else
 			{
 				// not parallel, then calculate the rough cross first
-				Vec2i pt1, pt2, pt3, pt4;
 				Vec2f raw_cross;
-				line2pt(linex1_vec, pt1, pt2);
-				line2pt(linex2_vec, pt3, pt4);
+//				Vec2i pt1, pt2, pt3, pt4;
+//				line2pt(linex1_vec, pt1, pt2);
+//				line2pt(linex2_vec, pt3, pt4);
 				getCrossPt(linex1_vec, linex2_vec, raw_cross);
 				cout << linex1_vec << endl << linex2_vec << endl;
 //				cout << endl << "raw cross" << raw_cross << endl;
 				double angle = llAngle(linex1_vec, linex2_vec);
-				line(tmp, pt1, pt2, Scalar(0, 255, 255), 1);
-				line(tmp, pt3, pt4, Scalar(0, 255, 255), 1);
+				
 				if ((angle > 15) && (!isInImage(diagram_segwithoutcircle.cols, diagram_segwithoutcircle.rows, raw_cross)))
 				{
 					cout << raw_cross << endl;
@@ -4717,13 +4978,16 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	/*ransac go*/
 	Mat withoutCirBw = binarized_image.clone();
 	// detect the circle and get the img without circle and bw img without cirlce and circle candidates
+//	detect_circle3(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
+//	ransac_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
+	
 	// then the line detection
 	//vector<Vec2i> basicEndpoints = {};
 
 
-//	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
-	detect_line_lsd(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+//	detect_line_lsd(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
 
 	/*display point text info*/
 	//for (int i = 0; i < points.size(); ++i)
@@ -4746,7 +5010,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("graph-78.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -4781,7 +5045,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\lsd0";
+	char abs_path[100] = "D:\\data\\graph-DB\\nt5";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
@@ -4808,12 +5072,16 @@ int diagram()
 		namedWindow("points"); imshow("points", pointss);*/
 		vector<Mat> char_imgs;
 		image_labelling(binarized_image, diagram_segment,char_imgs);
-
+		
 		for (auto j = 0; j < char_imgs.size(); ++j)
 		{
 			char fullNameStr[100];
 			sprintf_s(fullNameStr, "%s\\charImgs\\charImg-%d.png",abs_path, charCount++);
 			imwrite(fullNameStr, char_imgs[j]);
+			char fullNameStr_sep[100];
+			sprintf_s(fullNameStr, "%s\\charImgs\\%d\\charImg-%d.png",abs_path, i,j);
+			imwrite(fullNameStr_sep, char_imgs[j]);
+
 		}
 
 		vector<point_class> points = {};
