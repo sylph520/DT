@@ -69,7 +69,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment,vector<Mat> &char
 	colors[0] = Vec3b(0, 0, 0);
 	int dia_idx = 1;
 
-	
+
 	// random labelling color generation and segmented image logical matrix
 	for (int label = 1; label < labeln; ++label)
 	{
@@ -3242,7 +3242,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\nt2";
+	char abs_path[100] = "D:\\data\\graph-DB\\nt4_5";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
