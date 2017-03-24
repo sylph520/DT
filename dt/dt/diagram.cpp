@@ -1,5 +1,6 @@
 # include "stdafx.h"
 # include "diagram.h"
+#include <filesystem>
 
 #define N 500
 
@@ -5045,7 +5046,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\nt5";
+	char abs_path[100] = "D:\\data\\graph-DB\\nt6";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
@@ -5072,15 +5073,18 @@ int diagram()
 		namedWindow("points"); imshow("points", pointss);*/
 		vector<Mat> char_imgs;
 		image_labelling(binarized_image, diagram_segment,char_imgs);
-		
+		char tmpOutFolder[100]; char tmpCmd[100];
+		sprintf_s(tmpOutFolder, "%s\\charImgs\\%d", abs_path, i);
+		sprintf_s(tmpCmd, "mkdir %s", tmpOutFolder);
+		system(tmpCmd);
 		for (auto j = 0; j < char_imgs.size(); ++j)
 		{
 			char fullNameStr[100];
 			sprintf_s(fullNameStr, "%s\\charImgs\\charImg-%d.png",abs_path, charCount++);
 			imwrite(fullNameStr, char_imgs[j]);
-			char fullNameStr_sep[100];
-			sprintf_s(fullNameStr, "%s\\charImgs\\%d\\charImg-%d.png",abs_path, i,j);
-			imwrite(fullNameStr_sep, char_imgs[j]);
+			char subNameStr[100];
+			sprintf_s(subNameStr, "%s\\charImgs\\%d\\charImg-%d.png",abs_path, i,j);
+			imwrite(subNameStr, char_imgs[j]);
 
 		}
 
