@@ -603,6 +603,14 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 				Rect oriRect = boundingRect(charImgCandicate);
 				int xoffset, yoffset; xoffset = (oriRect.tl()).x >= 1 ? 1 : 0;  yoffset = (oriRect.tl()).y >= 1 ? 1 : 0;
 				Rect adjustRect = oriRect + Point(-xoffset, -yoffset) + Size(2 * xoffset, 2 * yoffset);
+				if (adjustRect.x + adjustRect.width > charImgCandicate.cols)
+				{
+					adjustRect.width = charImgCandicate.cols - adjustRect.x;
+				}
+				if (adjustRect.y + adjustRect.height > charImgCandicate.rows)
+				{
+					adjustRect.height = charImgCandicate.rows - adjustRect.y;
+				}
 				Mat pushM = Mat(charImgCandicate, adjustRect);
 				char_imgs.push_back(pushM);
 				//				Rect brect = boundingRect(charImgCandicate);
