@@ -5016,6 +5016,22 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	//}
 }
 
+void readTxtInto2DArray(char **array,char* filepath)
+{
+	fstream gtFile;
+	gtFile.open(filepath, ios::in);
+	char buffer[256];
+	int lineIdx = 0;
+	while (!gtFile.eof())
+	{
+		gtFile.getline(buffer, 256, '\n');
+		cout << buffer << endl;
+		auto test = **array;
+		**array = *buffer;
+	}
+	gtFile.close();
+}
+
 int test_diagram()
 {
 	//first load a image
@@ -5054,10 +5070,13 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
+	char **array=nullptr;
+	readTxtInto2DArray(array, "D:\\data\\graph-DB\\nt6\\groudtruth.txt");
 	char abs_path[100] = "D:\\data\\graph-DB\\nt6";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
+	int charNum = 0;  int rightNum;
 	for (int i = 1; i < 87; i++)
 	{
 		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
@@ -5093,7 +5112,17 @@ int diagram()
 			char subNameStr[100];
 			sprintf_s(subNameStr, "%s\\charImgs\\%d\\charImg-%d.png",abs_path, i,j);
 			imwrite(subNameStr, char_imgs[j]);
-
+			// ocr
+			char ocrCmd[100];
+			sprintf_s(ocrCmd, "tesseract %s tmpResult -l cha -psm 10", subNameStr);
+			system(ocrCmd);
+			fstream singleCharFile;
+			singleCharFile.open("tmpResult.txt",ios::in);
+			char singleResult;
+			singleCharFile >> singleResult;
+			singleCharFile.close();
+			charNum++;
+			
 		}
 
 		vector<point_class> points = {};
