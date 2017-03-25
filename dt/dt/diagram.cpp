@@ -5135,12 +5135,12 @@ int diagram()
 		system(tmpCmd);
 		for (auto j = 0; j < char_imgs.size(); ++j)
 		{
-			Mat writeImg = 255-char_imgs[j];
+			Mat writeImg = char_imgs[j];
 			char fullNameStr[100];
-			sprintf_s(fullNameStr, "%s\\charImgs\\charImg-%d.pnm",abs_path, charCount++);
+			sprintf_s(fullNameStr, "%s\\charImgs\\charImg-%d.tiff",abs_path, charCount++);
 			imwrite(fullNameStr, writeImg);
 			char subNameStr[100];
-			sprintf_s(subNameStr, "%s\\charImgs\\%d\\charImg-%d.pnm",abs_path, i,j);
+			sprintf_s(subNameStr, "%s\\charImgs\\%d\\charImg-%d.tiff",abs_path, i,j);
 			imwrite(subNameStr, writeImg);
 			// ocr
 //			char singleResult;
