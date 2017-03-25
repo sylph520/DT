@@ -1,6 +1,7 @@
 # include "stdafx.h"
 # include "diagram.h"
 #include <filesystem>
+#include <array>
 
 #define N 500
 
@@ -5016,20 +5017,18 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	//}
 }
 
-void readTxtInto2DArray(char **array,char* filepath)
+void readTxtInto2DCharVec(vector<char*> &charLabelsVec,char* filepath)
 {
-	fstream gtFile;
-	gtFile.open(filepath, ios::in);
-	char buffer[256];
-	int lineIdx = 0;
-	while (!gtFile.eof())
+	fstream gtFile(filepath, ios::in);
+	string tmpLine;
+	while (gtFile && getline(gtFile, tmpLine))
 	{
-		gtFile.getline(buffer, 256, '\n');
-		cout << buffer << endl;
-		auto test = **array;
-		**array = *buffer;
+		cout << tmpLine << endl;
+		char *tmpstr = new char[256];
+		strcpy_s(tmpstr, 256, tmpLine.c_str());
+		charLabelsVec.push_back(tmpstr);
 	}
-	gtFile.close();
+	
 }
 
 int test_diagram()
@@ -5070,15 +5069,16 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char **array=nullptr;
-	readTxtInto2DArray(array, "D:\\data\\graph-DB\\nt6\\groudtruth.txt");
-	char abs_path[100] = "D:\\data\\graph-DB\\nt6";
+	vector<char*> charLabelsVec;
+	readTxtInto2DCharVec(charLabelsVec, "D:\\data\\graph-DB\\nt6\\groudtruth.txt");
+	char abs_path[100] = "D:\\data\\graph-DB\\nt7";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
-	int charNum = 0;  int rightNum;
+	int charNum = 0;  int rightNum = 0;
 	for (int i = 1; i < 87; i++)
 	{
+		cout << "*************************************************round " << i << endl;
 		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
 		sprintf_s(saveimgName, "%s\\saveImage\\sgs-%d.jpg", abs_path, i);
 		//first load a image
@@ -5114,23 +5114,32 @@ int diagram()
 			imwrite(subNameStr, char_imgs[j]);
 			// ocr
 			char ocrCmd[100];
-			sprintf_s(ocrCmd, "tesseract %s tmpResult -l cha -psm 10", subNameStr);
+			sprintf_s(ocrCmd, "tesseract %s tmpResult -l eng -psm 10", subNameStr);
+//			cout << ocrCmd << endl;
 			system(ocrCmd);
+//			char ocrCmd2[100];
+//			sprintf_s(ocrCmd2, "tesseract %s tmpResult2 -l cha -psm 10", subNameStr);
+//			system(ocrCmd2);
 			fstream singleCharFile;
 			singleCharFile.open("tmpResult.txt",ios::in);
 			char singleResult;
 			singleCharFile >> singleResult;
 			singleCharFile.close();
 			charNum++;
+			char tmpGTLabel = charLabelsVec[i-1][j];
+			if (tmpGTLabel == singleResult || abs(tmpGTLabel- singleResult) == 32)
+				rightNum++;
+			cout << singleResult << " vs "<<tmpGTLabel << endl;
 			
 		}
-
 		vector<point_class> points = {};
 		vector<line_class> lines = {};
 		vector<circle_class> circles = {};
 		Mat drawedImages(image.size(), CV_8UC3);
 		primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, false);
 		imwrite(saveimgName, drawedImages);
+		cout << "now " << rightNum << " out of " << charNum << endl;
 	}
+	cout << "total "<<rightNum << " out of " << charNum << endl;
 	return 0;
 }
