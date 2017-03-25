@@ -5065,6 +5065,35 @@ int test_diagram()
 	return 0;
 }
 
+char tesseract_ocr_proc(char* subNameStr)
+{
+	char ocrCmd[100];
+	sprintf_s(ocrCmd, "tesseract %s tmpResult -l fontlt2 -psm 10", subNameStr);
+	cout << ocrCmd << endl;
+	system(ocrCmd);
+	char ocrCmd2[100];
+	sprintf_s(ocrCmd2, "tesseract %s tmpResult2 -l cha -psm 10", subNameStr);
+	system(ocrCmd2);
+	fstream singleCharFile;
+	singleCharFile.open("tmpResult.txt", ios::in);
+	char singleResult;
+	singleCharFile >> singleResult;
+	singleCharFile.close();
+	return singleResult;
+}
+char gocr_proc(char* subNameStr)
+{
+	char ocrCmd3[100];
+	sprintf_s(ocrCmd3, "gocr049.exe -i %s -o tmpResult.txt", subNameStr);
+	system(ocrCmd3);
+
+	fstream singleCharFile;
+	singleCharFile.open("tmpResult.txt", ios::in);
+	char singleResult;
+	singleCharFile >> singleResult;
+	singleCharFile.close();
+	return singleResult;
+}
 int diagram()
 {
 	//a series of image
@@ -5106,38 +5135,30 @@ int diagram()
 		system(tmpCmd);
 		for (auto j = 0; j < char_imgs.size(); ++j)
 		{
+			Mat writeImg = 255-char_imgs[j];
 			char fullNameStr[100];
-			sprintf_s(fullNameStr, "%s\\charImgs\\charImg-%d.png",abs_path, charCount++);
-			imwrite(fullNameStr, char_imgs[j]);
+			sprintf_s(fullNameStr, "%s\\charImgs\\charImg-%d.pnm",abs_path, charCount++);
+			imwrite(fullNameStr, writeImg);
 			char subNameStr[100];
-			sprintf_s(subNameStr, "%s\\charImgs\\%d\\charImg-%d.png",abs_path, i,j);
-			imwrite(subNameStr, char_imgs[j]);
+			sprintf_s(subNameStr, "%s\\charImgs\\%d\\charImg-%d.pnm",abs_path, i,j);
+			imwrite(subNameStr, writeImg);
 			// ocr
-			char ocrCmd[100];
-			sprintf_s(ocrCmd, "tesseract %s tmpResult -l eng -psm 10", subNameStr);
-//			cout << ocrCmd << endl;
-			system(ocrCmd);
-//			char ocrCmd2[100];
-//			sprintf_s(ocrCmd2, "tesseract %s tmpResult2 -l cha -psm 10", subNameStr);
-//			system(ocrCmd2);
-			fstream singleCharFile;
-			singleCharFile.open("tmpResult.txt",ios::in);
-			char singleResult;
-			singleCharFile >> singleResult;
-			singleCharFile.close();
-			charNum++;
-			char tmpGTLabel = charLabelsVec[i-1][j];
-			if (tmpGTLabel == singleResult || abs(tmpGTLabel- singleResult) == 32)
-				rightNum++;
-			cout << singleResult << " vs "<<tmpGTLabel << endl;
+//			char singleResult;
+//			singleResult = gocr_proc(subNameStr);
+//
+//			charNum++;
+//			char tmpGTLabel = charLabelsVec[i-1][j];
+//			if (tmpGTLabel == singleResult || abs(tmpGTLabel- singleResult) == 32)
+//				rightNum++;
+//			cout << singleResult << " vs "<<tmpGTLabel << endl;
 			
 		}
 		vector<point_class> points = {};
 		vector<line_class> lines = {};
 		vector<circle_class> circles = {};
-		Mat drawedImages(image.size(), CV_8UC3);
-		primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, false);
-		imwrite(saveimgName, drawedImages);
+//		Mat drawedImages(image.size(), CV_8UC3);
+//		primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, false);
+//		imwrite(saveimgName, drawedImages);
 		cout << "now " << rightNum << " out of " << charNum << endl;
 	}
 	cout << "total "<<rightNum << " out of " << charNum << endl;
