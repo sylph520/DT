@@ -5068,12 +5068,12 @@ int test_diagram()
 char tesseract_ocr_proc(char* subNameStr)
 {
 	char ocrCmd[100];
-	sprintf_s(ocrCmd, "tesseract %s tmpResult -l fontlt2 -psm 10", subNameStr);
+	sprintf_s(ocrCmd, "tesseract %s tmpResult -psm 10", subNameStr);
 	cout << ocrCmd << endl;
 	system(ocrCmd);
-	char ocrCmd2[100];
-	sprintf_s(ocrCmd2, "tesseract %s tmpResult2 -l cha -psm 10", subNameStr);
-	system(ocrCmd2);
+//	char ocrCmd2[100];
+//	sprintf_s(ocrCmd2, "tesseract %s tmpResult2 -psm 10", subNameStr);
+//	system(ocrCmd2);
 	fstream singleCharFile;
 	singleCharFile.open("tmpResult.txt", ios::in);
 	char singleResult;
@@ -5136,6 +5136,7 @@ int diagram()
 		for (auto j = 0; j < char_imgs.size(); ++j)
 		{
 			Mat writeImg = char_imgs[j];
+			resize(writeImg, writeImg, Size(15, 15),0,0,INTER_NEAREST);
 			char fullNameStr[100];
 			sprintf_s(fullNameStr, "%s\\charImgs\\charImg-%d.tiff",abs_path, charCount++);
 			imwrite(fullNameStr, writeImg);
@@ -5143,14 +5144,14 @@ int diagram()
 			sprintf_s(subNameStr, "%s\\charImgs\\%d\\charImg-%d.tiff",abs_path, i,j);
 			imwrite(subNameStr, writeImg);
 			// ocr
-//			char singleResult;
-//			singleResult = gocr_proc(subNameStr);
-//
-//			charNum++;
-//			char tmpGTLabel = charLabelsVec[i-1][j];
-//			if (tmpGTLabel == singleResult || abs(tmpGTLabel- singleResult) == 32)
-//				rightNum++;
-//			cout << singleResult << " vs "<<tmpGTLabel << endl;
+			char singleResult;
+			singleResult = tesseract_ocr_proc(subNameStr);
+
+			charNum++;
+			char tmpGTLabel = charLabelsVec[i-1][j];
+			if (tmpGTLabel == singleResult || abs(tmpGTLabel- singleResult) == 32)
+				rightNum++;
+			cout << singleResult << " vs "<<tmpGTLabel << endl;
 			
 		}
 		vector<point_class> points = {};
