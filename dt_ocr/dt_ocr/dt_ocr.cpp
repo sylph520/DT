@@ -7,7 +7,6 @@
 #include <imgcodecs.hpp>
 #include <fstream>
 #include <iostream>
-#include 
 using namespace std;
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -20,7 +19,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	char ocrCmd3[100];
 	int all_num, checkout_num, right_num;
 	all_num = checkout_num = right_num = 0;
-	for (auto i = 0; i < 527; ++i)
+	for (auto i = 0; i <= 527; ++i)
 	{
 		all_num++;
 		char gtChar = gtStr[i];
@@ -36,6 +35,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			singleCharFile >> singleResult;
 			singleCharFile.close();
 			compareFile << singleResult << " vs " << gtChar << endl;
+			if (singleResult == '0')
+				singleResult = 'O';
 			if (gtChar == singleResult || abs(gtChar-singleResult)==32)
 			{
 				right_num++;
