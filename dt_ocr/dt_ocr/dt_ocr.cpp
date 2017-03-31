@@ -10,6 +10,7 @@
 using namespace std;
 int _tmain(int argc, _TCHAR* argv[])
 {
+	construct_cnn();
 	// the image path
 	char* base_path = "D:\\data\\graph-DB\\nt7\\charImgs";
 	char gtFilePath[100]; sprintf_s(gtFilePath, "%s\\mess_labels.txt", base_path);

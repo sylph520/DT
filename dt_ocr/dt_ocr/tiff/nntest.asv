@@ -1,0 +1,13 @@
+%nntest
+function outMat = nntest():
+for i  = 0:7
+    for j = 0:19
+        foldstr =['D:\\data\\graph-DB\\nt4\\charImgs\\tiff\\charImgsep\\new\\', int2str(i)];
+        imgstr = int2str(j);
+        pathstr = [foldstr, '\\',imgstr,'.tiff'];
+        tmpImg = imread(pathstr); tmpVec = tmp
+        outMat = 
+    end
+end
+end
+    

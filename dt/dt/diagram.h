@@ -82,7 +82,12 @@ public:
 		con_pidxs.push_back(a);
 	}
 	
-	~point_class(){}
+	~point_class()
+	{
+		l_idxs.clear();
+		c_idxs.clear();
+		con_pidxs.clear();
+	}
 };
 
 Vec2i get_line_ptVec_by_id(vector<point_class>& pointxs, int id);
@@ -213,7 +218,10 @@ public:
 			p2_id = p;
 	}
 
-	~line_class(){}
+	~line_class()
+	{
+		ptcs.clear();
+	}
 };
 
 class circle_class

@@ -1,0 +1,1 @@
+tesseract langlt.fontlt.exp0.tif langlt.fontlt.exp0 -l eng -psm 10 batch.nochop makebox
