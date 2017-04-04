@@ -2,6 +2,7 @@
 # include "diagram.h"
 #include <filesystem>
 #include <array>
+#include "q2r.h"
 
 #define N 500
 
@@ -5092,7 +5093,12 @@ void readTxtInto2DCharVec(vector<char*> &charLabelsVec,char* filepath)
 }
 
 
-
+string to_string(Vec2i a)
+{
+	string ret;
+	ret = " (" + to_string(a[0]) + ", " + to_string(a[1]) + ") ";
+	return ret;
+}
 
 int test_diagram()
 {
@@ -5124,11 +5130,127 @@ int test_diagram()
 	Mat drawedImages(image.size(), CV_8UC3);
 
 	primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, true);
+	cout << "sep" << endl;
 	// then we turn to handle the characters
+	string str1(1,'O');
+	string str2(1, 'A');
+	string str3(1, 'C');
+	string str4(1, 'B');
+	string str5(1, 'D');
+	string str6 = "A'";
+	circles[0].setLabel(str1);
+	points[0].setLabel(str2);
+	points[1].setLabel(str3);
+	points[2].setLabel(str4);
+	points[3].setLabel(str5);
+	points[4].setLabel(str6);
 
-
+	
 	//now we obtained the circles, points, and lines, then we extract the infos 
+	vector<string> p_info_outputStrs, l_info_outputStrs,rel_outputStrs;
 
+	for (auto i = 0; i < lines.size(); ++i)
+	{
+		int pid1, pid2;
+		pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
+		string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
+		double tmpSlope = lSlope_r(lines[i].getLineVec(points));
+		double tmpLength = p2pdistance(points[pid1].getXY(),points[pid2].getXY());
+		points[pid1].setIsEndPoint(true);
+		lines[i].setLabel(tmpLabel);
+		lines[i].setSlope(tmpSlope);
+		lines[i].setLen(tmpLength);
+		string tmpOutputStr = "";
+		tmpOutputStr += tmpLabel + "->  slope: " + to_string(tmpSlope) + ", length: " + to_string(tmpLength); 
+		l_info_outputStrs.push_back(tmpOutputStr);
+	}
+	map<string, double> llangles;
+	for(auto i = 0; i < lines.size(); ++i)
+	{
+		for(auto j = i + 1; j < lines.size(); ++j)
+		{
+			if (same_len_line(lines[i], lines[j], points))
+			{
+				string tmpOutStr = "The length of line " + lines[i].getLabel() + " is equal to the length of line " + lines[j].getLabel();
+				l_info_outputStrs.push_back(tmpOutStr);
+			}
+			double slope1 = lines[i].getSlope();
+			double slope2 = lines[j].getSlope();
+			double aol = abs(slope1 - slope2)/CV_PI * 180;
+			if(aol < 5)
+			{
+				string tmpOutputStr = "";
+				tmpOutputStr += "line " + lines[i].getLabel() + " is parallel to line " + lines[j].getLabel();
+				l_info_outputStrs.push_back(tmpOutputStr);
+			}
+			else if(abs(aol - 90) < 5)
+			{
+				string tmpOutStr = "line " + lines[i].getLabel() + " is perpendicular to line " + lines[j].getLabel();
+				l_info_outputStrs.push_back(tmpOutStr);
+			}
+			string l_pair = lines[i].getLabel() + lines[j].getLabel();
+			llangles[l_pair] = aol;
+		}
+	}
+//	for(auto iter1 = llangles.begin(); iter1!= llangles.end(); ++iter1)
+//	{
+//		for(auto iter2 = iter1 + 1; iter2 != llangles.end(); ++iter2)
+//		{
+//			
+//		}
+//	}
+	cout << endl << endl << endl << "****************now, extract and output extracted information****************" << endl;
+	if(circles.size() == 0)
+	{
+		cout << "the image is not with circle element" << endl;
+	}
+	else
+	{
+		for (auto i = 0; i < circles.size(); ++i)
+		{
+			cout << "the image is with circle element" << endl;
+			cout << "and the cirlce " << circles[i].getLabel() << " with center" << to_string(circles[i].getCenter())
+				<< " and the radius is " << circles[i].getRadius() << endl;
+		}
+	}
+	for(auto i = 0; i < points.size(); ++i)
+	{
+		Vec2i pt = points[i].getXY();
+		string p_baseStr = "point " + points[i].getLabel() + "  -->  " + to_string(points[i].getXY());
+		
+		if (on_circle(pt, circles[0].getCircleVec()))
+			p_baseStr += "and the point is on circle " + circles[0].getLabel();
+		p_info_outputStrs.push_back(p_baseStr);
+		if(!points[i].getIsEndPoint())
+		{
+			for(auto j= 0; j < lines.size(); ++j)
+			{
+				if(in_line(lines[j].getLineVec(points),points[i].getXY()))
+				{
+					string tmpOutStr = "";
+					Vec2i pt1, pt2; pt1 = lines[j].getpt1vec(points); pt2 = lines[j].getpt2vec(points);
+					tmpOutStr += points[i].getLabel() + " is in the line " + lines[j].getLabel();
+					if (_same_len_line(pt, pt1, pt2, points))
+						tmpOutStr += "and is the middle point";
+					p_info_outputStrs.push_back(tmpOutStr);
+				}
+			}
+		}
+	}
+	
+	for(auto i = 0; i < p_info_outputStrs.size(); ++i)
+	{
+		cout << p_info_outputStrs[i] << endl;
+	}
+	for (auto i = 0; i < l_info_outputStrs.size(); ++i)
+	{
+		cout << l_info_outputStrs[i] << endl;
+	}
+
+//	for (auto i = 0; i < p_info_outputStrs.size(); ++i)
+//	{
+//		cout << p_info_outputStrs[i] << endl;
+//	}
 	return 0;
 }
 

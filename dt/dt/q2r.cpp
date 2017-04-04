@@ -55,7 +55,7 @@ bool pt_line_mid(line_class l,point_class p,vector<point_class> &pcs)
 		return false;
 }
 
-bool line_tan_cirlce(line_class l, circle_class c,vector<point_class> pcs)
-{
-	
-}
+//bool line_tan_cirlce(line_class l, circle_class c,vector<point_class> pcs)
+//{
+//	
+//}

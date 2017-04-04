@@ -16,16 +16,27 @@ class point_class
 private:
 	Vec2i pxy; int p_idx; string label;
 	vector<int> l_idxs, c_idxs; vector<int> con_pidxs;
+	bool isEndPoint;
 public:
-	point_class(Vec2i _pxy = { 0, 0}, int _p_idx = -1, vector<int> _l_idxs = {}, string _label = "", vector<int> _c_idxs = {}, vector<int> _con_pidxs = {})
+	point_class(Vec2i _pxy = { 0, 0}, int _p_idx = -1, bool _isEndPoint= false,vector<int> _l_idxs = {}, string _label = "", vector<int> _c_idxs = {}, vector<int> _con_pidxs = {})
 	{
 		pxy = _pxy; p_idx = _p_idx; label = _label;
 		l_idxs = _l_idxs; c_idxs = _c_idxs; con_pidxs = _con_pidxs;
+		isEndPoint = _isEndPoint;
 	}
 	point_class(const point_class &b)
 	{
 		pxy = b.pxy; p_idx = b.p_idx; label = b.label;
 		l_idxs = b.l_idxs; c_idxs = b.c_idxs; con_pidxs = b.con_pidxs;
+		isEndPoint = b.isEndPoint;
+	}
+	void setIsEndPoint(bool a)
+	{
+		isEndPoint = a;
+	}
+	bool getIsEndPoint() const
+	{
+		return isEndPoint;
 	}
 	int getPid() const
 	{
@@ -81,7 +92,15 @@ public:
 	{
 		con_pidxs.push_back(a);
 	}
-	
+
+	void setLabel(string a)
+	{
+		label = a;
+	}
+	string getLabel() const
+	{
+		return label;
+	}
 	~point_class()
 	{
 		l_idxs.clear();
@@ -99,14 +118,17 @@ class line_class
 private:
 	int l_id; string label;
 	int p1_id, p2_id;
+	double slope;
+	double len;
 	//point_class p1, p2;
 	vector<point_class> ptcs;
 public:
-	line_class(int _p1_id, int _p2_id, int _l_id = -1, string _label = "", vector<point_class> _ptcs={})
+	line_class(int _p1_id, int _p2_id, int _l_id = -1, string _label = "", double _slope = -1, vector<point_class> _ptcs = {})
 	{
 		l_id = _l_id; label = _label;
 		p1_id = _p1_id; p2_id = _p2_id;
 		ptcs = _ptcs;
+		slope = _slope;
 	}
 
 	line_class(const line_class &b)
@@ -114,6 +136,8 @@ public:
 		l_id = b.l_id; label = b.label;
 		p1_id = b.p1_id; p2_id = b.p2_id;
 		ptcs = b.ptcs;
+		label = b.label;
+		slope = b.slope;
 	}
 
 	Vec4i getLineVec(vector<point_class> &pointxs) const
@@ -218,6 +242,30 @@ public:
 			p2_id = p;
 	}
 
+	void setSlope(double a)
+	{
+		slope = a;
+	}
+	double getSlope() const
+	{
+		return slope;
+	}
+	void setLen(double a)
+	{
+		len = a;
+	}
+	double getLen() const
+	{
+		return len;
+	}
+	void setLabel(string a)
+	{
+		label = a;
+	}
+	string getLabel() const
+	{
+		return label;
+	}
 	~line_class()
 	{
 		ptcs.clear();
@@ -230,8 +278,9 @@ private:
 	int c_idx; Vec2i center; int radius; 
 	int contour_width;
 	vector<point_class> p_idxs;
+	string label;
 public:
-	circle_class(Vec2i _center, int _radius, int _c_idx = -1, int _contour_width = 0, vector<point_class> _p_idxs = {})
+	circle_class(Vec2i _center, int _radius, int _c_idx = -1, string label = to_string('O'),int _contour_width = 0, vector<point_class> _p_idxs = {})
 	{
 		c_idx = _c_idx; center = _center; radius = _radius;
 		contour_width = _contour_width; 
@@ -251,6 +300,16 @@ public:
 		c_idx = b.c_idx; center = b.center; radius = b.radius;
 		contour_width = b.contour_width;
 		p_idxs = b.p_idxs;
+	}
+
+	void setLabel(string a)
+	{
+		label = a;
+	}
+
+	string getLabel() const
+	{
+		return label;
 	}
 
 	Vec3i getCircleVec()
