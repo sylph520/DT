@@ -27,6 +27,9 @@
     <ClInclude Include="diagram.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="q2r.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -36,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="diagram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="q2r.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

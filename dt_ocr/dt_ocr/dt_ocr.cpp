@@ -10,17 +10,17 @@
 using namespace std;
 int _tmain(int argc, _TCHAR* argv[])
 {
-	construct_cnn();
+	//test_opencv_mlp();
 	// the image path
-	char* base_path = "D:\\data\\graph-DB\\nt7\\charImgs";
+	char* base_path = "D:\\data\\graph-DB\\nt8\\charImgs";
 	char gtFilePath[100]; sprintf_s(gtFilePath, "%s\\mess_labels.txt", base_path);
-	std::fstream gtFile(gtFilePath); fstream compareFile("D:\\data\\graph-DB\\nt7\\charImgs\\compare.txt");
+	std::fstream gtFile(gtFilePath); fstream compareFile("D:\\data\\graph-DB\\nt8\\charImgs\\compare.txt");
 	string gtStr; gtFile >> gtStr; 
 //	compareFile << "test begin" << endl;
 	char ocrCmd3[100];
 	int all_num, checkout_num, right_num;
 	all_num = checkout_num = right_num = 0;
-	for (auto i = 0; i <= 527; ++i)
+	for (auto i = 0; i <= 475; ++i)
 	{
 		all_num++;
 		char gtChar = gtStr[i];

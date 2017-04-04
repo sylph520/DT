@@ -550,8 +550,8 @@ Mat image_binarizing(Mat input_image, bool showFlag = false)
 	//imwrite("test_geo0.png", binarized_image);
 	if (showFlag)
 	{
-		namedWindow("1.binarized image");
-		imshow("1.binarized image", binarized_image);//test binarized image
+		namedWindow("binarized image");
+		imshow("binarized image", binarized_image);//test binarized image
 	}
 	return binarized_image;
 }
@@ -562,13 +562,17 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 	//and label segment
 	Mat labeled(binarized_image.size(), CV_8UC3);
 	Mat boundImg = binarized_image.clone();
+	cvtColor(boundImg, boundImg, COLOR_GRAY2RGB);
+//	boundImg.convertTo(boundImg)
 	Mat statsMat, centroidMat;
 	Mat labeled_image;
 	int labeln = connectedComponentsWithStats(binarized_image, labeled_image, statsMat, centroidMat, 8, 4);
+	int newLabeln = labeln;
 	vector<Mat> charSegs;
 	// show the labelling image
-	vector<Vec3b> colors(labeln);
+	vector<Vec3b> colors(labeln); 
 	colors[0] = Vec3b(0, 0, 0);
+	
 	int dia_idx = 1;
 
 
@@ -620,7 +624,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		}
 	}
 	/*test seg img check*/
-
+	vector<Vec3b> colors2 = colors;
 	for (auto i = 0; i < charSegs.size(); ++i)
 	{
 		int label1 = matLabelp[i];
@@ -639,6 +643,8 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 				Mat tmp2 = charSegs[j].clone();
 				Mat tmp3 = tmp1 + tmp2;
 				cout << label1 << "  " << label2 << "    " << tmpCentroid1 << "  " << tmpCentroid2 << endl;
+				colors2[label2] = colors2[label1];
+				newLabeln--;
 				charSegs[i] = tmp3; charSegs[j] = tmp3;
 				Mat tmp4 = charSegs[i]; Mat tmp5 = charSegs[j];
 				cout << "test" << endl;
@@ -649,6 +655,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 			}
 		}
 	}
+
 	sort(charSegs.begin(), charSegs.end(), [](Mat a, Mat b)
 	{
 		if (countNonZero(a) < countNonZero(b))
@@ -677,6 +684,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		Rect brect = boundingRect(charSegs[i]);
 		bRects.push_back(brect);
 	}
+	Mat newLabeled = labeled.clone();
 	for (int r = 0; r < binarized_image.rows; ++r)
 	{
 		for (int c = 0; c < binarized_image.cols; ++c)
@@ -686,9 +694,26 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 			pixel = colors[label];
 		}
 	}
+	for (int r = 0; r < binarized_image.rows; ++r)
+	{
+		for (int c = 0; c < binarized_image.cols; ++c)
+		{
+			int label = labeled_image.at<int>(r, c);
+			Vec3b& pixel = newLabeled.at<Vec3b>(r, c);
+			pixel = colors2[label];
+		}
+	}
+	
+
+
 	for (auto i = 0; i < bRects.size(); ++i)
 	{
-		rectangle(boundImg, bRects[i], (0, 255, 255), 2);
+		Rect tmpOriRect = bRects[i];
+		int xoffset = 1;
+		int yoffset = 1;
+		Rect tmpAdjustRect = tmpOriRect + Point(-xoffset, -yoffset) + Size(2 * xoffset, 2 * yoffset);
+		rectangle(boundImg, tmpAdjustRect, Scalar(255, 0, 255), 2);
+
 	}
 
 
@@ -708,12 +733,15 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 	//}
 	if (showFlag)
 	{
-		namedWindow("2.labeled");
-		imshow("2.labeled", labeled);
-		namedWindow("3.diagram segment");
-		imshow("3.diagram segment", diagram_segment);
-		namedWindow("2.bounded");
-		imshow("2.bounded", boundImg);
+		namedWindow("labeled");
+		imshow("labeled", labeled);
+		namedWindow("new labeled");
+		imshow("new labeled", newLabeled);
+		namedWindow("bounded");
+		imshow("bounded", boundImg);
+		namedWindow("Main diagram segment");
+		imshow("Main diagram segment", diagram_segment);
+
 	}
 }
 
@@ -1077,10 +1105,11 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 
 	if (showFlag)
 	{
-		namedWindow("4.graygeo blob without circles");
-		cv::imshow("4.graygeo blob without circles", diagram_segwithoutcircle);
-		namedWindow("5.colorgeo");
-		cv::imshow("5.colorgeo", color_img);
+		namedWindow("circle detection");
+		cv::imshow("circle detection", color_img);
+		namedWindow("diagram without circles");
+		cv::imshow("diagram without circles", diagram_segwithoutcircle);
+
 	}
 }
 
@@ -2852,18 +2881,23 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	/*detect line candidates by probabilistic hough transform */
 	vector<Vec4i> rawLines;
 	HoughLinesP(diagram_segwithoutcircle, rawLines, 1, CV_PI / 180, 15, 15, 10);
+	Mat oriLine = color_img.clone();
 	if (showFlag)
 	{
 		for (size_t j = 0; j < rawLines.size(); ++j)
 		{
-			Vec4i l = rawLines[j];
-			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 255), 2, 8);
+			Vec4i l = rawLines[j]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+			line(oriLine, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
+			Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+			circle(oriLine, Point{ pt1[0], pt1[1] }, 10, tmp);
+			circle(oriLine, Point{ pt2[0], pt2[1] }, 10, tmp);
+
 		}
 	}
 	if (showFlag)
 	{
-		namedWindow("6.lines first opt version now 2");
-		imshow("6.lines first opt version now 2", color_img);
+		namedWindow("origianl detected line");
+		imshow("origianl detected line", oriLine);
 	};
 	for (size_t i = 0; i < rawLines.size(); ++i)
 	{
@@ -2877,53 +2911,53 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(255, 0, 0), 2, 8);
 		}
 	}
-	/*display or write into file*/
-	if (showFlag)
-	{
-		for (size_t j = 0; j < plainLines.size(); ++j)
-		{
-			Vec4i l = plainLines[j];
-			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
-		}
-		namedWindow("7.lines first opt version now 1");
-		imshow("7.lines first opt version now 1", color_img);
-	}
-	else if (fileName != "")
-	{
-		// write into txt
-		ofstream ofile, ofile2;
-		ofile.open(fileName, ios_base::app);
-		//ofile2.open("t22222.txt", ios_base::app);
-		for (size_t k = 0; k < plainLines.size(); ++k)
-		{
-			Vec4i l = plainLines[k];
-			cout << l[0] << "," << l[1] << endl << l[2] << "," << l[3] << endl;
-			ofile << l[0] << "," << l[1] << "\n" << l[2] << "," << l[3] << "\n";
-			//ofile2 << l[0] << "," << l[1] << "," << l[2] << "," << l[3] << "\n";
-		}
-		ofile << "\n";
-		cout << endl;
-		ofile.close();
-		//ofile2.close();
-	}
+//	/*display or write into file*/
+//	if (showFlag)
+//	{
+//		for (size_t j = 0; j < plainLines.size(); ++j)
+//		{
+//			Vec4i l = plainLines[j];
+//			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8);
+//		}
+////		namedWindow("7.lines first opt version now 1");
+////		imshow("7.lines first opt version now 1", color_img);
+//	}
+//	else if (fileName != "")
+//	{
+//		// write into txt
+//		ofstream ofile, ofile2;
+//		ofile.open(fileName, ios_base::app);
+//		//ofile2.open("t22222.txt", ios_base::app);
+//		for (size_t k = 0; k < plainLines.size(); ++k)
+//		{
+//			Vec4i l = plainLines[k];
+//			cout << l[0] << "," << l[1] << endl << l[2] << "," << l[3] << endl;
+//			ofile << l[0] << "," << l[1] << "\n" << l[2] << "," << l[3] << "\n";
+//			//ofile2 << l[0] << "," << l[1] << "," << l[2] << "," << l[3] << "\n";
+//		}
+//		ofile << "\n";
+//		cout << endl;
+//		ofile.close();
+//		//ofile2.close();
+//	}
 
 #pragma endregion raw detection
 
 	/* then we handle the lines specifically*/
 	/* for lines should be combined 1. colinear 2. */
 
-	/*display*/
-	Mat oriL_img = color_img.clone();
-		for (auto i = 0; i < plainLines.size(); i++)
-		{
-			Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
-//			cout << "*********************" << pt1 << " " << pt2 << endl;
-			line(oriL_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
-			Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
-//			circle(oriL_img, Point{ pt1[0], pt1[1] }, 10, tmp);
-//			circle(oriL_img, Point{ pt2[0], pt2[1] }, 10, tmp);
-		}
-	//namedWindow("5.lines first opt version now", 0); imshow("5.lines first opt version now", color_img);
+//	/*display*/
+//	Mat oriL_img = color_img.clone();
+//	for (auto i = 0; i < plainLines.size(); i++)
+//	{
+//		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
+//		//			cout << "*********************" << pt1 << " " << pt2 << endl;
+//		line(oriL_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
+//		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+//		circle(oriL_img, Point{ pt1[0], pt1[1] }, 10, tmp);
+//		circle(oriL_img, Point{ pt2[0], pt2[1] }, 10, tmp);
+//	}
+//	//namedWindow("5.lines first opt version now", 0); imshow("5.lines first opt version now", color_img);
 
 	cout << "stop and test point" << endl;
 
@@ -3057,7 +3091,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 		circle(rmParaI, Point{pt1[0], pt1[1]}, 10, tmp);
 		circle(rmParaI, Point{pt2[0], pt2[1]}, 10, tmp);
 	}
-	namedWindow("rm parallel", 0);
+	namedWindow("rm parallel");
 	imshow("rm parallel", rmParaI);
 
 	// remove the line detected and store it as withoutCLOriBw
@@ -3229,6 +3263,20 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 		cout << pointXs[j].getPid() << "  " << pointXs[j].getXY() << endl;
 	}
 	cout << "after cross points refinement"<<endl;
+	Mat crossRefLine = color_img.clone();
+	for (auto i = 0; i < lineXs.size(); i++)
+	{
+		Vec4i l = lineXs[i].getLineVec(pointXs);
+		Vec2i pt1 = { l[0], l[1] };
+		Vec2i pt2 = { l[2], l[3] };
+		//		cout << "*********************" << pt1 << " " << pt2 << endl;
+		line(crossRefLine, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
+		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+		circle(crossRefLine, Point{ pt1[0], pt1[1] }, 10, tmp, 2);
+		circle(crossRefLine, Point{ pt2[0], pt2[1] }, 10, tmp, 2);
+	}
+	imshow("after cross points refinement", crossRefLine);
+
 	//rm isolated short lines due to the non-complete circle removal
 	// 1. two points almost on circles 2. the length is short 3. the end points is ont on other lines
 	int rm_pt_num = 0;
@@ -3334,6 +3382,13 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 		}
 	}
 	cout << "after remove isolated short lines due to the non-complete circle removal " << endl;
+	
+	cout << endl;
+//	//if (showFlag)
+//	{
+//		namedWindow("after combine close points", 0);
+//		imshow("after combine close points", color_img);
+//	}
 	for (auto i = 0; i < lineXs.size(); i++)
 	{
 		cout << lineXs[i].getLineVec(pointXs) << lineXs[i].getPt1Id() << ", " << lineXs[i].getPt2Id() << endl;
@@ -3528,8 +3583,8 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	cout << endl;
 	//if (showFlag)
 	{
-		namedWindow("8.lines first opt version now", 0);
-		imshow("8.lines first opt version now", color_img);
+		namedWindow("final line detection result", 0);
+		imshow("final line detection result", color_img);
 	}
 	cout << "test p1" << endl;
 	drawedImages = color_img;
@@ -4664,18 +4719,18 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 		}
 	}
 	
-	for (auto iter = linexs.begin(); iter != linexs.end(); ++iter)
-	{
-		Vec2i p1, p2;
-		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
-		p1 = { int((iter->getLineVec(pointxs))[0]), int((iter->getLineVec(pointxs))[1]) };
-		p2 = { int((iter->getLineVec(pointxs))[2]), int((iter->getLineVec(pointxs))[3]) };
-		circle(drawLines, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
-		circle(drawLines, p2, 5, tmp, 1);
-		line(drawLines, p1, p2, tmp, 1);
-		cout << p1 << " " << p2 << endl;
-	}
-	cout << "stop" << endl;
+//	for (auto iter = linexs.begin(); iter != linexs.end(); ++iter)
+//	{
+//		Vec2i p1, p2;
+//		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
+//		p1 = { int((iter->getLineVec(pointxs))[0]), int((iter->getLineVec(pointxs))[1]) };
+//		p2 = { int((iter->getLineVec(pointxs))[2]), int((iter->getLineVec(pointxs))[3]) };
+//		circle(drawLines, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
+//		circle(drawLines, p2, 5, tmp, 1);
+//		line(drawLines, p1, p2, tmp, 1);
+//		cout << p1 << " " << p2 << endl;
+//	}
+//	cout << "stop" << endl;
 
 	map<int, int> change000;
 	vector<point_class> toAddCrossPoints;
@@ -4744,24 +4799,25 @@ void detect_line_lsd(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wit
 		cout << pointxs[j].getPid() << "  " << pointxs[j].getXY() << endl;
 	}
 	cout << "after cross points refinement" << endl;
+
 	//rm isolated short lines due to the non-complete circle removal
 	// 1. two points almost on circles 2. the length is short 3. the end points is ont on other lines
 	int rm_pt_num = 0;
 	int rm_line_num = 0;
 	map<int, int> changeMap0;
-	Mat test = color_img.clone();
-	for (auto iter = linexs.begin(); iter != linexs.end(); ++iter)
-	{
-		Vec2i p1, p2;
-		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
-		p1 = { int((iter->getLineVec(pointxs))[0]), int((iter->getLineVec(pointxs))[1]) };
-		p2 = { int((iter->getLineVec(pointxs))[2]), int((iter->getLineVec(pointxs))[3]) };
-		circle(test, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
-		circle(test, p2, 5, tmp, 1);
-		line(test, p1, p2, tmp, 1);
-		cout << p1 << " " << p2 << endl;
-	}
-	cout << "stop" << endl;
+//	Mat test = color_img.clone();
+//	for (auto iter = linexs.begin(); iter != linexs.end(); ++iter)
+//	{
+//		Vec2i p1, p2;
+//		Scalar tmp = Scalar(255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)), 255 * (rand() / double(RAND_MAX)));
+//		p1 = { int((iter->getLineVec(pointxs))[0]), int((iter->getLineVec(pointxs))[1]) };
+//		p2 = { int((iter->getLineVec(pointxs))[2]), int((iter->getLineVec(pointxs))[3]) };
+//		circle(test, p1, 10 * (rand() / double(RAND_MAX)) + 5, tmp, 1);
+//		circle(test, p2, 5, tmp, 1);
+//		line(test, p1, p2, tmp, 1);
+//		cout << p1 << " " << p2 << endl;
+//	}
+//	cout << "stop" << endl;
 	for (auto iter = linexs.begin(); iter != linexs.end();)
 	{
 		Vec2i pt1, pt2;
@@ -5035,6 +5091,9 @@ void readTxtInto2DCharVec(vector<char*> &charLabelsVec,char* filepath)
 	
 }
 
+
+
+
 int test_diagram()
 {
 	//first load a image
@@ -5044,6 +5103,7 @@ int test_diagram()
 	// then binarize it
 
 	Mat binarized_image = image_binarizing(image, true);
+
 	//binarized_image = preprocessing(binarized_image);
 	// then go on a process of connectivity componnent analysis
 	int labeln;
@@ -5063,8 +5123,11 @@ int test_diagram()
 	vector<circle_class> circles = {};
 	Mat drawedImages(image.size(), CV_8UC3);
 
-	primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, false);
+	primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, true);
 	// then we turn to handle the characters
+
+
+	//now we obtained the circles, points, and lines, then we extract the infos 
 
 	return 0;
 }

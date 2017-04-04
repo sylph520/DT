@@ -3,7 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>D:\Document\Visual Studio 2013\Projects\tiny-dnn;$(IncludePath)</IncludePath>
+    <IncludePath>D:\tiny-dnn;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup />
   <ItemGroup />

@@ -271,6 +271,68 @@ public:
 
 	~circle_class(){}
 };
+
+
+
+
+
+
 int image_parse(Mat image);
 int test_diagram();
 int diagram();
+
+
+/********basic eff funcs*******/
+Vec4i pt2line(Vec2i pt1, Vec2i pt2);
+
+Vec4f pt2line(Vec2f pt1, Vec2f pt2);
+
+inline void line2pt(Vec4i line, Vec2i& pt1, Vec2i& pt2);
+
+inline void line2pt(Vec4f line, Vec2f& pt1, Vec2f& pt2);
+
+Vec2i f2i(Vec2f fp);
+
+Vec4i f2i(Vec4f fl);
+
+/**p2p**/
+double p2pdistance(Vec2i pt1, Vec2i pt2);
+
+bool same_pt(point_class pt1, point_class pt2);
+
+bool same_pt(Vec2i pt1, Vec2i pt2, double theta, bool in_line);
+
+bool same_pt(Vec2i pt1, Vec2i pt2, int adapt_eps);
+
+bool close_pt(Vec2i pt1, Vec2i pt2);
+
+double cross_product(Vec2i a, Vec2i b);
+/**  p2l **/
+float pt2lineDis(Vec4i line, Vec2i pt);
+
+float pt2lineDis(Vec4f line, Vec2f pt);
+
+bool on_line(Vec4i line, Vec2i pt);
+
+bool in_line(Vec4i line, Vec2i pt);
+
+int on_in_line(Vec4i line, Vec2i pt);
+
+int ptLine(Vec4i line, Vec2i pt);
+
+bool onLinePtInLine(Vec4i line, Vec2i pt);
+
+bool on_nin_line(Vec4i line, Vec2i pt);
+
+double frac_compute(Vec2i pt1, Vec2i pt2, bool vertical_flag);
+
+double lSlope_r(Vec4i line);
+
+double llAngle(Vec4i line1, Vec4i line2);
+
+bool isParallel(Vec4i line1, Vec4i line2);
+
+bool isParallel2(Vec4i line1, Vec4i line2);
+
+
+
