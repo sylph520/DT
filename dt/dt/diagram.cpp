@@ -455,6 +455,14 @@ double lSlope_r(Vec4i line)
 	return theta_r;
 }
 
+double lSlope_d(Vec4i line)
+{
+	double ret=   -(lSlope_r(line) / CV_PI * 180);
+	if (ret < 0)
+		ret = ret + 180;
+	return ret;
+}
+
 double llAngle(Vec4i line1, Vec4i line2)
 {
 	if (line1 == line2)
@@ -5099,6 +5107,328 @@ string to_string(Vec2i a)
 	ret = " (" + to_string(a[0]) + ", " + to_string(a[1]) + ") ";
 	return ret;
 }
+void outPutInfos(int version, vector<circle_class> &circles, vector<point_class> &points, vector<line_class> &lines)
+{
+	vector<string> p_info_outputStrs, l_info_outputStrs, c_info_outputStrs,rel_outputStrs;
+	vector<string> l_c_info_outputStrs; vector<string> vars_assignment;
+	if(version==0)
+	{
+		cout << "this is the predicate version >>>>>>" << endl;
+		{
+			for (auto i = 0; i < circles.size(); ++i)
+			{
+				string c_strs = "CircleNum(" + to_string(circles.size()) + ")";
+				string c_strs2 = "Circle(" + circles[i].getLabel() + ", " + to_string(circles[i].getCenter()) + ", "
+				+ to_string(circles[i].getRadius()) + ")";
+				c_info_outputStrs.push_back(c_strs);
+				c_info_outputStrs.push_back(c_strs2);
+				for (auto j = 0; j < lines.size(); ++j)
+				{
+					double tmp_cen2line = pt2lineDis(lines[j].getLineVec(points), circles[i].getCenter());
+					if (abs(tmp_cen2line - circles[i].getRadius()) < 5)
+					{
+						string tmp_l_c_str = "Tangent(" + lines[j].getLabel() + ", " + circles[i].getLabel() + ")";
+						l_c_info_outputStrs.push_back(tmp_l_c_str);
+					}
+				}
+			}
+		}
+		string p_str = "PointNum(" + to_string(points.size()) + ")";
+		p_info_outputStrs.push_back(p_str);
+		for (auto i = 0; i < points.size(); ++i)
+		{
+			Vec2i pt = points[i].getXY();
+			string p_loc_str = "PointsLocation(" + points[i].getLabel() + ", " + to_string(pt) + ")";
+			p_info_outputStrs.push_back(p_loc_str);
+			for (auto m = 0; m < circles.size(); ++m)
+			{
+				if (on_circle(pt, circles[m].getCircleVec()))
+				{
+					string tmpStr = "OnCircle(" + points[i].getLabel() + ", " + circles[m].getLabel() + ")";
+					p_info_outputStrs.push_back(tmpStr);
+				}
+			}
+			if (!points[i].getIsEndPoint())
+			{
+				for (auto j = 0; j < lines.size(); ++j)
+				{
+					if (in_line(lines[j].getLineVec(points), points[i].getXY()))
+					{
+						Vec2i pt1, pt2; pt1 = lines[j].getpt1vec(points); pt2 = lines[j].getpt2vec(points);
+						string tmpOutStr1 = "OnLine(" + points[i].getLabel() + ", " + lines[j].getLabel() + ")";
+						p_info_outputStrs.push_back(tmpOutStr1);
+						if (_same_len_line(pt, pt1, pt2, points))
+						{
+							string tmpOutStr2 = "MiddlePoint(" + points[i].getLabel() + ", " + lines[j].getLabel() + ")";
+							p_info_outputStrs.push_back(tmpOutStr2);
+						}
+					}
+				}
+			}
+		}
+		string l_str = "LineNum(" + to_string(lines.size()) + ")";
+		l_info_outputStrs.push_back(l_str);
+		for (auto i = 0; i < lines.size(); ++i)
+		{
+			int pid1, pid2;
+			pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
+			string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
+			double tmpSlope = lines[i].getSlope_d(); double tmpLength = lines[i].getLen(points);
+			string tmpOutputStr1 = "LineSlope(" + lines[i].getLabel() + ", " + to_string(lines[i].getSlope_d()) + ")";
+			string tmpOutputStr2 = "LineLength(" + lines[i].getLabel() + ", " + to_string(lines[i].getLen(points)) +")";
+			l_info_outputStrs.push_back(tmpOutputStr1);
+			l_info_outputStrs.push_back(tmpOutputStr2);
+		}
+		map<string, double> llangles;
+		for (auto i = 0; i < lines.size(); ++i)
+		{
+			for (auto j = i + 1; j < lines.size(); ++j)
+			{
+				if (same_len_line(lines[i], lines[j], points))
+				{
+					string tmpOutStr = "SameLengthLine(" + lines[i].getLabel() + ", " + lines[j].getLabel() + ")";
+					l_info_outputStrs.push_back(tmpOutStr);
+				}
+				double slope1 = lines[i].getSlope_d();
+				double slope2 = lines[j].getSlope_d();
+				double aol = abs(slope1 - slope2);
+				if (aol < 5)
+				{
+					string tmpOutputStr = "IsParallel(" + lines[i].getLabel() + ", " + lines[j].getLabel() + ")";
+					l_info_outputStrs.push_back(tmpOutputStr);
+				}
+				else if (abs(aol - 90) < 5)
+				{
+					string tmpOutStr = "IsPerpendicular(" + lines[i].getLabel() + ", " + lines[j].getLabel() + ")";
+					l_info_outputStrs.push_back(tmpOutStr);
+				}
+				string l_pair = lines[i].getLabel() + lines[j].getLabel();
+				llangles[l_pair] = aol;
+			}
+		}
+	}
+	else if (version == 1)
+	{
+		cout <<endl<< "this is the equation version >>>>>>" << endl;
+		int var_assined_count = 0; map<string, int> vars;
+		for (auto i = 0; i < circles.size(); ++i)
+		{
+			vars[circles[i].getLabel()] = ++var_assined_count;
+			string c_assign_str = "Var(" + circles[i].getLabel() + ", (x" + to_string(var_assined_count) + ", y" + to_string(var_assined_count) + ") )";
+			vars_assignment.push_back(c_assign_str);
+		}
+		for (auto i = 0; i < points.size(); ++i)
+		{
+			Vec2i pt = points[i].getXY();
+			vars[points[i].getLabel()] = ++var_assined_count;
+			string p_assign_str = "Var( " + points[i].getLabel() + ", (x" + to_string(var_assined_count) + ", y" + to_string(var_assined_count) + ") )";
+			vars_assignment.push_back(p_assign_str);
+			for (auto m = 0; m < circles.size(); ++m)
+			{
+				if (on_circle(pt, circles[m].getCircleVec()))
+				{
+					string tmpStr = pOnCircle2string(points[i], circles[m], vars);
+					p_info_outputStrs.push_back(tmpStr);
+				}
+			}
+			if (!points[i].getIsEndPoint())
+			{
+				for (auto j = 0; j < lines.size(); ++j)
+				{
+					if (in_line(lines[j].getLineVec(points), points[i].getXY()))
+					{
+						Vec2i pt1, pt2; pt1 = lines[j].getpt1vec(points); pt2 = lines[j].getpt2vec(points);
+						string tmpOutStr1 = pInLine2string(points[i], lines[j], vars, points);
+						p_info_outputStrs.push_back(tmpOutStr1);
+						if (_same_len_line(pt, pt1, pt2, points))
+						{
+							string tmpOutStr2 = sameLenL2S(i, lines[j],vars, points);
+							p_info_outputStrs.push_back(tmpOutStr2);
+						}
+					}
+				}
+			}
+		}
+
+		for (auto i = 0; i < lines.size(); ++i)
+		{
+			int pid1, pid2;
+			pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
+			string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
+			string tmpOutputStr1 = lSlope2str(lines[i], vars, points);
+			string tmpOutputStr2 = lLen2str(lines[i], vars, points);
+			l_info_outputStrs.push_back(tmpOutputStr1);
+			l_info_outputStrs.push_back(tmpOutputStr2);
+		}
+		map<string, double> llangles;
+		for (auto i = 0; i < lines.size(); ++i)
+		{
+			for (auto j = i + 1; j < lines.size(); ++j)
+			{
+				if (same_len_line(lines[i], lines[j], points))
+				{
+					string tmpOutStr = sameLenL2S(lines[i], lines[j], vars, points);
+					l_info_outputStrs.push_back(tmpOutStr);
+				}
+				double slope1 = lines[i].getSlope_d();
+				double slope2 = lines[j].getSlope_d();
+				double aol = abs(slope1 - slope2);
+				if (aol < 5)
+				{
+					string tmpOutputStr = parallelL2S(lines[i], lines[j], vars, points);
+					l_info_outputStrs.push_back(tmpOutputStr);
+				}
+				else if (abs(aol - 90) < 5)
+				{
+					string tmpOutStr = perperdicularL2S(lines[i], lines[j], vars, points);
+					l_info_outputStrs.push_back(tmpOutStr);
+				}
+				string l_pair = lines[i].getLabel() + lines[j].getLabel();
+				llangles[l_pair] = aol;
+			}
+		}
+
+
+	}
+	else if(version == 2)
+	{
+		cout << endl<<"this is the natural language version >>>>>>" << endl;
+		if (circles.size() == 0)
+		{
+//			cout << "**The image is not with circle element" << endl;
+			c_info_outputStrs.push_back("The image is not with circle element");
+		}
+		else
+		{
+			for (auto i = 0; i < circles.size(); ++i)
+			{
+				string c_strs = "There are " + to_string(circles.size()) + " circle(s) in the image, ";
+				string c_strs2 = "the cirlce " + circles[i].getLabel() + " is with center" + to_string(circles[i].getCenter())
+					+ " and the radius is " + to_string(circles[i].getRadius()) + ".";
+				c_info_outputStrs.push_back(c_strs);
+				c_info_outputStrs.push_back(c_strs2);
+				for(auto j = 0; j < lines.size(); ++j)
+				{
+					double tmp_cen2line = pt2lineDis(lines[j].getLineVec(points), circles[i].getCenter());
+					if(abs(tmp_cen2line - circles[i].getRadius()) < 5)
+					{
+						string tmp_l_c_str = "line " + lines[j].getLabel() + "is tangent to the circle " + circles[i].getLabel();
+						l_c_info_outputStrs.push_back(tmp_l_c_str);
+					}
+				}
+			}
+		}
+		vector<string> on_circle_plabel_str(circles.size());
+		for(auto i =0; i < on_circle_plabel_str.size(); ++i)
+		{
+			on_circle_plabel_str[i] = "the point(s) ";
+		}
+		string p_str = "There are " + to_string(points.size()) + " point(s) in the image and the location is: ";
+		p_info_outputStrs.push_back(p_str);
+		for (auto i = 0; i < points.size(); ++i)
+		{
+			Vec2i pt = points[i].getXY();
+			string p_baseStr = "point " + points[i].getLabel() + " : " + to_string(points[i].getXY());
+
+			for (auto m = 0; m < circles.size(); ++m)
+			{
+				if (on_circle(pt, circles[m].getCircleVec()))
+				{
+					on_circle_plabel_str[m] += " " + points[i].getLabel();
+					if (i != points.size() - 1)
+						on_circle_plabel_str[m] += ",";
+				}
+			}
+			
+			p_info_outputStrs.push_back(p_baseStr);
+			if (!points[i].getIsEndPoint())
+			{
+				for (auto j = 0; j < lines.size(); ++j)
+				{
+					if (in_line(lines[j].getLineVec(points), points[i].getXY()))
+					{
+						string tmpOutStr = "";
+						Vec2i pt1, pt2; pt1 = lines[j].getpt1vec(points); pt2 = lines[j].getpt2vec(points);
+						tmpOutStr += points[i].getLabel() + " is in the line " + lines[j].getLabel();
+						if (_same_len_line(pt, pt1, pt2, points))
+							tmpOutStr += "and is the middle point";
+						p_info_outputStrs.push_back(tmpOutStr);
+					}
+				}
+			}
+			for (auto m = 0; m < circles.size(); ++m)
+			{
+				if (i == points.size() - 1)
+				{
+					on_circle_plabel_str[m] += " is on the circle " + circles[m].getLabel();
+					p_info_outputStrs.push_back(on_circle_plabel_str[m]);
+				}
+			}
+		}
+		string l_str = "There are " + to_string(lines.size()) + " line(s) in the image, they are: ";
+		l_info_outputStrs.push_back(l_str);
+		for(auto i = 0; i < lines.size(); ++i)
+		{
+			int pid1, pid2;
+			pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
+			string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
+			double tmpSlope = lines[i].getSlope_d(); double tmpLength = lines[i].getLen(points);
+			string tmpOutputStr = tmpLabel + " with a slope of " + to_string(tmpSlope) + " and a length of " + to_string(tmpLength);
+			l_info_outputStrs.push_back(tmpOutputStr);
+		}
+		map<string, double> llangles;
+		for (auto i = 0; i < lines.size(); ++i)
+		{
+			for (auto j = i + 1; j < lines.size(); ++j)
+			{
+				if (same_len_line(lines[i], lines[j], points))
+				{
+					string tmpOutStr = "The length of line " + lines[i].getLabel() + " is equal to the length of line " + lines[j].getLabel();
+					l_info_outputStrs.push_back(tmpOutStr);
+				}
+				double slope1 = lines[i].getSlope_d();
+				double slope2 = lines[j].getSlope_d();
+				double aol = abs(slope1 - slope2);
+				if (aol < 5)
+				{
+					string tmpOutputStr = "";
+					tmpOutputStr += "line " + lines[i].getLabel() + " is parallel to line " + lines[j].getLabel();
+					l_info_outputStrs.push_back(tmpOutputStr);
+				}
+				else if (abs(aol - 90) < 5)
+				{
+					string tmpOutStr = "line " + lines[i].getLabel() + " is perpendicular to line " + lines[j].getLabel();
+					l_info_outputStrs.push_back(tmpOutStr);
+				}
+				string l_pair = lines[i].getLabel() + lines[j].getLabel();
+				llangles[l_pair] = aol;
+			}
+		}
+	}
+	if(vars_assignment.size() != 0)
+	{
+		for (auto i = 0; i < vars_assignment.size(); ++i)
+		{
+			cout << vars_assignment[i] << endl;
+		}
+	}
+	for (auto i = 0; i < c_info_outputStrs.size(); ++i)
+	{
+		cout << c_info_outputStrs[i] << endl;
+	}
+	for (auto i = 0; i < p_info_outputStrs.size(); ++i)
+	{
+		cout << p_info_outputStrs[i] << endl;
+	}
+	for (auto i = 0; i < l_info_outputStrs.size(); ++i)
+	{
+		cout << l_info_outputStrs[i] << endl;
+	}
+	for (auto i = 0; i < l_c_info_outputStrs.size(); ++i)
+	{
+		cout << l_c_info_outputStrs[i] << endl;
+	}
+}
 
 int test_diagram()
 {
@@ -5147,110 +5477,27 @@ int test_diagram()
 
 	
 	//now we obtained the circles, points, and lines, then we extract the infos 
-	vector<string> p_info_outputStrs, l_info_outputStrs,rel_outputStrs;
-
 	for (auto i = 0; i < lines.size(); ++i)
 	{
 		int pid1, pid2;
 		pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
 		string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
-		double tmpSlope = lSlope_r(lines[i].getLineVec(points));
+		double tmpSlope_r = lSlope_r(lines[i].getLineVec(points));
+		double tmpSlope_d = lSlope_d(lines[i].getLineVec(points));
 		double tmpLength = p2pdistance(points[pid1].getXY(),points[pid2].getXY());
 		points[pid1].setIsEndPoint(true);
 		lines[i].setLabel(tmpLabel);
-		lines[i].setSlope(tmpSlope);
+		lines[i].setSlope_r(tmpSlope_r);
+		lines[i].setSlope_d(tmpSlope_d);
 		lines[i].setLen(tmpLength);
-		string tmpOutputStr = "";
-		tmpOutputStr += tmpLabel + "->  slope: " + to_string(tmpSlope) + ", length: " + to_string(tmpLength); 
-		l_info_outputStrs.push_back(tmpOutputStr);
-	}
-	map<string, double> llangles;
-	for(auto i = 0; i < lines.size(); ++i)
-	{
-		for(auto j = i + 1; j < lines.size(); ++j)
-		{
-			if (same_len_line(lines[i], lines[j], points))
-			{
-				string tmpOutStr = "The length of line " + lines[i].getLabel() + " is equal to the length of line " + lines[j].getLabel();
-				l_info_outputStrs.push_back(tmpOutStr);
-			}
-			double slope1 = lines[i].getSlope();
-			double slope2 = lines[j].getSlope();
-			double aol = abs(slope1 - slope2)/CV_PI * 180;
-			if(aol < 5)
-			{
-				string tmpOutputStr = "";
-				tmpOutputStr += "line " + lines[i].getLabel() + " is parallel to line " + lines[j].getLabel();
-				l_info_outputStrs.push_back(tmpOutputStr);
-			}
-			else if(abs(aol - 90) < 5)
-			{
-				string tmpOutStr = "line " + lines[i].getLabel() + " is perpendicular to line " + lines[j].getLabel();
-				l_info_outputStrs.push_back(tmpOutStr);
-			}
-			string l_pair = lines[i].getLabel() + lines[j].getLabel();
-			llangles[l_pair] = aol;
-		}
-	}
-//	for(auto iter1 = llangles.begin(); iter1!= llangles.end(); ++iter1)
-//	{
-//		for(auto iter2 = iter1 + 1; iter2 != llangles.end(); ++iter2)
-//		{
-//			
-//		}
-//	}
-	cout << endl << endl << endl << "****************now, extract and output extracted information****************" << endl;
-	if(circles.size() == 0)
-	{
-		cout << "the image is not with circle element" << endl;
-	}
-	else
-	{
-		for (auto i = 0; i < circles.size(); ++i)
-		{
-			cout << "the image is with circle element" << endl;
-			cout << "and the cirlce " << circles[i].getLabel() << " with center" << to_string(circles[i].getCenter())
-				<< " and the radius is " << circles[i].getRadius() << endl;
-		}
-	}
-	for(auto i = 0; i < points.size(); ++i)
-	{
-		Vec2i pt = points[i].getXY();
-		string p_baseStr = "point " + points[i].getLabel() + "  -->  " + to_string(points[i].getXY());
-		
-		if (on_circle(pt, circles[0].getCircleVec()))
-			p_baseStr += "and the point is on circle " + circles[0].getLabel();
-		p_info_outputStrs.push_back(p_baseStr);
-		if(!points[i].getIsEndPoint())
-		{
-			for(auto j= 0; j < lines.size(); ++j)
-			{
-				if(in_line(lines[j].getLineVec(points),points[i].getXY()))
-				{
-					string tmpOutStr = "";
-					Vec2i pt1, pt2; pt1 = lines[j].getpt1vec(points); pt2 = lines[j].getpt2vec(points);
-					tmpOutStr += points[i].getLabel() + " is in the line " + lines[j].getLabel();
-					if (_same_len_line(pt, pt1, pt2, points))
-						tmpOutStr += "and is the middle point";
-					p_info_outputStrs.push_back(tmpOutStr);
-				}
-			}
-		}
 	}
 	
-	for(auto i = 0; i < p_info_outputStrs.size(); ++i)
-	{
-		cout << p_info_outputStrs[i] << endl;
-	}
-	for (auto i = 0; i < l_info_outputStrs.size(); ++i)
-	{
-		cout << l_info_outputStrs[i] << endl;
-	}
+	cout << endl << endl << endl << "****************now, output the extracted information****************" << endl;
+	int choosed_version = 0;
+	outPutInfos(0,circles,points,lines);
+	outPutInfos(1,circles,points,lines);
+	outPutInfos(2,circles,points,lines);
 
-//	for (auto i = 0; i < p_info_outputStrs.size(); ++i)
-//	{
-//		cout << p_info_outputStrs[i] << endl;
-//	}
 	return 0;
 }
 

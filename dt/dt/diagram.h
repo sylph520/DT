@@ -118,17 +118,19 @@ class line_class
 private:
 	int l_id; string label;
 	int p1_id, p2_id;
-	double slope;
+	double slope_r, slope_d;
 	double len;
 	//point_class p1, p2;
 	vector<point_class> ptcs;
 public:
-	line_class(int _p1_id, int _p2_id, int _l_id = -1, string _label = "", double _slope = -1, vector<point_class> _ptcs = {})
+	line_class(int _p1_id, int _p2_id, int _l_id = -1, string _label = "", double _slope_r = -1, double _slope_d = -1, double _len = 0, vector<point_class> _ptcs = {})
 	{
 		l_id = _l_id; label = _label;
 		p1_id = _p1_id; p2_id = _p2_id;
 		ptcs = _ptcs;
-		slope = _slope;
+		slope_r = _slope_r;
+		slope_d = _slope_d;
+		len = _len;
 	}
 
 	line_class(const line_class &b)
@@ -137,7 +139,9 @@ public:
 		p1_id = b.p1_id; p2_id = b.p2_id;
 		ptcs = b.ptcs;
 		label = b.label;
-		slope = b.slope;
+		slope_r = b.slope_r;
+		slope_d = b.slope_d;
+		len = b.len;
 	}
 
 	Vec4i getLineVec(vector<point_class> &pointxs) const
@@ -242,13 +246,21 @@ public:
 			p2_id = p;
 	}
 
-	void setSlope(double a)
+	void setSlope_r(double a)
 	{
-		slope = a;
+		slope_r = a;
 	}
-	double getSlope() const
+	double getSlope_r() const
 	{
-		return slope;
+		return slope_r;
+	}
+	void setSlope_d(double a)
+	{
+		slope_d = a;
+	}
+	double getSlope_d() const
+	{
+		return slope_d;
 	}
 	void setLen(double a)
 	{
