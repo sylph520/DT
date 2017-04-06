@@ -5117,7 +5117,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 		{
 			for (auto i = 0; i < circles.size(); ++i)
 			{
-				string c_strs = "CircleNum(" + to_string(circles.size()) + ")";
+				string c_strs = "CircleNumbers(" + to_string(circles.size()) + ")";
 				string c_strs2 = "Circle(" + circles[i].getLabel() + ", " + to_string(circles[i].getCenter()) + ", "
 				+ to_string(circles[i].getRadius()) + ")";
 				c_info_outputStrs.push_back(c_strs);
@@ -5133,7 +5133,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 				}
 			}
 		}
-		string p_str = "PointNum(" + to_string(points.size()) + ")";
+		string p_str = "PointNumbers(" + to_string(points.size()) + ")";
 		p_info_outputStrs.push_back(p_str);
 		for (auto i = 0; i < points.size(); ++i)
 		{
@@ -5166,7 +5166,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 				}
 			}
 		}
-		string l_str = "LineNum(" + to_string(lines.size()) + ")";
+		string l_str = "LineNumbers(" + to_string(lines.size()) + ")";
 		l_info_outputStrs.push_back(l_str);
 		for (auto i = 0; i < lines.size(); ++i)
 		{
@@ -5186,7 +5186,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 			{
 				if (same_len_line(lines[i], lines[j], points))
 				{
-					string tmpOutStr = "SameLengthLine(" + lines[i].getLabel() + ", " + lines[j].getLabel() + ")";
+					string tmpOutStr = "EqualLengthLine(" + lines[i].getLabel() + ", " + lines[j].getLabel() + ")";
 					l_info_outputStrs.push_back(tmpOutStr);
 				}
 				double slope1 = lines[i].getSlope_d();
