@@ -188,3 +188,7 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 /dt/dt/dt.vcxproj
+/dt/dt.VC.VC.opendb
+/dt/dt.VC.db
+/opencvdnn_test/opencvdnn_test.VC.db
+/dt_ocr/dt_ocr.VC.db

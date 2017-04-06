@@ -985,8 +985,44 @@ bool on_circle(Vec2f pt, Vec3f circle)
 		return false;
 }
 
+Vec3f my_hough_circle(Mat diagram,int min_radius,int max_radius)
+{
+	Vec3f ret; 
+	
+	int irows, icols;
+	irows = diagram.rows; icols = diagram.cols;
+	int r_ranges = max_radius - min_radius + 1;
+//	int sz[] = { r_ranges,icols, irows };
+	Mat accumulator = Mat::zeros(3, sz, CV_8U);
+	int min_center_x = min_radius; int max_center_x = icols - min_radius;
+	for(auto i = 0; i < icols; ++i)
+	{
+		for(auto j = 0; j < irows; ++j)
+		{
+			if(diagram.at<uchar>(i,j) != 0)
+			{
+				//edge point
+				for(auto r = min_radius; r < max_radius; ++r)
+				{
+					for (auto center_x = min_center_x; center_x < max_center_x; ++center_x)
+					{
+						int center_y = int(sqrt(r*r - (i - center_x)*(i - center_x)));
+						accumulator.at<uchar>(r, center_x, center_y) += 1;
+					}
+				}
+			}
+//			cout << "test" << endl;
+		}
+	}
+
+	return ret;
+}
+
+
 void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, bool showFlag)
 {
+	//this is the detection func using ransac
+	//
 	unsigned int circleN_todetect = 2;
 	diagram_segwithoutcircle = diagram_segment.clone();
 	//int c_count = 0;
@@ -1065,12 +1101,13 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 void detect_circle3(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, bool showFlag)
 {
 	//Hough circle detection go
+	//hough
 	vector<Vec3f> houghc;
 	Mat diagram_segment2 = color_img.clone();
 //	Mat edge;
 //	Canny(diagram_segment, edge, 100, 200);
 //	imshow("edge", edge);
-	HoughCircles(diagram_segment, houghc, HOUGH_GRADIENT,1, 8, 1,22,  30,diagram_segment.rows/2);
+	HoughCircles(diagram_segment, houghc, HOUGH_STANDARD,1, 20,      200, 18,          30,diagram_segment.rows/2);
 	for (size_t i = 0; i < houghc.size(); i++)
 	{
 		Point center(cvRound(houghc[i][0]), cvRound(houghc[i][1]));
@@ -4717,7 +4754,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	/*ransac go*/
 	Mat withoutCirBw = binarized_image.clone();
 	// detect the circle and get the img without circle and bw img without cirlce and circle candidates
-	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
+	detect_circle3(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
 	// then the line detection
 	//vector<Vec2i> basicEndpoints = {};
 
@@ -4746,7 +4783,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("graph-78.jpg", 0);
+	Mat image = imread("sg-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -4760,6 +4797,7 @@ int test_diagram()
 	vector<Point2i> oriEdgePoints = getPointPositions(binarized_image);
 	vector<Mat> char_imgs;
 	image_labelling(binarized_image, diagram_segment,char_imgs, true);
+	my_hough_circle(diagram_segment, 20, 200);
 	for (auto i = 0; i < char_imgs.size();++i)
 	{
 		char fullNameStr[20];
