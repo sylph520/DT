@@ -991,23 +991,47 @@ Vec3f my_hough_circle(Mat diagram,int min_radius,int max_radius)
 	
 	int irows, icols;
 	irows = diagram.rows; icols = diagram.cols;
-	int r_ranges = max_radius - min_radius + 1;
-//	int sz[] = { r_ranges,icols, irows };
-	Mat accumulator = Mat::zeros(3, sz, CV_8U);
-	int min_center_x = min_radius; int max_center_x = icols - min_radius;
+	int r_ranges = max_radius - min_radius;
+
+	int min_center_x = min_radius;
+	int min_center_y = min_radius; 
+	int sz[] = { icols, irows, max_radius };
+	Mat accumulator(3, sz, CV_8U, Scalar::all(0));
+	Mat_<uchar> accuM = accumulator;
+	int count = 0;
+	ofstream debug_log("db.txt");
 	for(auto i = 0; i < icols; ++i)
 	{
 		for(auto j = 0; j < irows; ++j)
 		{
-			if(diagram.at<uchar>(i,j) != 0)
+			if(diagram.at<uchar>(j,i) != 0)
 			{
 				//edge point
+//				cout << count++ << endl;
 				for(auto r = min_radius; r < max_radius; ++r)
 				{
-					for (auto center_x = min_center_x; center_x < max_center_x; ++center_x)
+					for (auto a = min_center_x; a < icols - r; ++a)
 					{
-						int center_y = int(sqrt(r*r - (i - center_x)*(i - center_x)));
-						accumulator.at<uchar>(r, center_x, center_y) += 1;
+						if( a + r < icols)
+						{
+							int tmp = r*r - (i - a)*(i - a);
+							if (tmp >= 0)
+							{
+								int tmp2 = int(j - sqrt(tmp));
+								int b = tmp2 > 0 ? tmp2 : -tmp2;
+								if(b > min_radius && b + r < irows)
+								{
+									{
+//																				accumulator.at<uchar>(a, b, r) += 1;
+										accuM(a, b, r) += 1;
+									}
+								}
+								else
+								{
+									int e = 0;
+								}
+							}
+						}
 					}
 				}
 			}
@@ -4797,7 +4821,7 @@ int test_diagram()
 	vector<Point2i> oriEdgePoints = getPointPositions(binarized_image);
 	vector<Mat> char_imgs;
 	image_labelling(binarized_image, diagram_segment,char_imgs, true);
-	my_hough_circle(diagram_segment, 20, 200);
+	my_hough_circle(diagram_segment, 20, diagram_segment.rows/2);
 	for (auto i = 0; i < char_imgs.size();++i)
 	{
 		char fullNameStr[20];
