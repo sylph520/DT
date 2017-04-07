@@ -1,5 +1,6 @@
 # include "stdafx.h"
 # include "diagram.h"
+#include <functional>
 
 #define N 500
 
@@ -199,7 +200,18 @@ bool dashLineRecovery(vector<Point2i>&, Vec2i, Vec2i, vector<circle_class>&, boo
 //		return false;
 //}
 
-
+vector<Vec3i> vec_slice(vector<Vec3i> a, int start, int end)
+{
+	vector<Vec3i> ret;
+	for(auto i = 0; i < a.size(); ++i)
+	{
+		if(i>=start && i < end)
+		{
+			ret.push_back(a[i]);
+		}
+	}
+	return ret;
+}
 
 /**************************************************************geometry funcs*******************************/
 /********basic eff funcs*******/
@@ -985,9 +997,10 @@ bool on_circle(Vec2f pt, Vec3f circle)
 		return false;
 }
 
-Vec3f my_hough_circle(Mat diagram,int min_radius,int max_radius)
+
+vector<Vec3i> my_hough_circle(Mat diagram,int min_radius,int max_radius, int threshold, int minDP)
 {
-	Vec3f ret; 
+	vector<Vec3i> ret; 
 	
 	int irows, icols;
 	irows = diagram.rows; icols = diagram.cols;
@@ -995,9 +1008,9 @@ Vec3f my_hough_circle(Mat diagram,int min_radius,int max_radius)
 
 	int min_center_x = min_radius;
 	int min_center_y = min_radius; 
-	int sz[] = { icols, irows, max_radius };
+	int sz[] = { irows,icols, max_radius };
 	Mat accumulator(3, sz, CV_8U, Scalar::all(0));
-	Mat_<uchar> accuM = accumulator;
+//	Mat_<uchar> accuM = accumulator;
 	int count = 0;
 	ofstream debug_log("db.txt");
 	for(auto i = 0; i < icols; ++i)
@@ -1007,7 +1020,6 @@ Vec3f my_hough_circle(Mat diagram,int min_radius,int max_radius)
 			if(diagram.at<uchar>(j,i) != 0)
 			{
 				//edge point
-//				cout << count++ << endl;
 				for(auto r = min_radius; r < max_radius; ++r)
 				{
 					for (auto a = min_center_x; a < icols - r; ++a)
@@ -1022,8 +1034,8 @@ Vec3f my_hough_circle(Mat diagram,int min_radius,int max_radius)
 								if(b > min_radius && b + r < irows)
 								{
 									{
-//																				accumulator.at<uchar>(a, b, r) += 1;
-										accuM(a, b, r) += 1;
+										accumulator.at<uchar>(b, a, r) += 1;
+//										accuM(a, b, r) += 1;
 									}
 								}
 								else
@@ -1035,10 +1047,100 @@ Vec3f my_hough_circle(Mat diagram,int min_radius,int max_radius)
 					}
 				}
 			}
-//			cout << "test" << endl;
+		}
+	}
+	int  max3 = 0;
+	Vec3i maxLoc;
+//	vector<int> accus;
+	vector<Vec3i> accusLoc;
+	
+	for(auto m = 0; m < sz[0]; ++m)
+	{
+		for(auto n = 0; n < sz[1]; ++n)
+		{
+			for (auto l = 0; l < sz[2]; ++l)
+			{
+				int tmp = accumulator.at<uchar>(m, n, l);
+//				accus.push_back(tmp);
+				accusLoc.push_back({ n,m,l });
+				if(tmp > max3)
+				{
+					max3 = tmp;
+					maxLoc = { n,m,l };
+				}
+			}
+		}
+	}
+//	ret = maxLoc;
+	vector<Vec3i> circle_candidates;
+	{
+		sort(accusLoc.begin(), accusLoc.end(), [=](Vec3i a, Vec3i b)
+		{
+			int m1, n1, l1, m2, n2, l2;
+			m1 = a[0]; n1 = a[1]; l1 = a[2];
+			m2 = b[0]; n2 = b[1]; l2 = b[2];
+			uchar count1, count2;
+			count1 = accumulator.at<uchar>(n1, m1, l1);
+			count2 = accumulator.at<uchar>(n2, m2, l2);
+			if (count1 > count2)
+				return true;
+			else
+				return false;
+		});
+		for (auto i = 0; i < accusLoc.size(); ++i)
+		{
+			Vec3i Loc = accusLoc[i];
+			int m, n, l;
+			m = Loc[0]; n = Loc[1]; l = Loc[2];
+			int tmp = accumulator.at<uchar>(n, m, l);
+			if (tmp < threshold)
+			{
+				circle_candidates = vec_slice(accusLoc, 0, i);
+				break;
+			}
+		}
+	}
+//	{
+//		for(auto i = 0; i < accusLoc.size(); ++i)
+//		{
+//			Vec3i Loc = accusLoc[i];
+//			int m, n, l;
+//			m = Loc[0]; n = Loc[1]; l = Loc[2];
+//			int tmp = accumulator.at<uchar>(n, m, l);
+//			if (tmp < threshold)
+//			{
+//				circle_candidates.push_back(accusLoc[i]);
+//			}
+//		}
+//		sort(circle_candidates.begin(),circle_candidates.end(), [=](Vec3i a, Vec3i b)
+//		{
+//			int m1, n1, l1, m2, n2, l2;
+//			m1 = a[0]; n1 = a[1]; l1 = a[2];
+//			m2 = b[0]; n2 = b[1]; l2 = b[2];
+//			uchar count1, count2;
+//			count1 = accumulator.at<uchar>(n1, m1, l1);
+//			count2 = accumulator.at<uchar>(n2, m2, l2);
+//			if (count1 > count2)
+//				return true;
+//			else
+//				return false;
+//		});
+//	}
+
+	Vec3i optimal_circle = circle_candidates[0]; ret.push_back(optimal_circle);
+	Vec2i optimal_center = { optimal_circle[0], optimal_circle[1] };
+	int optimal_radius = optimal_circle[2];
+	for(auto i = 1; i <circle_candidates.size(); ++i)
+	{
+		Vec3i tmpC = circle_candidates[i];
+		Vec2i tmpCenter = { tmpC[0], tmpC[1] }; int tmpRadius = tmpC[2];
+		if(p2pdistance(optimal_center, tmpCenter) > minDP)
+		{
+			ret.push_back(tmpC);
 		}
 	}
 
+	
 	return ret;
 }
 
@@ -1120,6 +1222,22 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 		namedWindow("5.colorgeo");
 		cv::imshow("5.colorgeo", color_img);
 	}
+}
+
+void detect_circle2(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, int min_radius,int max_radius, int threshold, int minDP)
+{
+	vector<Vec3i> circle_candidates= my_hough_circle(diagram_segment, min_radius, max_radius, threshold, minDP);
+//	Mat test; cvtColor(diagram_segment, test, COLOR_GRAY2RGB);
+	diagram_segwithoutcircle = diagram_segment.clone();
+	for (auto i = 0; i < circle_candidates.size(); ++i)
+	{
+		Vec3i c = circle_candidates[i];
+		circle_class cx(c); circles.push_back(cx);
+		circle(color_img, Point(c[0], c[1]), c[2], Scalar(255, 255, 0), 2);
+		circle(diagram_segwithoutcircle, Point(c[0], c[1]), c[2], 0, 3);
+		circle(withoutCirBw, Point(c[0], c[1]), c[2], 0, 3);
+	}
+
 }
 
 void detect_circle3(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, bool showFlag)
@@ -4778,13 +4896,15 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	/*ransac go*/
 	Mat withoutCirBw = binarized_image.clone();
 	// detect the circle and get the img without circle and bw img without cirlce and circle candidates
-	detect_circle3(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
+//	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
+	detect_circle2(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, 20, diagram_segment.rows / 2, 80, 20);
+
 	// then the line detection
 	//vector<Vec2i> basicEndpoints = {};
 
 
 //	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
-	detect_line_lsd(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
 
 	/*display point text info*/
 	//for (int i = 0; i < points.size(); ++i)
@@ -4807,7 +4927,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("sg-1.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -4821,7 +4941,6 @@ int test_diagram()
 	vector<Point2i> oriEdgePoints = getPointPositions(binarized_image);
 	vector<Mat> char_imgs;
 	image_labelling(binarized_image, diagram_segment,char_imgs, true);
-	my_hough_circle(diagram_segment, 20, diagram_segment.rows/2);
 	for (auto i = 0; i < char_imgs.size();++i)
 	{
 		char fullNameStr[20];
@@ -4843,7 +4962,7 @@ int diagram()
 {
 	//a series of image
 	//vector<Mat> images;
-	char abs_path[100] = "D:\\data\\graph-DB\\lsd0";
+	char abs_path[100] = "D:\\data\\graph-DB\\newC";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
