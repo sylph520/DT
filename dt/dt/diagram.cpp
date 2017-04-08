@@ -239,6 +239,19 @@ Vec4i f2i(Vec4f fl)
 	return retL;
 }
 
+vector<Vec3i> vec_slice(vector<Vec3i> a, int start, int end)
+{
+	vector<Vec3i> ret;
+	for (auto i = 0; i < a.size(); ++i)
+	{
+		if (i >= start && i < end)
+		{
+			ret.push_back(a[i]);
+		}
+	}
+	return ret;
+}
+
 /**p2p**/
 double p2pdistance(Vec2i pt1, Vec2i pt2)
 {
@@ -1122,22 +1135,191 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 	}
 }
 
+vector<Vec3i> my_hough_circle(Mat diagram, int min_radius, int max_radius, int threshold, int minDP)
+{
+	vector<Vec3i> ret;
+
+	int irows, icols;
+	irows = diagram.rows; icols = diagram.cols;
+	int r_ranges = max_radius - min_radius;
+
+	int min_center_x = min_radius;
+	int min_center_y = min_radius;
+	int sz[] = { irows,icols, max_radius };
+	Mat accumulator(3, sz, CV_8U, Scalar::all(0));
+	//	Mat_<uchar> accuM = accumulator;
+	int count = 0;
+	ofstream debug_log("db.txt");
+	for (auto i = 0; i < icols; ++i)
+	{
+		for (auto j = 0; j < irows; ++j)
+		{
+			if (diagram.at<uchar>(j, i) != 0)
+			{
+				//edge point
+				for (auto r = min_radius; r < max_radius; ++r)
+				{
+					for (auto a = min_center_x; a < icols - r; ++a)
+					{
+						if (a + r < icols)
+						{
+							int tmp = r*r - (i - a)*(i - a);
+							if (tmp >= 0)
+							{
+								int tmp2 = int(j - sqrt(tmp));
+								int b = tmp2 > 0 ? tmp2 : -tmp2;
+								if (b > min_radius && b + r < irows)
+								{
+									{
+										accumulator.at<uchar>(b, a, r) += 1;
+										//										accuM(a, b, r) += 1;
+									}
+								}
+								else
+								{
+									int e = 0;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	int  max3 = 0;
+	Vec3i maxLoc;
+	//	vector<int> accus;
+	vector<Vec3i> accusLoc;
+
+	for (auto m = 0; m < sz[0]; ++m)
+	{
+		for (auto n = 0; n < sz[1]; ++n)
+		{
+			for (auto l = 0; l < sz[2]; ++l)
+			{
+				int tmp = accumulator.at<uchar>(m, n, l);
+				//				accus.push_back(tmp);
+				accusLoc.push_back({ n,m,l });
+				if (tmp > max3)
+				{
+					max3 = tmp;
+					maxLoc = { n,m,l };
+				}
+			}
+		}
+	}
+	//	ret = maxLoc;
+	vector<Vec3i> circle_candidates;
+	{
+		sort(accusLoc.begin(), accusLoc.end(), [=](Vec3i a, Vec3i b)
+		{
+			int m1, n1, l1, m2, n2, l2;
+			m1 = a[0]; n1 = a[1]; l1 = a[2];
+			m2 = b[0]; n2 = b[1]; l2 = b[2];
+			uchar count1, count2;
+			count1 = accumulator.at<uchar>(n1, m1, l1);
+			count2 = accumulator.at<uchar>(n2, m2, l2);
+			if (count1 > count2)
+				return true;
+			else
+				return false;
+		});
+		for (auto i = 0; i < accusLoc.size(); ++i)
+		{
+			Vec3i Loc = accusLoc[i];
+			int m, n, l;
+			m = Loc[0]; n = Loc[1]; l = Loc[2];
+			int tmp = accumulator.at<uchar>(n, m, l);
+			if (tmp < threshold)
+			{
+				circle_candidates = vec_slice(accusLoc, 0, i);
+				break;
+			}
+		}
+	}
+	//	{
+	//		for(auto i = 0; i < accusLoc.size(); ++i)
+	//		{
+	//			Vec3i Loc = accusLoc[i];
+	//			int m, n, l;
+	//			m = Loc[0]; n = Loc[1]; l = Loc[2];
+	//			int tmp = accumulator.at<uchar>(n, m, l);
+	//			if (tmp < threshold)
+	//			{
+	//				circle_candidates.push_back(accusLoc[i]);
+	//			}
+	//		}
+	//		sort(circle_candidates.begin(),circle_candidates.end(), [=](Vec3i a, Vec3i b)
+	//		{
+	//			int m1, n1, l1, m2, n2, l2;
+	//			m1 = a[0]; n1 = a[1]; l1 = a[2];
+	//			m2 = b[0]; n2 = b[1]; l2 = b[2];
+	//			uchar count1, count2;
+	//			count1 = accumulator.at<uchar>(n1, m1, l1);
+	//			count2 = accumulator.at<uchar>(n2, m2, l2);
+	//			if (count1 > count2)
+	//				return true;
+	//			else
+	//				return false;
+	//		});
+	//	}
+
+	Vec3i optimal_circle = circle_candidates[0]; ret.push_back(optimal_circle);
+	Vec2i optimal_center = { optimal_circle[0], optimal_circle[1] };
+	int optimal_radius = optimal_circle[2];
+	for (auto i = 1; i <circle_candidates.size(); ++i)
+	{
+		Vec3i tmpC = circle_candidates[i];
+		Vec2i tmpCenter = { tmpC[0], tmpC[1] }; int tmpRadius = tmpC[2];
+		if (p2pdistance(optimal_center, tmpCenter) > minDP)
+		{
+			ret.push_back(tmpC);
+		}
+	}
+
+
+	return ret;
+}
+
+
+void detect_circle2(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, bool showFlag, int min_radius, int max_radius, int threshold, int minDP)
+{
+	vector<Vec3i> circle_candidates = my_hough_circle(diagram_segment, min_radius, max_radius, threshold, minDP);
+	//	Mat test; cvtColor(diagram_segment, test, COLOR_GRAY2RGB);
+	diagram_segwithoutcircle = diagram_segment.clone();
+	for (auto i = 0; i < circle_candidates.size(); ++i)
+	{
+		Vec3i c = circle_candidates[i];
+		circle_class cx(c); circles.push_back(cx);
+		circle(color_img, Point(c[0], c[1]), c[2], Scalar(255, 255, 0), 2);
+		circle(diagram_segwithoutcircle, Point(c[0], c[1]), c[2], 0, 3);
+		circle(withoutCirBw, Point(c[0], c[1]), c[2], 0, 3);
+	}
+	namedWindow("Standart Hough Circle Transfrom");
+	imshow("Standart Hough Circle Transfrom", color_img);
+
+}
+
+
 void detect_circle3(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithoutcircle, Mat& withoutCirBw, vector<circle_class>& circles, bool showFlag)
 {
 	//Hough circle detection go
 	vector<Vec3f> houghc;
 	Mat diagram_segment2 = color_img.clone();
 
-	HoughCircles(diagram_segment, houghc, HOUGH_GRADIENT,1, 20, 1,22, 50,diagram_segment.rows/2);
+	HoughCircles(diagram_segment, houghc, HOUGH_GRADIENT,1, 20, 1,20 , 50,diagram_segment.rows/2);
 	for (size_t i = 0; i < houghc.size(); i++)
 	{
 		Point center(cvRound(houghc[i][0]), cvRound(houghc[i][1]));
 		int radius = cvRound(houghc[i][2]);
 		// circle center
-		circle(diagram_segment2, center, 3, Scalar(0, 255, 0), -1, 8, 0);
+		circle(diagram_segment2, center, 3, Scalar(0, 255, 0), 1, 8, 0);
 		// circle outline
 		circle(diagram_segment2, center, radius, Scalar(0, 0, 255), 3, 8, 0);
 	}
+	namedWindow("OpenCV HoughCircles");
+	imshow("OpenCV HoughCircles", diagram_segment2);
+
 }
 
 void circleRANSAC(Mat &image, std::vector<Vec3f> &circles, double canny_threshold, double circle_threshold, int numIterations)
@@ -5059,6 +5241,7 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 //	detect_circle3(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
 //	ransac_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
+//	detect_circle2(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag,20,diagram_segment.rows/2, 90, 20);
 	
 	// then the line detection
 	//vector<Vec2i> basicEndpoints = {};
