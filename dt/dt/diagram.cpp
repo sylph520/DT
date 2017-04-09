@@ -1120,15 +1120,15 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 			// update mask: remove the detected circle!
 			cv::circle(diagram_segwithoutcircle, {circle[0], circle[1]}, circle[2], 0, width); // here the radius is fixed which isnt so nice.
 			//edgePointsWithoutCircle = getPointPositions(diagram_segwithoutcircle);
-			cv::circle(color_img, {circle[0], circle[1]}, circle[2], Scalar(255, 0, 255), 1);
+			cv::circle(color_img, {circle[0], circle[1]}, circle[2], Scalar(255, 0, 255), 2);
 			cv::circle(withoutCirBw, {circle[0], circle[1]}, circle[2], 0, width);
 		}
 	}
 
 	if (showFlag)
 	{
-		namedWindow("circle detection");
-		cv::imshow("circle detection", color_img);
+		namedWindow("RANSAC circle detection");
+		cv::imshow("RANSAC circle detection", color_img);
 		namedWindow("diagram without circles");
 		cv::imshow("diagram without circles", diagram_segwithoutcircle);
 
@@ -5247,8 +5247,8 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	//vector<Vec2i> basicEndpoints = {};
 
 
-	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
-//	detect_line_lsd(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+//	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+	detect_line_lsd1(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
 
 	cout<<"test"<<endl;
 	/*display point text info*/
