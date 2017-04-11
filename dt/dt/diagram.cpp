@@ -3790,7 +3790,7 @@ void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wi
 
 #pragma region raw detection
 
-	Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD);
+	Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD,0.8,0.6,10,22.5,3,0.5, 1024);
 	vector<Vec4f> line_std;
 	//	ofstream tmpLogFile;
 	//	tmpLogFile.open("tmpLog.txt");
@@ -3805,19 +3805,24 @@ void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wi
 		if (lineEV > 10)//this threshold should be set a litter lower to generate enough line candidates
 		{
 			plainLines.push_back(rawLine);
-			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(255, 0, 0), 2, 8);
+//			line(diagram_segwithoutcircle, Point(rawLine[0], rawLine[1]), Point(rawLine[2], rawLine[3]), Scalar(255, 0, 0), 2, 8);
 		}
 	}
 	/*display or write into file*/
+	Mat oriLine = color_img.clone();
 	if (showFlag)
 	{
 		for (size_t j = 0; j < plainLines.size(); ++j)
 		{
 			Vec4i l = plainLines[j];
-			line(color_img, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 2, 8);
+			Vec2i pt1, pt2; line2pt(l, pt1, pt2);
+			line(oriLine, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 1, 8);
+			Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
+			circle(oriLine, Point{ pt1[0], pt1[1] }, 10, tmp);
+			circle(oriLine, Point{ pt2[0], pt2[1] }, 10, tmp);
 		}
-		namedWindow("7.lines first opt version now 1");
-		imshow("7.lines first opt version now 1", color_img);
+		namedWindow("lsd line detection");
+		imshow("lsd line detection", oriLine);
 	}
 	else if (fileName != "")
 	{
@@ -3847,6 +3852,7 @@ void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wi
 		Vec4i l = plainLines[i]; Vec2i pt1 = { l[0], l[1] }; Vec2i pt2 = { l[2], l[3] };
 		//			cout << "*********************" << pt1 << " " << pt2 << endl;
 		line(oriL_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
+		
 		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
 	}
 
@@ -3983,7 +3989,7 @@ void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wi
 		circle(rmParaI, Point{ pt1[0], pt1[1] }, 10, tmp);
 		circle(rmParaI, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
-	namedWindow("rm parallel", 0);
+	namedWindow("rm parallel");
 	imshow("rm parallel", rmParaI);
 
 	// remove the line detected and store it as withoutCLOriBw
@@ -4344,8 +4350,8 @@ void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wi
 	cout << endl;
 	//if (showFlag)
 	{
-		namedWindow("8.lines first opt version now", 0);
-		imshow("8.lines first opt version now", color_img);
+		namedWindow("lsd line detection final", 0);
+		imshow("lsd line detection final", color_img);
 	}
 	drawedImages = color_img;
 }
@@ -5247,8 +5253,8 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	//vector<Vec2i> basicEndpoints = {};
 
 
-//	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
-	detect_line_lsd1(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+	detect_line3(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
+//	detect_line_lsd1(diagram_segment, diagram_segwithoutcircle, withoutCirBw, points, circles, color_img, lines, oriEdgePoints, drawedImages, showFlag, fileName);
 
 	cout<<"test"<<endl;
 	/*display point text info*/
@@ -5645,41 +5651,41 @@ int test_diagram()
 	primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, true);
 	cout << "sep" << endl;
 	// then we turn to handle the characters
-	string str1(1,'O');
-	string str2(1, 'A');
-	string str3(1, 'C');
-	string str4(1, 'B');
-	string str5(1, 'D');
-	string str6 = "A'";
-	circles[0].setLabel(str1);
-	points[0].setLabel(str2);
-	points[1].setLabel(str3);
-	points[2].setLabel(str4);
-	points[3].setLabel(str5);
-	points[4].setLabel(str6);
-
-	
-	//now we obtained the circles, points, and lines, then we extract the infos 
-	for (auto i = 0; i < lines.size(); ++i)
-	{
-		int pid1, pid2;
-		pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
-		string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
-		double tmpSlope_r = lSlope_r(lines[i].getLineVec(points));
-		double tmpSlope_d = lSlope_d(lines[i].getLineVec(points));
-		double tmpLength = p2pdistance(points[pid1].getXY(),points[pid2].getXY());
-		points[pid1].setIsEndPoint(true);
-		lines[i].setLabel(tmpLabel);
-		lines[i].setSlope_r(tmpSlope_r);
-		lines[i].setSlope_d(tmpSlope_d);
-		lines[i].setLen(tmpLength);
-	}
-	
-	cout << endl << endl << endl << "****************now, output the extracted information****************" << endl;
-	int choosed_version = 0;
-	outPutInfos(0,circles,points,lines);
-	outPutInfos(1,circles,points,lines);
-	outPutInfos(2,circles,points,lines);
+//	string str1(1,'O');
+//	string str2(1, 'A');
+//	string str3(1, 'C');
+//	string str4(1, 'B');
+//	string str5(1, 'D');
+//	string str6 = "A'";
+//	circles[0].setLabel(str1);
+//	points[0].setLabel(str2);
+//	points[1].setLabel(str3);
+//	points[2].setLabel(str4);
+//	points[3].setLabel(str5);
+//	points[4].setLabel(str6);
+//
+//	
+//	//now we obtained the circles, points, and lines, then we extract the infos 
+//	for (auto i = 0; i < lines.size(); ++i)
+//	{
+//		int pid1, pid2;
+//		pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
+//		string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
+//		double tmpSlope_r = lSlope_r(lines[i].getLineVec(points));
+//		double tmpSlope_d = lSlope_d(lines[i].getLineVec(points));
+//		double tmpLength = p2pdistance(points[pid1].getXY(),points[pid2].getXY());
+//		points[pid1].setIsEndPoint(true);
+//		lines[i].setLabel(tmpLabel);
+//		lines[i].setSlope_r(tmpSlope_r);
+//		lines[i].setSlope_d(tmpSlope_d);
+//		lines[i].setLen(tmpLength);
+//	}
+//	
+//	cout << endl << endl << endl << "****************now, output the extracted information****************" << endl;
+//	int choosed_version = 0;
+//	outPutInfos(0,circles,points,lines);
+//	outPutInfos(1,circles,points,lines);
+//	outPutInfos(2,circles,points,lines);
 
 	return 0;
 }
@@ -5700,6 +5706,7 @@ char tesseract_ocr_proc(char* subNameStr)
 	singleCharFile.close();
 	return singleResult;
 }
+
 char gocr_proc(char* subNameStr)
 {
 	char ocrCmd3[100];
@@ -5713,6 +5720,7 @@ char gocr_proc(char* subNameStr)
 	singleCharFile.close();
 	return singleResult;
 }
+
 int diagram()
 {
 	//a series of image
