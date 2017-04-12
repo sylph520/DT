@@ -578,7 +578,7 @@ Mat image_binarizing(Mat input_image, bool showFlag = false)
 	return binarized_image;
 }
 
-void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &char_imgs, bool showFlag = false)
+void image_labelling(Mat image,Mat binarized_image, Mat& diagram_segment, vector<Mat> &char_imgs, bool showFlag = false)
 {
 	// this function is used to label image with connectedcomponnent analysis, and store the diagram 
 	//and label segment
@@ -590,7 +590,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 	Mat labeled_image;
 	int labeln = connectedComponentsWithStats(binarized_image, labeled_image, statsMat, centroidMat, 8, 4);
 	int newLabeln = labeln;
-	vector<Mat> charSegs;
+	vector<Mat> charImgPageSegs;
 	// show the labelling image
 	vector<Vec3b> colors(labeln); 
 	colors[0] = Vec3b(0, 0, 0);
@@ -609,11 +609,11 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		int wholeIdx = -1;
 //		if (seg_area > 5)
 		{
-			//segments.push_back(seg_mat);
 			if (seg_area >= statsMat.at<int>(dia_idx, 4))
 				dia_idx = label;
 		}
 	}
+	Mat rmed_dia = binarized_image.clone();
 
 	vector<Rect> bRects;
 	map<int, int> matLabelp;
@@ -621,25 +621,27 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 	{
 		if (label != dia_idx)
 		{
+			//extract the char region and push back
 			Mat charImgCandicate = labeled_image == label;
 			int seg_area = statsMat.at<int>(label, 4);
 //			if (seg_area > 10)
 			{
-				matLabelp[charSegs.size()] = label;
-				charSegs.push_back(charImgCandicate);
-				Rect oriRect = boundingRect(charImgCandicate);
-				int xoffset, yoffset; xoffset = (oriRect.tl()).x >= 1 ? 1 : 0;  yoffset = (oriRect.tl()).y >= 1 ? 1 : 0;
-				Rect adjustRect = oriRect + Point(-xoffset, -yoffset) + Size(2 * xoffset, 2 * yoffset);
-				if (adjustRect.x + adjustRect.width > charImgCandicate.cols)
-				{
-					adjustRect.width = charImgCandicate.cols - adjustRect.x;
-				}
-				if (adjustRect.y + adjustRect.height > charImgCandicate.rows)
-				{
-					adjustRect.height = charImgCandicate.rows - adjustRect.y;
-				}
-				Mat pushM = Mat(charImgCandicate, adjustRect);
-				char_imgs.push_back(pushM);
+				matLabelp[charImgPageSegs.size()] = label;
+				charImgPageSegs.push_back(charImgCandicate);
+//				Rect oriRect = boundingRect(charImgCandicate);
+//				int xoffset, yoffset; xoffset = (oriRect.tl()).x >= 1 ? 1 : 0;  yoffset = (oriRect.tl()).y >= 1 ? 1 : 0;
+//				Rect adjustRect = oriRect + Point(-xoffset, -yoffset) + Size(2 * xoffset, 2 * yoffset);
+//				if (adjustRect.x + adjustRect.width > charImgCandicate.cols)
+//				{
+//					adjustRect.width = charImgCandicate.cols - adjustRect.x;
+//				}
+//				if (adjustRect.y + adjustRect.height > charImgCandicate.rows)
+//				{
+//					adjustRect.height = charImgCandicate.rows - adjustRect.y;
+//				}
+//				Mat pushM = Mat(charImgCandicate, adjustRect);
+//				char_imgs.push_back(pushM);
+
 				//				Rect brect = boundingRect(charImgCandicate);
 				//				bRects.push_back(brect);
 			}
@@ -647,29 +649,32 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 	}
 	/*test seg img check*/
 	vector<Vec3b> colors2 = colors;
-	for (auto i = 0; i < charSegs.size(); ++i)
+	for (auto i = 0; i < charImgPageSegs.size(); ++i)
 	{
 		int label1 = matLabelp[i];
 		Vec2i tmpCentroid1 = centroidMat.row(label1);
-		Mat tmp1 = charSegs[i].clone();
-
-		for (auto j = i + 1; j < charSegs.size(); ++j)
+		Mat tmp1 = charImgPageSegs[i].clone();
+		cout << "stop" << endl;
+		for (auto j = i + 1; j < charImgPageSegs.size(); ++j)
 		{
 			int label2 = matLabelp[j];
 			Vec2i tmpCentroid2 = centroidMat.row(label2);
 			double regiondis = norm(tmpCentroid1, tmpCentroid2);
 			cout << regiondis << endl;
+			Mat tmp2 = charImgPageSegs[j].clone();
 			if (regiondis < 15)
 			{
 				//merge
-				Mat tmp2 = charSegs[j].clone();
 				Mat tmp3 = tmp1 + tmp2;
 				cout << label1 << "  " << label2 << "    " << tmpCentroid1 << "  " << tmpCentroid2 << endl;
 				colors2[label2] = colors2[label1];
 				newLabeln--;
-				charSegs[i] = tmp3; charSegs[j] = tmp3;
+				charImgPageSegs[i] = tmp3; charImgPageSegs[j] = tmp3;
+				auto newSize = (boundingRect(tmp3)).area();
+				statsMat.at<int>(label1, 4) = newSize;
+				statsMat.at<int>(label2, 4) = newSize;
 				matLabelp[j] = label1;
-				Mat tmp4 = charSegs[i]; Mat tmp5 = charSegs[j];
+				Mat tmp4 = charImgPageSegs[i]; Mat tmp5 = charImgPageSegs[j];
 				cout << "test" << endl;
 			}
 			else
@@ -678,46 +683,66 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 			}
 		}
 	}
-
-	for(auto iter =charSegs.begin(); iter != charSegs.end();)
+	int erase_count = 0; Mat rm_pageSegs = Mat::zeros(diagram_segment.rows,diagram_segment.cols,CV_8UC1);
+	for(auto iter =charImgPageSegs.begin(); iter != charImgPageSegs.end();)
 	{
-		auto csize =iter->cols * iter->rows;
-		auto id = int(iter - charSegs.begin());
-		auto tmpArea = statsMat.at<int>(matLabelp[id], 4);
-		if (tmpArea < 15)
+		auto id = int(iter - charImgPageSegs.begin() + erase_count);
+		auto tmpLabel = matLabelp[id];
+		Mat tmptmp = *iter;
+		auto tmpArea = statsMat.at<int>(tmpLabel, 4);
+		if(tmpArea < 15)
 		{
-			iter = charSegs.erase(iter);
+			rm_pageSegs += *iter;
+			iter = charImgPageSegs.erase(iter);
+			++erase_count;
 		}
 		else
+		{
 			++iter;
+		}
 	}
-	sort(charSegs.begin(), charSegs.end(), [](Mat a, Mat b)
+	sort(charImgPageSegs.begin(), charImgPageSegs.end(), [](Mat a, Mat b)
 	{
 		if (countNonZero(a) < countNonZero(b))
 			return true;
 		else
 			return false;
 	});
-	charSegs.erase(unique(charSegs.begin(), charSegs.end(), [](Mat a, Mat b)
+	charImgPageSegs.erase(unique(charImgPageSegs.begin(), charImgPageSegs.end(), [](Mat a, Mat b)
 	{
 		if (countNonZero(a != b) == 0)
 			return true;
 		else
 			return false;
-	}), charSegs.end());
-	for (auto iter = charSegs.begin(); iter != charSegs.end();)
+	}), charImgPageSegs.end());
+//	for (auto iter = charSegs.begin(); iter != charSegs.end();)
+//	{
+//		Rect tmp = boundingRect(*iter);
+//		double tmpArea = tmp.area();
+//		//		if (tmpArea < 30||isLSeg(*iter))
+//		//			iter = char_imgs.erase(iter);
+//		//		else
+//		++iter;
+//	}
+
+	for (auto i = 0; i < charImgPageSegs.size(); ++i)
 	{
-		Rect tmp = boundingRect(*iter);
-		double tmpArea = tmp.area();
-		//		if (tmpArea < 30||isLSeg(*iter))
-		//			iter = char_imgs.erase(iter);
-		//		else
-		++iter;
-	}
-	for (auto i = 0; i < charSegs.size(); ++i)
-	{
-		Rect brect = boundingRect(charSegs[i]);
-		bRects.push_back(brect);
+//		Rect brect = boundingRect(charSegs[i]);
+		Mat charImgCandidate = charImgPageSegs[i];
+		Rect oriRect = boundingRect(charImgCandidate);
+		int xoffset, yoffset; xoffset = (oriRect.tl()).x >= 1 ? 1 : 0;  yoffset = (oriRect.tl()).y >= 1 ? 1 : 0;
+		Rect adjustRect = oriRect + Point(-xoffset, -yoffset) + Size(2 * xoffset, 2 * yoffset);
+		if (adjustRect.x + adjustRect.width > charImgCandidate.cols)
+		{
+			adjustRect.width = charImgCandidate.cols - adjustRect.x;
+		}
+		if (adjustRect.y + adjustRect.height > charImgCandidate.rows)
+		{
+			adjustRect.height = charImgCandidate.rows - adjustRect.y;
+		}
+		Mat pushM = Mat(charImgCandidate, adjustRect);
+		char_imgs.push_back(pushM);
+		bRects.push_back(oriRect);
 	}
 	Mat newLabeled = labeled.clone();
 	for (int r = 0; r < binarized_image.rows; ++r)
@@ -747,12 +772,13 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		int xoffset = 1;
 		int yoffset = 1;
 		Rect tmpAdjustRect = tmpOriRect + Point(-xoffset, -yoffset) + Size(2 * xoffset, 2 * yoffset);
-		rectangle(boundImg, tmpAdjustRect, Scalar(255, 0, 255), 2);
+		rectangle(boundImg, tmpAdjustRect, Scalar(255, 0, 255), 1);
 
 	}
 
 
 	diagram_segment = (labeled_image == dia_idx);
+	rmed_dia = rmed_dia - diagram_segment - rm_pageSegs;
 	//int left = statsMat.at<int>(dia_idx, 0);
 	//int top = statsMat.at<int>(dia_idx, 1);
 	//int h = statsMat.at<int>(dia_idx, 3);
@@ -5635,7 +5661,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("graph-11.jpg", 0);
+	Mat image = imread("graph-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -5649,7 +5675,7 @@ int test_diagram()
 //	vector<Mat> label_segment = {};
 	vector<Point2i> oriEdgePoints = getPointPositions(binarized_image);
 	vector<Mat> char_imgs;
-	image_labelling(binarized_image, diagram_segment,char_imgs, true);
+	image_labelling(image,binarized_image, diagram_segment,char_imgs, true);
 	for (auto i = 0; i < char_imgs.size();++i)
 	{
 		char fullNameStr[20];
@@ -5740,7 +5766,7 @@ int diagram()
 	//vector<Mat> images;
 	vector<char*> charLabelsVec;
 //	readTxtInto2DCharVec(charLabelsVec, "D:\\data\\graph-DB\\nt6\\groudtruth.txt");
-	char abs_path[100] = "D:\\data\\graph-DB\\nt8";
+	char abs_path[100] = "D:\\data\\graph-DB\\newC1";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
@@ -5768,7 +5794,7 @@ int diagram()
 		}
 		namedWindow("points"); imshow("points", pointss);*/
 		vector<Mat> char_imgs;
-		image_labelling(binarized_image, diagram_segment,char_imgs);
+		image_labelling(image,binarized_image, diagram_segment,char_imgs);
 		char tmpOutFolder[100]; char tmpCmd[100];
 		sprintf_s(tmpOutFolder, "%s\\charImgs\\%d", abs_path, i);
 		sprintf_s(tmpCmd, "mkdir %s", tmpOutFolder);
