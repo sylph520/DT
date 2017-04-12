@@ -3766,7 +3766,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 		Vec2i pt1 = { l[0], l[1] };
 		Vec2i pt2 = { l[2], l[3] };
 		//		cout << "*********************" << pt1 << " " << pt2 << endl;
-		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 1, 8, 0);
+		line(color_img, pt1, pt2, Scalar(rand() % 255, rand() % 255, rand() % 255), 2, 8, 0);
 		Scalar tmp = Scalar(rand() % 255, rand() % 255, rand() % 255);
 		circle(color_img, Point{ pt1[0], pt1[1] }, 10, tmp, 2);
 		circle(color_img, Point{ pt2[0], pt2[1] }, 10, tmp, 2);
@@ -3774,7 +3774,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	cout << endl;
 	//if (showFlag)
 	{
-		namedWindow("final line detection result", 0);
+		namedWindow("final line detection result");
 		imshow("final line detection result", color_img);
 	}
 	cout << "test p1" << endl;
