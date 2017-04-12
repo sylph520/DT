@@ -607,7 +607,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		Mat seg_mat = ((labeled_image == label));
 		int seg_area = statsMat.at<int>(label, 4);
 		int wholeIdx = -1;
-		if (seg_area > 5)
+//		if (seg_area > 5)
 		{
 			//segments.push_back(seg_mat);
 			if (seg_area >= statsMat.at<int>(dia_idx, 4))
@@ -623,7 +623,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		{
 			Mat charImgCandicate = labeled_image == label;
 			int seg_area = statsMat.at<int>(label, 4);
-			if (seg_area > 10)
+//			if (seg_area > 10)
 			{
 				matLabelp[charSegs.size()] = label;
 				charSegs.push_back(charImgCandicate);
@@ -668,6 +668,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 				colors2[label2] = colors2[label1];
 				newLabeln--;
 				charSegs[i] = tmp3; charSegs[j] = tmp3;
+				matLabelp[j] = label1;
 				Mat tmp4 = charSegs[i]; Mat tmp5 = charSegs[j];
 				cout << "test" << endl;
 			}
@@ -678,6 +679,18 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		}
 	}
 
+	for(auto iter =charSegs.begin(); iter != charSegs.end();)
+	{
+		auto csize =iter->cols * iter->rows;
+		auto id = int(iter - charSegs.begin());
+		auto tmpArea = statsMat.at<int>(matLabelp[id], 4);
+		if (tmpArea < 15)
+		{
+			iter = charSegs.erase(iter);
+		}
+		else
+			++iter;
+	}
 	sort(charSegs.begin(), charSegs.end(), [](Mat a, Mat b)
 	{
 		if (countNonZero(a) < countNonZero(b))
@@ -699,7 +712,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		//		if (tmpArea < 30||isLSeg(*iter))
 		//			iter = char_imgs.erase(iter);
 		//		else
-		iter++;
+		++iter;
 	}
 	for (auto i = 0; i < charSegs.size(); ++i)
 	{
@@ -5622,7 +5635,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("graph-11.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
