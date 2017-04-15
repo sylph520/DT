@@ -573,9 +573,9 @@ Mat image_binarizing(Mat input_image, bool showFlag = false)
 	if (showFlag)
 	{
 		namedWindow("binarized image");
-		imshow("binarized image", binarized_image);//test binarized image
+		imshow("binarized image", 255 - binarized_image);//test binarized image
 	}
-	return binarized_image;
+	return 255-binarized_image;
 }
 
 void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &char_imgs, bool showFlag = false)
@@ -593,7 +593,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 	vector<Mat> charSegs;
 	// show the labelling image
 	vector<Vec3b> colors(labeln); 
-	colors[0] = Vec3b(0, 0, 0);
+	colors[0] = Vec3b(255, 255, 255);
 	
 	int dia_idx = 1;
 
