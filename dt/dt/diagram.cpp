@@ -208,6 +208,7 @@ struct ccinfo
 	int label;
 	Vec2i center;
 	int area;
+	int rect_area;
 };
 
 /**************************************************************geometry funcs*******************************/
@@ -561,7 +562,7 @@ bool isParallel2(Vec4i line1, Vec4i line2)
 	return angle < 20;
 }
 
-
+int labelImgnum = 0;
 /********************preprocessing funcs*************************************************/
 Mat image_binarizing(Mat input_image, bool showFlag = false)
 {
@@ -584,7 +585,7 @@ Mat image_binarizing(Mat input_image, bool showFlag = false)
 	return binarized_image;
 }
 
-void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vector<Mat> &char_imgs,vector<Mat> &char_imgs_bw, bool showFlag = false)
+void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vector<Mat> &char_imgs, vector<Mat> &char_imgs_bw, bool showFlag = false)
 {
 	// this function is used to label image with connectedcomponnent analysis, and store the diagram 
 	//and label segment
@@ -611,7 +612,7 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 		colors[label] = Vec3b((rand() & 255), (rand() & 255), (rand() & 255));
 		Mat seg_mat = ((labeled_image == label));
 		int seg_area = statsMat.at<int>(label, 4);
-		//		if (seg_area > 5)
+		//		if (seg_area > 2)
 		{
 			if (seg_area >= statsMat.at<int>(dia_idx, 4))
 				dia_idx = label;
@@ -619,7 +620,7 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 	}
 	diagram_segment = labeled_image == dia_idx;
 	Mat rmed_dia = binarized_image.clone() - diagram_segment;
-	
+
 	vector<Rect> bRects;
 	map<int, int> matLabelp;
 	vector<ccinfo> ccinfos;
@@ -636,7 +637,7 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 			{
 				matLabelp[charImgPageSegs.size()] = label;
 				charImgPageSegs.push_back(charImgCandicate);
-				ccinfo tmp = { charImgCandicate, label, seg_center, seg_area };
+				ccinfo tmp = { charImgCandicate, label, seg_center, seg_area , -1 };
 				ccinfos.push_back(tmp);
 			}
 		}
@@ -794,11 +795,11 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 		{
 			auto seg_c2 = iter2->center;
 			auto seg_c_dis = norm(seg_c1, seg_c2);
-			if (seg_c_dis < 15)
+			if (seg_c_dis < 12)
 			{
 				//close enough to merge the regions
 				iter1->seg += iter2->seg;
-				iter2->area += iter2->area;// to check since the area computation here is not that correct
+				iter1->area += iter2->area;// to check since the area computation here is not that correct
 				// ignore the center changement
 				colors[iter2->label] = colors[iter1->label];
 				//rm the second instance
@@ -810,13 +811,28 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 			}
 		}
 	}
-
-	for(auto iter = ccinfos.begin(); iter  != ccinfos.end(); )
+	
+	sort(ccinfos.begin(), ccinfos.end(), [](ccinfo a, ccinfo b)
 	{
-		if(iter->area < 10)
+		if (a.area > b.area)
+			return true;
+		else
+			return false;
+	});
+	int maxArea = ccinfos[0].area;
+	for (auto iter = ccinfos.begin(); iter != ccinfos.end(); )
+	{
+		auto segMat = iter->seg;
+		auto segRect = boundingRect(segMat);
+		auto rectArea = segRect.area();
+		auto rectW = segRect.width;
+		auto rectH = segRect.height;
+		if (iter->area < 5)
+//		if(false)
 		{
 			//still a small region, consider to remove it
-			rmed_dia -= iter->seg;
+			rmed_dia -= segMat;
+			colors[iter->label] = Vec3b(0, 0, 0);
 			iter = ccinfos.erase(iter);
 		}
 		else
@@ -834,12 +850,17 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 			pixel = colors[label];
 		}
 	}
+	char tmpLabelImg[100]; sprintf(tmpLabelImg, "label-%d.png", labelImgnum++);
+	imwrite(tmpLabelImg, labeled_image);
 	for(auto i = 0; i < ccinfos.size(); ++i)
 	{
 		Mat char_seg = ccinfos[i].seg;
 		Rect ori_rect = boundingRect(char_seg);
+		Mat logical = Mat(char_seg, ori_rect) == 255;
 		Mat tmp_char_img = Mat(image, ori_rect);
+		tmp_char_img.mul(logical);
 		Mat tmp_char_img_bw = Mat(binarized_image, ori_rect);
+		tmp_char_img_bw.mul(logical);
 		char_imgs.push_back(tmp_char_img);
 		char_imgs_bw.push_back(tmp_char_img_bw);
 	}
@@ -5712,7 +5733,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("graph-21.jpg", 0);
+	Mat image = imread("graph-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -5827,12 +5848,12 @@ int diagram()
 	//vector<Mat> images;
 	vector<char*> charLabelsVec;
 	//	readTxtInto2DCharVec(charLabelsVec, "D:\\data\\graph-DB\\nt6\\groudtruth.txt");
-	char abs_path[100] = "D:\\data\\graph-DB\\newC2";
+	char abs_path[100] = "D:\\data\\graph-DB\\newC6";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
 	int charNum = 0;  int rightNum = 0;
-	for (int i = 1; i < 87; i++)
+	for (int i = 1; i <= 84; i++)
 	{
 		cout << "*************************************************round " << i << endl;
 		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
@@ -5857,17 +5878,17 @@ int diagram()
 		vector<Mat> char_imgs,char_imgs_bw;
 		image_labelling(image, binarized_image, diagram_segment, char_imgs, char_imgs_bw);
 		
-		char tmpBaseFolder[100],tmpOutFolder[100]; char tmpCmd[100];
-		sprintf_s(tmpBaseFolder, "%s\\charImgs", abs_path);
-		sprintf_s(tmpOutFolder, "%s\\%d", tmpBaseFolder, i);
-		sprintf_s(tmpCmd, "mkdir %s", tmpOutFolder);
-		system(tmpCmd);
-
-		char tmpBaseFolder_bw[100], tmpOutFolder_bw[100]; char tmpCmd_bw[100];
-		sprintf_s(tmpBaseFolder_bw, "%s\\charImgs_bw", abs_path);
-		sprintf_s(tmpOutFolder_bw, "%s\\%d", tmpBaseFolder_bw, i);
-		sprintf_s(tmpCmd_bw, "mkdir %s", tmpOutFolder_bw);
-		system(tmpCmd_bw);
+//		char tmpBaseFolder[100],tmpOutFolder[100]; char tmpCmd[100];
+//		sprintf_s(tmpBaseFolder, "%s\\charImgs", abs_path);
+//		sprintf_s(tmpOutFolder, "%s\\%d", tmpBaseFolder, i);
+//		sprintf_s(tmpCmd, "mkdir %s", tmpOutFolder);
+//		system(tmpCmd);
+//
+//		char tmpBaseFolder_bw[100], tmpOutFolder_bw[100]; char tmpCmd_bw[100];
+//		sprintf_s(tmpBaseFolder_bw, "%s\\charImgs_bw", abs_path);
+//		sprintf_s(tmpOutFolder_bw, "%s\\%d", tmpBaseFolder_bw, i);
+//		sprintf_s(tmpCmd_bw, "mkdir %s", tmpOutFolder_bw);
+//		system(tmpCmd_bw);
 
 		char ori_tmpBaseFolder[100], ori_tmpOutFolder[100]; char ori_tmpCmd[100];
 		sprintf_s(ori_tmpBaseFolder, "%s\\ori_charImgs", abs_path);
@@ -5875,22 +5896,22 @@ int diagram()
 		sprintf_s(ori_tmpCmd, "mkdir %s", ori_tmpOutFolder);
 		system(ori_tmpCmd);
 
-		char ori_tmpBaseFolder_bw[100], ori_tmpOutFolder_bw[100]; char ori_tmpCmd_bw[100];
-		sprintf_s(ori_tmpBaseFolder_bw, "%s\\ori_charImgs_bw", abs_path);
-		sprintf_s(ori_tmpOutFolder_bw, "%s\\%d", ori_tmpBaseFolder_bw, i);
-		sprintf_s(ori_tmpCmd_bw, "mkdir %s", ori_tmpOutFolder_bw);
-		system(ori_tmpCmd_bw);
+//		char ori_tmpBaseFolder_bw[100], ori_tmpOutFolder_bw[100]; char ori_tmpCmd_bw[100];
+//		sprintf_s(ori_tmpBaseFolder_bw, "%s\\ori_charImgs_bw", abs_path);
+//		sprintf_s(ori_tmpOutFolder_bw, "%s\\%d", ori_tmpBaseFolder_bw, i);
+//		sprintf_s(ori_tmpCmd_bw, "mkdir %s", ori_tmpOutFolder_bw);
+//		system(ori_tmpCmd_bw);
 	
 
 		for (auto j = 0; j < char_imgs.size(); ++j)
 		{
 			Mat writeImg = char_imgs[j]; Mat writeImg_bw = char_imgs_bw[j];
 			write_img(ori_tmpBaseFolder, writeImg, i, j, charCount);
-			write_img(ori_tmpBaseFolder_bw, writeImg_bw, i, j, charCount);
-			resize(writeImg, writeImg, Size(32, 32), 0, 0, INTER_NEAREST);
-			resize(writeImg_bw, writeImg_bw, Size(32, 32), 0, 0, INTER_NEAREST);
-			write_img(tmpBaseFolder, writeImg, i, j, charCount);
-			write_img(tmpBaseFolder_bw, writeImg_bw, i, j, charCount);
+//			write_img(ori_tmpBaseFolder_bw, writeImg_bw, i, j, charCount);
+//			resize(writeImg, writeImg, Size(32, 32), 0, 0, INTER_NEAREST);
+//			resize(writeImg_bw, writeImg_bw, Size(32, 32), 0, 0, INTER_NEAREST);
+//			write_img(tmpBaseFolder, writeImg, i, j, charCount);
+//			write_img(tmpBaseFolder_bw, writeImg_bw, i, j, charCount);
 
 				// ocr
 	//			char singleResult;
