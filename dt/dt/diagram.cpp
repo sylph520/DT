@@ -207,6 +207,7 @@ struct ccinfo
 	Mat seg;
 	int label;
 	Vec2i center;
+	double radius;
 	int area;
 	int rect_area;
 };
@@ -631,13 +632,18 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 			//extract the char region and push back
 			Mat charImgCandicate = labeled_image == label;
 			int seg_area = statsMat.at<int>(label, 4);
+			auto segW = statsMat.at<int>(label, 2);
+			auto segH = statsMat.at<int>(label, 3);
+			auto segR = sqrt(segW*segW + segH * segH) / 2;
 			auto seg_center = centroidMat.row(label);
+			auto segRA = (boundingRect(charImgCandicate)).area();
 			Vec3b tmpColor = Vec3b(rand() % 255, rand() % 255, rand() % 255);
 			//			if (seg_area > 10)
 			{
 				matLabelp[charImgPageSegs.size()] = label;
 				charImgPageSegs.push_back(charImgCandicate);
-				ccinfo tmp = { charImgCandicate, label, seg_center, seg_area , -1 };
+
+				ccinfo tmp = { charImgCandicate, label, seg_center, segR, seg_area , segRA };
 				ccinfos.push_back(tmp);
 			}
 		}
@@ -790,17 +796,27 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 
 	for (auto iter1 = ccinfos.begin(); iter1 != ccinfos.end(); ++iter1)
 	{
-		auto seg_c1 = iter1->center;
+		auto seg1 = iter1->seg;
 		for (auto iter2 = iter1 + 1; iter2 != ccinfos.end(); )
 		{
+			auto seg_c1 = iter1->center; auto r1 = iter1->radius;
+			seg1 = iter1->seg; auto seg2 = iter2->seg;
 			auto seg_c2 = iter2->center;
 			auto seg_c_dis = norm(seg_c1, seg_c2);
-			if (seg_c_dis < 12)
+			auto r2 = iter2->radius;
+			auto threshhold = (r1 > r2) ?  r1+5 : r2+5;
+			if (seg_c_dis < threshhold && iter2->rect_area < 450 && iter1->rect_area < 450)
 			{
 				//close enough to merge the regions
-				iter1->seg += iter2->seg;
+				
+				iter1->seg += iter2->seg; 
+				auto seg3 = iter1->seg;
+				auto a = (iter2->area / (iter2->area + iter1->area)); auto b = 1 - a;
+				iter1->center = a*iter2->center + b*iter1->center;
 				iter1->area += iter2->area;// to check since the area computation here is not that correct
-				// ignore the center changement
+				iter1->radius += iter2->radius;
+				iter1->rect_area = (boundingRect(iter1->seg)).area();
+
 				colors[iter2->label] = colors[iter1->label];
 				//rm the second instance
 				iter2 = ccinfos.erase(iter2);
@@ -827,7 +843,7 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 		auto rectArea = segRect.area();
 		auto rectW = segRect.width;
 		auto rectH = segRect.height;
-		if (iter->area < 5)
+		if (iter->area < 10 || iter->rect_area > 400)
 //		if(false)
 		{
 			//still a small region, consider to remove it
@@ -850,8 +866,8 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 			pixel = colors[label];
 		}
 	}
-	char tmpLabelImg[100]; sprintf(tmpLabelImg, "label-%d.png", labelImgnum++);
-	imwrite(tmpLabelImg, labeled_image);
+//	char tmpLabelImg[100]; sprintf(tmpLabelImg, "label-%d.png", labelImgnum++);
+//	imwrite(tmpLabelImg, labeled_image);
 	for(auto i = 0; i < ccinfos.size(); ++i)
 	{
 		Mat char_seg = ccinfos[i].seg;
@@ -5848,12 +5864,12 @@ int diagram()
 	//vector<Mat> images;
 	vector<char*> charLabelsVec;
 	//	readTxtInto2DCharVec(charLabelsVec, "D:\\data\\graph-DB\\nt6\\groudtruth.txt");
-	char abs_path[100] = "D:\\data\\graph-DB\\newC6";
+	char abs_path[100] = "D:\\data\\graph-DB\\newC7";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
 	int charNum = 0;  int rightNum = 0;
-	for (int i = 1; i <= 84; i++)
+	for (int i = 17; i <= 84; i++)
 	{
 		cout << "*************************************************round " << i << endl;
 		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
