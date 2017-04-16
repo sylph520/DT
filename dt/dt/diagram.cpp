@@ -1128,8 +1128,10 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 	Mat invert_color_img = Scalar(255, 255, 255) - color_img;
 	if (showFlag)
 	{
-		namedWindow("RANSAC circle detection");
-		cv::imshow("RANSAC circle detection", invert_color_img);
+//		namedWindow("RANSAC circle detection");
+//		cv::imshow("RANSAC circle detection", invert_color_img);
+		namedWindow("circle detection");
+		cv::imshow("circle detection", invert_color_img);
 		namedWindow("diagram without circles");
 		cv::imshow("diagram without circles", 255 - diagram_segwithoutcircle);
 
@@ -1297,7 +1299,7 @@ void detect_circle2(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithout
 		circle(withoutCirBw, Point(c[0], c[1]), c[2], 0, 3);
 	}
 	namedWindow("Standart Hough Circle Transfrom");
-	imshow("Standart Hough Circle Transfrom", color_img);
+	imshow("Standart Hough Circle Transfrom", Scalar(255,255,255) - color_img);
 
 }
 
@@ -1308,18 +1310,18 @@ void detect_circle3(Mat diagram_segment, Mat& color_img, Mat& diagram_segwithout
 	vector<Vec3f> houghc;
 	Mat diagram_segment2 = color_img.clone();
 
-	HoughCircles(diagram_segment, houghc, HOUGH_GRADIENT,1, 20, 1,20 , 50,diagram_segment.rows/2);
+	HoughCircles(diagram_segment, houghc, HOUGH_GRADIENT,1, 20, 1,13 , 50,diagram_segment.rows/2);
 	for (size_t i = 0; i < houghc.size(); i++)
 	{
 		Point center(cvRound(houghc[i][0]), cvRound(houghc[i][1]));
 		int radius = cvRound(houghc[i][2]);
 		// circle center
-		circle(diagram_segment2, center, 3, Scalar(0, 255, 0), 1, 8, 0);
+		circle(diagram_segment2, center, 3, Scalar(255, 0, 255), 1, 8, 0);
 		// circle outline
-		circle(diagram_segment2, center, radius, Scalar(0, 0, 255), 3, 8, 0);
+		circle(diagram_segment2, center, radius, Scalar(255, 255, 0), 3, 8, 0);
 	}
 	namedWindow("OpenCV HoughCircles");
-	imshow("OpenCV HoughCircles", diagram_segment2);
+	imshow("OpenCV HoughCircles", Scalar(255,255,255) - diagram_segment2);
 
 }
 
@@ -3823,7 +3825,7 @@ void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wi
 			circle(oriLine, Point{ pt2[0], pt2[1] }, 10, tmp);
 		}
 		namedWindow("lsd line detection");
-		imshow("lsd line detection", oriLine);
+		imshow("lsd line detection", Scalar(255, 255, 255) - oriLine);
 	}
 	else if (fileName != "")
 	{
@@ -3991,7 +3993,7 @@ void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wi
 		circle(rmParaI, Point{ pt2[0], pt2[1] }, 10, tmp);
 	}
 	namedWindow("rm parallel");
-	imshow("rm parallel", rmParaI);
+	imshow("rm parallel", Scalar(255,255,255) - rmParaI);
 
 	// remove the line detected and store it as withoutCLOriBw
 
@@ -4352,7 +4354,7 @@ void detect_line_lsd1(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& wi
 	//if (showFlag)
 	{
 		namedWindow("lsd line detection final", 0);
-		imshow("lsd line detection final", color_img);
+		imshow("lsd line detection final", Scalar(255,255,255) - color_img);
 	}
 	drawedImages = color_img;
 }
@@ -5246,7 +5248,6 @@ void primitive_parse(const Mat binarized_image, const Mat diagram_segment, vecto
 	Mat withoutCirBw = binarized_image.clone();
 	// detect the circle and get the img without circle and bw img without cirlce and circle candidates
 //	detect_circle3(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
-//	ransac_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
 	detect_circle(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag);
 //	detect_circle2(diagram_segment, color_img, diagram_segwithoutcircle, withoutCirBw, circles, showFlag,20,diagram_segment.rows/2, 90, 20);
 	
@@ -5623,7 +5624,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("graph-1.jpg", 0);
+	Mat image = imread("test1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
@@ -5651,42 +5652,42 @@ int test_diagram()
 
 	primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, true);
 	cout << "sep" << endl;
-	// then we turn to handle the characters
-//	string str1(1,'O');
-//	string str2(1, 'A');
-//	string str3(1, 'C');
-//	string str4(1, 'B');
-//	string str5(1, 'D');
-//	string str6 = "A'";
-//	circles[0].setLabel(str1);
-//	points[0].setLabel(str2);
-//	points[1].setLabel(str3);
-//	points[2].setLabel(str4);
-//	points[3].setLabel(str5);
-//	points[4].setLabel(str6);
-//
-//	
-//	//now we obtained the circles, points, and lines, then we extract the infos 
-//	for (auto i = 0; i < lines.size(); ++i)
-//	{
-//		int pid1, pid2;
-//		pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
-//		string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
-//		double tmpSlope_r = lSlope_r(lines[i].getLineVec(points));
-//		double tmpSlope_d = lSlope_d(lines[i].getLineVec(points));
-//		double tmpLength = p2pdistance(points[pid1].getXY(),points[pid2].getXY());
-//		points[pid1].setIsEndPoint(true);
-//		lines[i].setLabel(tmpLabel);
-//		lines[i].setSlope_r(tmpSlope_r);
-//		lines[i].setSlope_d(tmpSlope_d);
-//		lines[i].setLen(tmpLength);
-//	}
-//	
-//	cout << endl << endl << endl << "****************now, output the extracted information****************" << endl;
-//	int choosed_version = 0;
-//	outPutInfos(0,circles,points,lines);
-//	outPutInfos(1,circles,points,lines);
-//	outPutInfos(2,circles,points,lines);
+	 then we turn to handle the characters
+	string str1(1,'O');
+	string str2(1, 'A');
+	string str3(1, 'C');
+	string str4(1, 'B');
+	string str5(1, 'D');
+	string str6 = "A'";
+	circles[0].setLabel(str1);
+	points[0].setLabel(str2);
+	points[1].setLabel(str3);
+	points[2].setLabel(str4);
+	points[3].setLabel(str5);
+	points[4].setLabel(str6);
+
+	
+	//now we obtained the circles, points, and lines, then we extract the infos 
+	for (auto i = 0; i < lines.size(); ++i)
+	{
+		int pid1, pid2;
+		pid1 = lines[i].getPt1Id(); pid2 = lines[i].getPt2Id();
+		string tmpLabel = points[pid1].getLabel() + points[pid2].getLabel();
+		double tmpSlope_r = lSlope_r(lines[i].getLineVec(points));
+		double tmpSlope_d = lSlope_d(lines[i].getLineVec(points));
+		double tmpLength = p2pdistance(points[pid1].getXY(),points[pid2].getXY());
+		points[pid1].setIsEndPoint(true);
+		lines[i].setLabel(tmpLabel);
+		lines[i].setSlope_r(tmpSlope_r);
+		lines[i].setSlope_d(tmpSlope_d);
+		lines[i].setLen(tmpLength);
+	}
+	
+	cout << endl << endl << endl << "****************now, output the extracted information****************" << endl;
+	int choosed_version = 0;
+	outPutInfos(0,circles,points,lines);
+	outPutInfos(1,circles,points,lines);
+	outPutInfos(2,circles,points,lines);
 
 	return 0;
 }
