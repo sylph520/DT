@@ -575,7 +575,7 @@ Mat image_binarizing(Mat input_image, bool showFlag = false)
 		namedWindow("binarized image");
 		imshow("binarized image", 255 - binarized_image);//test binarized image
 	}
-	return 255-binarized_image;
+	return binarized_image;
 }
 
 void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &char_imgs, bool showFlag = false)
@@ -583,7 +583,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 	// this function is used to label image with connectedcomponnent analysis, and store the diagram 
 	//and label segment
 	Mat labeled(binarized_image.size(), CV_8UC3);
-	Mat boundImg = binarized_image.clone();
+	Mat boundImg = 255 - binarized_image.clone();
 	cvtColor(boundImg, boundImg, COLOR_GRAY2RGB);
 //	boundImg.convertTo(boundImg)
 	Mat statsMat, centroidMat;
@@ -762,7 +762,7 @@ void image_labelling(Mat binarized_image, Mat& diagram_segment, vector<Mat> &cha
 		namedWindow("bounded");
 		imshow("bounded", boundImg);
 		namedWindow("Main diagram segment");
-		imshow("Main diagram segment", diagram_segment);
+		imshow("Main diagram segment", 255-diagram_segment);
 
 	}
 }
@@ -1118,19 +1118,20 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 			// in this current version the chosen radius to overwrite the mask is fixed and might remove parts of other circles too!
 
 			// update mask: remove the detected circle!
+
 			cv::circle(diagram_segwithoutcircle, {circle[0], circle[1]}, circle[2], 0, width); // here the radius is fixed which isnt so nice.
 			//edgePointsWithoutCircle = getPointPositions(diagram_segwithoutcircle);
-			cv::circle(color_img, {circle[0], circle[1]}, circle[2], Scalar(255, 0, 255), 2);
+			cv::circle(color_img, {circle[0], circle[1]}, circle[2], Scalar(0, 255, 0), 2);
 			cv::circle(withoutCirBw, {circle[0], circle[1]}, circle[2], 0, width);
 		}
 	}
-
+	Mat invert_color_img = Scalar(255, 255, 255) - color_img;
 	if (showFlag)
 	{
 		namedWindow("RANSAC circle detection");
-		cv::imshow("RANSAC circle detection", color_img);
+		cv::imshow("RANSAC circle detection", invert_color_img);
 		namedWindow("diagram without circles");
-		cv::imshow("diagram without circles", diagram_segwithoutcircle);
+		cv::imshow("diagram without circles", 255 - diagram_segwithoutcircle);
 
 	}
 }
@@ -3088,7 +3089,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	if (showFlag)
 	{
 		namedWindow("origianl detected line");
-		imshow("origianl detected line", oriLine);
+		imshow("origianl detected line", Scalar(255,255,255) - oriLine);
 	};
 	for (size_t i = 0; i < rawLines.size(); ++i)
 	{
@@ -3283,7 +3284,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 		circle(rmParaI, Point{pt2[0], pt2[1]}, 10, tmp);
 	}
 	namedWindow("rm parallel");
-	imshow("rm parallel", rmParaI);
+	imshow("rm parallel", Scalar(255, 255, 255) - rmParaI);
 
 	// remove the line detected and store it as withoutCLOriBw
 
@@ -3466,7 +3467,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 		circle(crossRefLine, Point{ pt1[0], pt1[1] }, 10, tmp, 2);
 		circle(crossRefLine, Point{ pt2[0], pt2[1] }, 10, tmp, 2);
 	}
-	imshow("after cross points refinement", crossRefLine);
+	imshow("after cross points refinement", Scalar(255, 255, 255) - crossRefLine);
 
 	//rm isolated short lines due to the non-complete circle removal
 	// 1. two points almost on circles 2. the length is short 3. the end points is ont on other lines
@@ -3775,7 +3776,7 @@ void detect_line3(Mat diagram_segment, Mat diagram_segwithoutcircle, Mat& withou
 	//if (showFlag)
 	{
 		namedWindow("final line detection result");
-		imshow("final line detection result", color_img);
+		imshow("final line detection result", Scalar(255, 255, 255) - color_img);
 	}
 	cout << "test p1" << endl;
 	drawedImages = color_img;
@@ -5622,7 +5623,7 @@ void outPutInfos(int version, vector<circle_class> &circles, vector<point_class>
 int test_diagram()
 {
 	//first load a image
-	Mat image = imread("test1.jpg", 0);
+	Mat image = imread("graph-1.jpg", 0);
 	//namedWindow("original image");
 	//imshow("original image", image);
 	// then binarize it
