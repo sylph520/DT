@@ -805,7 +805,7 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 			auto seg_c_dis = norm(seg_c1, seg_c2);
 			auto r2 = iter2->radius;
 			auto threshhold = (r1 > r2) ?  r1+5 : r2+5;
-			if (seg_c_dis < threshhold && iter2->rect_area < 450 && iter1->rect_area < 450)
+			if (seg_c_dis < threshhold && iter2->rect_area < 450 && iter1->rect_area < 500)
 			{
 				//close enough to merge the regions
 				
@@ -843,7 +843,7 @@ void image_labelling(Mat image, Mat binarized_image, Mat& diagram_segment, vecto
 		auto rectArea = segRect.area();
 		auto rectW = segRect.width;
 		auto rectH = segRect.height;
-		if (iter->area < 10 || iter->rect_area > 400)
+		if (iter->area < 10 || iter->rect_area > 500)
 //		if(false)
 		{
 			//still a small region, consider to remove it
@@ -5869,7 +5869,7 @@ int diagram()
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
 	int charNum = 0;  int rightNum = 0;
-	for (int i = 17; i <= 84; i++)
+	for (int i = 1; i <= 84; i++)
 	{
 		cout << "*************************************************round " << i << endl;
 		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
