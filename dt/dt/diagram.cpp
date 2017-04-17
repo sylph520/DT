@@ -5778,7 +5778,7 @@ int test_diagram()
 
 	primitive_parse(binarized_image, diagram_segment, oriEdgePoints, points, lines, circles, drawedImages, true);
 	cout << "sep" << endl;
-	 then we turn to handle the characters
+//	 then we turn to handle the characters
 	string str1(1,'O');
 	string str2(1, 'A');
 	string str3(1, 'C');
