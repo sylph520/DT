@@ -1041,6 +1041,40 @@ inline void getCircle(Point2i p1, Point2i p2, Point2i p3, Point2f& center, float
 	radius = p2pdistance(Point(p1.x, p1.y), Point(center.x, center.y));
 }
 
+Vec2f verifyCircle(Mat dt, Point2f center, float radius, std::vector<cv::Point2f> & inlierSet,unsigned int ct)
+{
+	unsigned int counter = 0;
+	unsigned int inlier = 0;
+	float minInlierDist = 2.0f;
+	float maxInlierDistMax = 100.0f;
+	float maxInlierDist = radius / 25.0f;
+	if (maxInlierDist<minInlierDist) maxInlierDist = minInlierDist;
+	if (maxInlierDist>maxInlierDistMax) maxInlierDist = maxInlierDistMax;
+
+	// choose samples along the circle and count inlier percentage
+	for (float t = 0; t<2 * 3.14159265359f; t += 0.05f)
+	{
+		counter++;
+		float cX = radius*cos(t) + center.x;
+		float cY = radius*sin(t) + center.y;
+
+		if (cX < dt.cols)
+			if (cX >= 0)
+				if (cY < dt.rows)
+					if (cY >= 0)
+						if (dt.at<float>(cY, cX) < maxInlierDist)
+						{
+							inlier++;
+//							inlierSet.push_back(cv::Point2f(cX, cY));
+						}
+	}
+
+	float perc = (float)inlier / float(counter);
+	Vec2f ret = { float(inlier),perc };
+	return ret;
+}
+
+
 float evaluateCircle(Mat dt, Point2f center, float radius)
 {
 	float completeDistance = 0.0f;
@@ -1188,17 +1222,21 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 {
 	unsigned int circleN_todetect = 2;
 	diagram_segwithoutcircle = diagram_segment.clone();
+	unsigned int ori_ptCount = 0;
 	//int c_count = 0;
 	for (unsigned int i = 0; i < circleN_todetect; ++i)
 	{
 		vector<Point2i> edgePositions = getPointPositions(diagram_segwithoutcircle);
+		if (!i)
+			ori_ptCount = edgePositions.size();
 		Mat dt;
 		distanceTransform(255 - diagram_segwithoutcircle, dt, CV_DIST_L1, 3);
 		unsigned int nIter = 0;
 		Point2f bestCircleCenter = {};
 		float bestCircleRadius = -1.0f;
-		float bestCVal = -1;
+		float bestCVal = -1; float bestPerc = -1;
 		float minCircleRadius = 0.0f;
+		float minCirclePercentage = 0.45f;
 		for (unsigned int j = 0; j < 2000; ++j)
 		{
 			int edgepSize = edgePositions.size();
@@ -1214,42 +1252,85 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 			getCircle(edgePositions[idx1], edgePositions[idx2], edgePositions[idx3], center, radius);
 			if (radius < minCircleRadius)
 				continue;
-			float cVal = evaluateCircle(dt, center, radius);
-			if (cVal > bestCVal)
+//			float cVal = evaluateCircle(dt, center, radius);
+			vector<Point2f> inlierSet;
+			Vec2f tmpV= verifyCircle(dt, center, radius, inlierSet,2000);
+			float cPerc = tmpV[1];
+			float cVal = tmpV[0];
+//			Mat diagram_segwithoutcircle;
+			
+			if(cPerc > bestPerc)
 			{
+				bestPerc = cPerc;
 				bestCVal = cVal;
 				bestCircleRadius = radius;
 				bestCircleCenter = center;
 			}
+
+
+//			if (cVal > bestCVal)
+//			{
+//				bestCVal = cVal;
+//				bestCircleRadius = radius;
+//				bestCircleCenter = center;
+//			}
+
 			++nIter;
 		}
-		if (bestCVal < 4 * bestCircleRadius)
+
+//		if (bestCVal < 4 * bestCircleRadius)
+//			break;
+//		if (bestCVal < static_cast<int>(edgePositions.size() / 8))
+//			break;
+//		if (bestCVal > 125)
+//		{
+//			//std::cout << "current best circle: " << bestCircleCenter << " with radius: " << bestCircleRadius << " and nInlier " << bestCVal << endl;
+//
+//			Vec3f circlef = { bestCircleCenter.x, bestCircleCenter.y, bestCircleRadius };
+//			int width = 0;
+//			Vec3i circle = radiusThicknessRev(circlef, diagram_segment, width);
+//			//int c_id = c_count++;
+//			circle_class class_circle(circle, i, width);
+//			circles.push_back(class_circle);
+//			//draw the cicle detected in red within the colorgeo blob image
+//			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(0, 0, 255));
+//			//TODO: hold and save the detected circle.
+//
+//			//TODO: instead of overwriting the mask with a drawn circle it might be better to hold and ignore detected circles and dont count new circles which are too close to the old one.
+//			// in this current version the chosen radius to overwrite the mask is fixed and might remove parts of other circles too!
+//
+//			// update mask: remove the detected circle!
+//			cv::circle(diagram_segwithoutcircle, { circle[0], circle[1] }, circle[2], 0, width); // here the radius is fixed which isnt so nice.
+//			//edgePointsWithoutCircle = getPointPositions(diagram_segwithoutcircle);
+//			cv::circle(color_img, {circle[0], circle[1]}, circle[2], Scalar(0, 255, 0), 2);
+//			cv::circle(withoutCirBw, {circle[0], circle[1]}, circle[2], 0, width);
+//		}
+		
+		if(bestPerc < minCirclePercentage)
+		{
 			break;
-		if (bestCVal < static_cast<int>(edgePositions.size() / 8))
-			break;
-		if (bestCVal > 125)
+		}
+		else if(bestCircleRadius > diagram_segment.cols/8 
+			&& bestCVal > 125 )
+//&& bestCVal < static_cast<int>(edgePositions.size() / 8))
+//			&& bestCVal < 4 * bestCircleRadius)
 		{
 			//std::cout << "current best circle: " << bestCircleCenter << " with radius: " << bestCircleRadius << " and nInlier " << bestCVal << endl;
-
 			Vec3f circlef = { bestCircleCenter.x, bestCircleCenter.y, bestCircleRadius };
 			int width = 0;
 			Vec3i circle = radiusThicknessRev(circlef, diagram_segment, width);
-			//int c_id = c_count++;
 			circle_class class_circle(circle, i, width);
 			circles.push_back(class_circle);
-			//draw the cicle detected in red within the colorgeo blob image
-			//cv::circle(color_img, bestCircleCenter, bestCircleRadius, Scalar(0, 0, 255));
 			//TODO: hold and save the detected circle.
-
 			//TODO: instead of overwriting the mask with a drawn circle it might be better to hold and ignore detected circles and dont count new circles which are too close to the old one.
 			// in this current version the chosen radius to overwrite the mask is fixed and might remove parts of other circles too!
 
 			// update mask: remove the detected circle!
 			cv::circle(diagram_segwithoutcircle, { circle[0], circle[1] }, circle[2], 0, width); // here the radius is fixed which isnt so nice.
-			//edgePointsWithoutCircle = getPointPositions(diagram_segwithoutcircle);
-			cv::circle(color_img, {circle[0], circle[1]}, circle[2], Scalar(0, 255, 0), 2);
-			cv::circle(withoutCirBw, {circle[0], circle[1]}, circle[2], 0, width);
+			cv::circle(color_img, { circle[0], circle[1] }, circle[2], Scalar(0, 255, 0), 2);
+			cv::circle(withoutCirBw, { circle[0], circle[1] }, circle[2], 0, width);
 		}
+	
 	}
 	Mat invert_color_img = Scalar(255, 255, 255) - color_img;
 	if (showFlag)
@@ -5865,12 +5946,12 @@ int diagram()
 	//vector<Mat> images;
 	vector<char*> charLabelsVec;
 	//	readTxtInto2DCharVec(charLabelsVec, "D:\\data\\graph-DB\\nt6\\groudtruth.txt");
-	char abs_path[100] = "D:\\data\\graph-DB\\newC7";
+	char abs_path[100] = "D:\\data\\graph-DB\\curve0";
 	char imageName[150], saveimgName[150];
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
 	int charNum = 0;  int rightNum = 0;
-	for (int i = 1; i <= 84; i++)
+	for (int i = 8; i <= 84; i++)
 	{
 		cout << "*************************************************round " << i << endl;
 		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
