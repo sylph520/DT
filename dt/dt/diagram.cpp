@@ -1045,11 +1045,12 @@ Vec2f verifyCircle(Mat dt, Point2f center, float radius, std::vector<cv::Point2f
 {
 	unsigned int counter = 0;
 	unsigned int inlier = 0;
-	float minInlierDist = 2.0f;
-	float maxInlierDistMax = 100.0f;
-	float maxInlierDist = radius / 25.0f;
-	if (maxInlierDist<minInlierDist) maxInlierDist = minInlierDist;
-	if (maxInlierDist>maxInlierDistMax) maxInlierDist = maxInlierDistMax;
+	//float minInlierDist = 2.0f;
+	//float maxInlierDistMax = 100.0f;
+	//float maxInlierDist = radius / 25.0f;
+	float maxInlierDist = 1.0f;
+	//if (maxInlierDist<minInlierDist) maxInlierDist = minInlierDist;
+	//if (maxInlierDist>maxInlierDistMax) maxInlierDist = maxInlierDistMax;
 
 	// choose samples along the circle and count inlier percentage
 	for (float t = 0; t<2 * 3.14159265359f; t += 0.05f)
@@ -1236,7 +1237,7 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 		float bestCircleRadius = -1.0f;
 		float bestCVal = -1; float bestPerc = -1;
 		float minCircleRadius = 0.0f;
-		float minCirclePercentage = 0.45f;
+		float minCirclePercentage = 0.4f;
 		for (unsigned int j = 0; j < 2000; ++j)
 		{
 			int edgepSize = edgePositions.size();
@@ -1250,6 +1251,11 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 			Point2f center = {};
 			float radius = -1.0f;
 			getCircle(edgePositions[idx1], edgePositions[idx2], edgePositions[idx3], center, radius);
+			Mat test_p_image = color_img.clone(); 
+			/*circle(test_p_image, edgePositions[idx1], 10, Scalar(0, 255, 0), 2);
+			circle(test_p_image, edgePositions[idx2], 10, Scalar(0, 255, 0), 2);
+			circle(test_p_image, edgePositions[idx3], 10, Scalar(0, 255, 0), 2);
+			circle(test_p_image, center,radius, Scalar(0, 255, 0), 2);*/
 			if (radius < minCircleRadius)
 				continue;
 //			float cVal = evaluateCircle(dt, center, radius);
@@ -1259,7 +1265,7 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 			float cVal = tmpV[0];
 //			Mat diagram_segwithoutcircle;
 			
-			if(cPerc > bestPerc)
+			if(cVal > bestCVal)
 			{
 				bestPerc = cPerc;
 				bestCVal = cVal;
@@ -1305,13 +1311,13 @@ void detect_circle(const Mat diagram_segment, Mat& color_img, Mat& diagram_segwi
 //			cv::circle(color_img, {circle[0], circle[1]}, circle[2], Scalar(0, 255, 0), 2);
 //			cv::circle(withoutCirBw, {circle[0], circle[1]}, circle[2], 0, width);
 //		}
-		
+		Mat test_circle_img = color_img.clone(); circle(test_circle_img, bestCircleCenter, bestCircleRadius, Scalar(255, 0, 0), 1);
 		if(bestPerc < minCirclePercentage)
 		{
 			break;
 		}
-		else if(bestCircleRadius > diagram_segment.cols/8 
-			&& bestCVal > 125 )
+		else if((bestPerc == 1)||(bestCircleRadius > diagram_segment.cols/8 
+			&& bestCVal/bestPerc > 120))
 //&& bestCVal < static_cast<int>(edgePositions.size() / 8))
 //			&& bestCVal < 4 * bestCircleRadius)
 		{
@@ -5951,7 +5957,7 @@ int diagram()
 	//string outputFN = "D:\\data\\graph-DB\\newtest6\\output.txt";
 	int charCount = 0;
 	int charNum = 0;  int rightNum = 0;
-	for (int i = 8; i <= 84; i++)
+	for (int i = 1; i <= 84; i++)
 	{
 		cout << "*************************************************round " << i << endl;
 		sprintf_s(imageName, "%s\\graph-%d.jpg", abs_path, i);
